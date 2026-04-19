@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'constants/theme.dart';
+import 'screens/home_screen.dart';
 import 'screens/my_trips_screen.dart';
 import 'screens/booking_checkout_screen.dart';
 import 'screens/profile_registration_screen.dart';
@@ -18,8 +19,9 @@ class MyApp extends StatelessWidget {
       title: 'Tripwise',
       theme: TripwiseTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const BookingCheckoutScreen(),
+      home: const HomeScreen(),
       routes: {
+        '/home': (context) => const HomeScreen(),
         '/my_trips': (context) => const MyTripsScreen(),
         '/booking_checkout': (context) => const BookingCheckoutScreen(),
         '/profile_registration': (context) => const ProfileRegistrationScreen(),
