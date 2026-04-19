@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import 'payment_success_screen.dart';
 
 class BookingCheckoutScreen extends StatefulWidget {
   const BookingCheckoutScreen({super.key});
@@ -372,67 +373,10 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   }
 
   void _showBookingConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: TripwiseColors.primaryFixed,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Icon(
-                  Icons.check_circle,
-                  size: 48,
-                  color: TripwiseColors.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Booking Confirmed!',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Your booking has been successfully confirmed. Check your email for details.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.primary,
-                    foregroundColor: TripwiseColors.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Done'),
-                ),
-              ),
-            ],
-          ),
-        ),
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PaymentSuccessScreen(),
       ),
     );
   }
