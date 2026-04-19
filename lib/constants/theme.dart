@@ -47,7 +47,7 @@ class TripwiseTheme {
         elevation: 0,
         type: BottomNavigationBarType.fixed,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: TripwiseColors.surfaceContainerLowest,
         elevation: 0,
         shape: RoundedRectangleBorder(
