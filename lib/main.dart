@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Tripwise',
       theme: TripwiseTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const MyTripsScreen(),
+      home: const BookingCheckoutScreen(),
       routes: {
         '/my_trips': (context) => const MyTripsScreen(),
         '/booking_checkout': (context) => const BookingCheckoutScreen(),
