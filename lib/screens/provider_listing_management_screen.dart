@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class ProviderListingManagementScreen extends StatefulWidget {
@@ -103,6 +104,7 @@ class _ProviderListingManagementScreenState
               child: Column(
                 children: [
                   _buildSmallListingCard(
+                    id: '2',
                     title: 'Skyline Villa',
                     location: 'Dubai, UAE',
                     imageUrl:
@@ -113,6 +115,7 @@ class _ProviderListingManagementScreenState
                     children: [
                       Expanded(
                         child: _buildSmallHorizontalCard(
+                          id: '3',
                           title: 'Emerald Peak Lodge',
                           location: 'Aspen, Colorado',
                           status: 'Inactive',
@@ -124,6 +127,7 @@ class _ProviderListingManagementScreenState
                       const SizedBox(width: 16),
                       Expanded(
                         child: _buildSmallHorizontalCard(
+                          id: '4',
                           title: 'Rustic Oak Manor',
                           location: 'Cotswolds, UK',
                           status: 'Active',
@@ -188,7 +192,9 @@ class _ProviderListingManagementScreenState
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () {
+          context.push('/provider_listing_add');
+        },
         backgroundColor: TripwiseColors.secondaryContainer,
         icon: const Icon(Icons.add),
         label: const Text('Add Listing'),
@@ -289,7 +295,11 @@ class _ProviderListingManagementScreenState
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        context.push(
+                          '/provider_listing_edit?id=1&title=Azure Horizon Bay Resort',
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TripwiseColors.surfaceContainerHigh,
                         foregroundColor: TripwiseColors.onSurface,
@@ -315,6 +325,7 @@ class _ProviderListingManagementScreenState
   }
 
   Widget _buildSmallListingCard({
+    required String id,
     required String title,
     required String location,
     required String imageUrl,
@@ -364,7 +375,9 @@ class _ProviderListingManagementScreenState
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      context.push('/provider_listing_edit?id=$id&title=$title');
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TripwiseColors.surfaceContainerLow,
                       foregroundColor: TripwiseColors.primary,
@@ -386,6 +399,7 @@ class _ProviderListingManagementScreenState
   }
 
   Widget _buildSmallHorizontalCard({
+    required String id,
     required String title,
     required String location,
     required String status,
@@ -467,7 +481,9 @@ class _ProviderListingManagementScreenState
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          context.push('/provider_listing_edit?id=$id&title=$title');
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: TripwiseColors.primary,
                           side: const BorderSide(color: TripwiseColors.primary),
@@ -485,7 +501,9 @@ class _ProviderListingManagementScreenState
                     const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          context.push('/provider_analytics?id=$id&title=$title');
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: TripwiseColors.onSurfaceVariant,
                           side: const BorderSide(color: TripwiseColors.outlineVariant),
