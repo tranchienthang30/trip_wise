@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class ProfileRegistrationScreen extends StatefulWidget {
@@ -244,7 +245,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   _buildMenuItemButton(
                     icon: Icons.security,
                     label: 'Security & Privacy',
-                    onTap: () {},
+                    onTap: () {
+                      context.push('/security_privacy');
+                    },
                   ),
                   Divider(
                     height: 1,
@@ -253,7 +256,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   _buildMenuItemButton(
                     icon: Icons.notifications_active,
                     label: 'Notifications',
-                    onTap: () {},
+                    onTap: () {
+                      context.push('/notifications');
+                    },
                   ),
                   Divider(
                     height: 1,
@@ -262,7 +267,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   _buildMenuItemButton(
                     icon: Icons.help,
                     label: 'Help Center',
-                    onTap: () {},
+                    onTap: () {
+                      context.push('/help_center');
+                    },
                   ),
                   Divider(
                     height: 1,

@@ -99,7 +99,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     label: 'Phone Number',
-                    placeholder: '+1 (555) 123-4567',
+                    placeholder: '+84 869033688',
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
