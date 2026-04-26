@@ -11,6 +11,9 @@ import 'screens/provider_listing_management_screen.dart';
 import 'screens/security_privacy_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/help_center_screen.dart';
+import 'screens/provider_listing_edit_screen.dart';
+import 'screens/provider_listing_add_screen.dart';
+import 'screens/provider_analytics_screen.dart';
 
 final GoRouter _router = GoRouter(
   initialLocation: '/home',
@@ -54,6 +57,32 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/help_center',
       builder: (context, state) => const HelpCenterScreen(),
+    ),
+    GoRoute(
+      path: '/provider_listing_edit',
+      builder: (context, state) {
+        final listingId = state.uri.queryParameters['id'];
+        final listingTitle = state.uri.queryParameters['title'];
+        return ProviderListingEditScreen(
+          listingId: listingId,
+          listingTitle: listingTitle,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/provider_listing_add',
+      builder: (context, state) => const ProviderListingAddScreen(),
+    ),
+    GoRoute(
+      path: '/provider_analytics',
+      builder: (context, state) {
+        final listingId = state.uri.queryParameters['id'];
+        final listingTitle = state.uri.queryParameters['title'];
+        return ProviderAnalyticsScreen(
+          listingId: listingId,
+          listingTitle: listingTitle,
+        );
+      },
     ),
   ],
 );
