@@ -14,6 +14,23 @@ import 'screens/help_center_screen.dart';
 import 'screens/provider_listing_edit_screen.dart';
 import 'screens/provider_listing_add_screen.dart';
 import 'screens/provider_analytics_screen.dart';
+import 'screens/add_activity_screen.dart';
+import 'screens/add_location_search_screen.dart';
+import 'screens/add_new_listing_form_screen.dart';
+import 'screens/add_payment_screen.dart';
+import 'screens/direct_messaging_screen.dart';
+import 'screens/elite_upgrade_confirmation_screen.dart';
+import 'screens/inventory_pricing_screen.dart';
+import 'screens/order_manager_screen.dart';
+import 'screens/payment_success_screen.dart';
+import 'screens/plan_new_trip_form_screen.dart';
+import 'screens/provider_dashboard_screen.dart';
+import 'screens/service_details_screen.dart';
+import 'screens/trip_planner_dashboard_screen.dart';
+import 'screens/trip_planner_timeline_screen.dart';
+import 'screens/vip_services_screen.dart';
+import 'screens/wallet_loyalty_screen.dart';
+import 'screens/provider_registration_form_screen.dart';
 
 final GoRouter _router = GoRouter(
   initialLocation: '/home',
@@ -83,6 +100,74 @@ final GoRouter _router = GoRouter(
           listingTitle: listingTitle,
         );
       },
+    ),
+    GoRoute(
+      path: '/add_activity',
+      builder: (context, state) => const AddActivityScreen(),
+    ),
+    GoRoute(
+      path: '/add_location_search',
+      builder: (context, state) => const AddLocationSearchScreen(),
+    ),
+    GoRoute(
+      path: '/add_new_listing_form',
+      builder: (context, state) => const AddNewListingFormScreen(),
+    ),
+    GoRoute(
+      path: '/add_payment',
+      builder: (context, state) => const AddPaymentScreen(),
+    ),
+    GoRoute(
+      path: '/direct_messaging',
+      builder: (context, state) => const DirectMessagingScreen(),
+    ),
+    GoRoute(
+      path: '/elite_upgrade_confirmation',
+      builder: (context, state) => const EliteUpgradeConfirmationScreen(),
+    ),
+    GoRoute(
+      path: '/inventory_pricing',
+      builder: (context, state) => const InventoryPricingScreen(),
+    ),
+    GoRoute(
+      path: '/order_manager',
+      builder: (context, state) => const OrderManagerScreen(),
+    ),
+    GoRoute(
+      path: '/payment_success',
+      builder: (context, state) => const PaymentSuccessScreen(),
+    ),
+    GoRoute(
+      path: '/plan_new_trip_form',
+      builder: (context, state) => const PlanNewTripFormScreen(),
+    ),
+    GoRoute(
+      path: '/provider_dashboard',
+      builder: (context, state) => const ProviderDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/service_details',
+      builder: (context, state) => const ServiceDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/trip_planner_dashboard',
+      builder: (context, state) => const TripPlannerDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/trip_planner_timeline',
+      builder: (context, state) => const TripPlannerTimelineScreen(),
+    ),
+    GoRoute(
+      path: '/vip_services',
+      builder: (context, state) => const VipServicesScreen(),
+    ),
+    GoRoute(
+      path: '/wallet_loyalty',
+      builder: (context, state) => const WalletLoyaltyScreen(),
+    ),
+    GoRoute(
+      path: '/provider_registration_form',
+      builder: (context, state) => const ProviderRegistrationFormScreen(),
     ),
   ],
 );

@@ -163,7 +163,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        context.push('/provider_registration_form');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TripwiseColors.secondaryContainer,
                         foregroundColor: TripwiseColors.onSecondary,
