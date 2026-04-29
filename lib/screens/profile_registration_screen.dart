@@ -18,12 +18,12 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(
             Icons.search,
             color: TripwiseColors.primary,
           ),
-          onPressed: () => context.push('/add_location_search'),
         ),
         centerTitle: true,
         title: Text(
@@ -163,7 +163,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: () => context.push('/provider_registration'),
+                      onPressed: () {
+                        context.push('/provider_registration_form');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TripwiseColors.secondaryContainer,
                         foregroundColor: TripwiseColors.onSecondary,
@@ -177,27 +179,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                       ),
                       icon: const Icon(Icons.arrow_forward),
                       label: const Text('Start Registration'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => context.go('/provider_dashboard'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: TripwiseColors.onPrimaryContainer,
-                        side: BorderSide(
-                          color: TripwiseColors.onPrimaryContainer.withOpacity(
-                            0.2,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.storefront_rounded),
-                      label: const Text('Temp Switch To Provider'),
                     ),
                   ],
                 ),
@@ -236,7 +217,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           icon: Icons.cloud_upload,
                           title: 'Passport or ID',
                           subtitle: 'JPG, PNG or PDF',
-                          onTap: () => _showUploadUnavailableMessage(context),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -245,7 +225,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           icon: Icons.account_balance,
                           title: 'Proof of Address',
                           subtitle: 'Recent utility bill',
-                          onTap: () => _showUploadUnavailableMessage(context),
                         ),
                       ),
                     ],
@@ -302,9 +281,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     icon: Icons.logout,
                     label: 'Sign Out',
                     isDestructive: true,
-                    onTap: () {
-                      context.go('/home');
-                    },
+                    onTap: () {},
                   ),
                 ],
               ),
@@ -314,7 +291,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -322,7 +299,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -336,7 +312,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {},
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -370,14 +346,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showUploadUnavailableMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Document upload is not available yet.'),
       ),
     );
   }
@@ -432,10 +400,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
+  Widget _buildBottomNavBar() {
     return BottomNavigationBar(
       currentIndex: 4,
-      onTap: (index) => _handleBottomNavTap(context, index),
+      onTap: (index) {},
       items: [
         BottomNavigationBarItem(
           icon: const Icon(Icons.home),
@@ -459,21 +427,5 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         ),
       ],
     );
-  }
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    const routes = [
-      '/home',
-      '/my_trips',
-      '/trip_planner_dashboard',
-      '/wallet_loyalty',
-      '/profile_registration',
-    ];
-
-    if (index == 4) {
-      return;
-    }
-
-    context.go(routes[index]);
   }
 }
