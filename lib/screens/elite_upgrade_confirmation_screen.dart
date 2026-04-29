@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class EliteUpgradeConfirmationScreen extends StatelessWidget {
   const EliteUpgradeConfirmationScreen({super.key});
@@ -7,7 +8,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 120),
         child: Center(
@@ -31,7 +32,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white.withOpacity(0.8),
       elevation: 0,
@@ -48,7 +49,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF1D4ED8)),
-        onPressed: () {},
+        onPressed: () => context.go('/vip_services'),
       ),
       actions: [
         Container(
@@ -181,7 +182,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
                 flex: 1,
                 child: Column(
                   children: [
-                    _buildConfirmationActionCard(),
+                    _buildConfirmationActionCard(context),
                     const SizedBox(height: 24),
                     _buildSecondaryPreviewCard(),
                   ],
@@ -194,7 +195,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
             children: [
               _buildPlanIdentityCard(),
               const SizedBox(height: 24),
-              _buildConfirmationActionCard(),
+              _buildConfirmationActionCard(context),
               const SizedBox(height: 24),
               _buildSecondaryPreviewCard(),
             ],
@@ -298,7 +299,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildConfirmationActionCard() {
+  Widget _buildConfirmationActionCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -324,7 +325,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => context.go('/vip_services'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5E1F), // secondary-container
                 foregroundColor: Colors.white,

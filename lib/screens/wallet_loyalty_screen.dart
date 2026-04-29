@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
 // Brand palette has no green; matches HTML mock for credit indicator.
 const Color _creditGreenBg = Color(0xFFD7F4DD);
 const Color _creditGreenFg = Color(0xFF1F8A3A);
+
+void _showWalletFlowNotice(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+}
 
 class WalletLoyaltyScreen extends StatefulWidget {
   const WalletLoyaltyScreen({super.key});
@@ -84,35 +96,39 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
       appBar: AppBar(
         toolbarHeight: 68,
         titleSpacing: 20,
-        title: Row(
-          children: [
-            const Icon(Icons.search_rounded, color: TripwiseColors.primary),
-            const SizedBox(width: 12),
-            Text(
-              'Tripwise',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: TripwiseColors.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-            ),
-          ],
+        leading: IconButton(
+          icon: const Icon(
+            Icons.search_rounded,
+            color: TripwiseColors.primary,
+          ),
+          onPressed: () => context.push('/add_location_search'),
+        ),
+        title: Text(
+          'Tripwise',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: TripwiseColors.primary,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 20),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: TripwiseColors.primaryContainer,
-                  width: 2,
+            child: GestureDetector(
+              onTap: () => context.go('/profile_registration'),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: TripwiseColors.primaryContainer,
+                    width: 2,
+                  ),
                 ),
-              ),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(_avatarUrl),
+                child: const CircleAvatar(
+                  radius: 18,
+                  backgroundImage: NetworkImage(_avatarUrl),
+                ),
               ),
             ),
           ),
@@ -151,7 +167,7 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
         currentIndex: _currentNavIndex,
         selectedItemColor: TripwiseColors.secondaryContainer,
         unselectedItemColor: TripwiseColors.outline,
-        onTap: (index) => setState(() => _currentNavIndex = index),
+        onTap: _handleBottomNavTap,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -176,6 +192,22 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
         ],
       ),
     );
+  }
+
+  void _handleBottomNavTap(int index) {
+    const routes = [
+      '/home',
+      '/my_trips',
+      '/trip_planner_dashboard',
+      '/wallet_loyalty',
+      '/profile_registration',
+    ];
+
+    if (index == _currentNavIndex) {
+      return;
+    }
+
+    context.go(routes[index]);
   }
 }
 
@@ -293,7 +325,7 @@ class _PrimaryWalletCard extends StatelessWidget {
                   runSpacing: 12,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => context.push('/add_payment'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TripwiseColors.secondaryContainer,
                         foregroundColor: Colors.white,
@@ -312,7 +344,13 @@ class _PrimaryWalletCard extends StatelessWidget {
                       label: const Text('Top-up'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Withdrawal flow is not available yet.'),
+                          ),
+                        );
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.white.withOpacity(0.10),
@@ -453,7 +491,10 @@ class _LoyaltyPointsCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () => _showWalletFlowNotice(
+                context,
+                'Rewards catalog will be available here soon.',
+              ),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 0),
@@ -504,7 +545,13 @@ class _TransactionsSection extends StatelessWidget {
               style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Detailed transaction history is not available yet.'),
+                  ),
+                );
+              },
               child: Text(
                 'SEE ALL',
                 style: textTheme.labelMedium?.copyWith(
@@ -695,7 +742,7 @@ class _CardsSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         InkWell(
-          onTap: () => Navigator.pushNamed(context, '/add_payment'),
+          onTap: () => context.push('/add_payment'),
           borderRadius: BorderRadius.circular(20),
           child: Container(
             decoration: BoxDecoration(
@@ -790,7 +837,10 @@ class _LoyaltyPerkBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _showWalletFlowNotice(
+                    context,
+                    'Reward redemption will be available in Wallet soon.',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: TripwiseColors.secondary,

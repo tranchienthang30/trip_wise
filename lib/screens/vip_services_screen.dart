@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class VipServicesScreen extends StatelessWidget {
   const VipServicesScreen({super.key});
@@ -18,7 +19,7 @@ class VipServicesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildUpgradePlanSection(),
+                  _buildUpgradePlanSection(context),
                   const SizedBox(height: 48),
                   _buildPromoteListingsSection(),
                   const SizedBox(height: 48),
@@ -30,7 +31,7 @@ class VipServicesScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: _buildFab(),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -149,7 +150,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUpgradePlanSection() {
+  Widget _buildUpgradePlanSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,7 +174,7 @@ class VipServicesScreen extends StatelessWidget {
         const SizedBox(height: 32),
         _buildStandardPlan(),
         const SizedBox(height: 24),
-        _buildElitePlan(),
+        _buildElitePlan(context),
       ],
     );
   }
@@ -234,7 +235,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildElitePlan() {
+  Widget _buildElitePlan(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -304,13 +305,14 @@ class VipServicesScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF5E1F),
-                          foregroundColor: Colors.white,
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              context.push('/elite_upgrade_confirmation'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF5E1F),
+                            foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -538,7 +540,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
@@ -562,6 +564,22 @@ class VipServicesScreen extends StatelessWidget {
         selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
         unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
         currentIndex: 2, // VIP Services
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/provider_dashboard');
+              break;
+            case 1:
+              context.go('/provider_listings');
+              break;
+            case 2:
+              context.go('/vip_services');
+              break;
+            case 3:
+              context.go('/provider_finance');
+              break;
+          }
+        },
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_outlined),

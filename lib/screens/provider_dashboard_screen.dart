@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ProviderDashboardScreen extends StatelessWidget {
   const ProviderDashboardScreen({super.key});
@@ -78,9 +79,9 @@ class ProviderDashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
             // In Flutter, we'll stack "Add New Listing" and "Order Status" side-by-side on desktop, or down on mobile
             // We'll stack them vertically for mobile flow as per typical flutter views
-            _buildQuickActionCard(),
+            _buildQuickActionCard(context),
             const SizedBox(height: 24),
-            _buildOrderStatusCard(),
+            _buildOrderStatusCard(context),
             const SizedBox(height: 32),
             _buildRecentActivityHeader(),
             const SizedBox(height: 16),
@@ -88,7 +89,7 @@ class ProviderDashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -208,54 +209,62 @@ class ProviderDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF5E1F),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Icon(Icons.add_circle, color: Colors.white, size: 40),
-          SizedBox(height: 12),
-          Text(
-            'Add New Listing',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Scale your business by adding new destinations.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-        ],
+  Widget _buildQuickActionCard(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/add_new_listing_form'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF5E1F),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Icon(Icons.add_circle, color: Colors.white, size: 40),
+            SizedBox(height: 12),
+            Text(
+              'Add New Listing',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Scale your business by adding new destinations.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildOrderStatusCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FC),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ORDER STATUS',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752)),
-          ),
-          const SizedBox(height: 16),
-          _orderStatusRow('Pending', '04', Icons.pending, const Color(0xFFAB3500)),
-          const SizedBox(height: 12),
-          _orderStatusRow('Confirmed', '12', Icons.check_circle, const Color(0xFF005F9F), isPrimary: true),
-          const SizedBox(height: 12),
-          _orderStatusRow('Completed', '89', Icons.task_alt, const Color(0xFF3F4752)),
-        ],
+  Widget _buildOrderStatusCard(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/order_manager'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F4FC),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'ORDER STATUS',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752)),
+            ),
+            const SizedBox(height: 16),
+            _orderStatusRow('Pending', '04', Icons.pending, const Color(0xFFAB3500)),
+            const SizedBox(height: 12),
+            _orderStatusRow('Confirmed', '12', Icons.check_circle, const Color(0xFF005F9F), isPrimary: true),
+            const SizedBox(height: 12),
+            _orderStatusRow('Completed', '89', Icons.task_alt, const Color(0xFF3F4752)),
+          ],
+        ),
       ),
     );
   }
@@ -412,7 +421,7 @@ class ProviderDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
@@ -421,11 +430,28 @@ class ProviderDashboardScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
         selectedItemColor: const Color(0xFFFF5E1F),
         unselectedItemColor: const Color(0xFF3F4752).withOpacity(0.7),
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, letterSpacing: 0.5),
         unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, letterSpacing: 0.5),
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/provider_dashboard');
+              break;
+            case 1:
+              context.go('/provider_listings');
+              break;
+            case 2:
+              context.go('/order_manager');
+              break;
+            case 3:
+              context.go('/provider_finance');
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),

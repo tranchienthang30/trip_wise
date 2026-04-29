@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class TripPlannerDashboardScreen extends StatelessWidget {
   const TripPlannerDashboardScreen({super.key});
@@ -13,7 +14,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Color(0xFF005F9F)),
-          onPressed: () {},
+          onPressed: () => _showPlannerMenu(context),
         ),
         title: const Text(
           'Voyage',
@@ -26,16 +27,19 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 24),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFD1E4FF), width: 2),
-                image: const DecorationImage(
-                  image: NetworkImage(
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuA5DAnB3-2pZxgQf-tM5tZJfq5_lrz5ICs6xPs6d7ZW1DUqsjwKCBZwNOvS3JDsNfcu8YmBOjZlmcLQhEu3dXf7ikTLqOQVL3JwODTMx0LpKwe3RcztE4pYwaA2S86HB7I2uj_dTL_QJO7Hox8wLm8t8WBJuVxOlgO9NYUrrB3BpdvYiF4y8FukRdRPbND8qJN5UzvWcXa-TBz7CIG9IyPEsRGise4qrMNgsd1PgeAJFbDtmCwuCnXiR5hOUqJrmSkPWOOIvCyHLpg'),
-                  fit: BoxFit.cover,
+            child: GestureDetector(
+              onTap: () => context.go('/profile_registration'),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFD1E4FF), width: 2),
+                  image: const DecorationImage(
+                    image: NetworkImage(
+                        'https://lh3.googleusercontent.com/aida-public/AB6AXuA5DAnB3-2pZxgQf-tM5tZJfq5_lrz5ICs6xPs6d7ZW1DUqsjwKCBZwNOvS3JDsNfcu8YmBOjZlmcLQhEu3dXf7ikTLqOQVL3JwODTMx0LpKwe3RcztE4pYwaA2S86HB7I2uj_dTL_QJO7Hox8wLm8t8WBJuVxOlgO9NYUrrB3BpdvYiF4y8FukRdRPbND8qJN5UzvWcXa-TBz7CIG9IyPEsRGise4qrMNgsd1PgeAJFbDtmCwuCnXiR5hOUqJrmSkPWOOIvCyHLpg'),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -62,7 +66,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
             ),
             const SizedBox(height: 24),
-            _buildSearchBar(),
+            _buildSearchBar(context),
             const SizedBox(height: 32),
             _buildCards(context),
             const SizedBox(height: 100), // padding for fab/bottom nav
@@ -71,26 +75,105 @@ class TripPlannerDashboardScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFFFF5E1F),
-        onPressed: () {},
+        onPressed: () => context.push('/plan_new_trip_form'),
         icon: const Icon(Icons.add, color: Colors.white, size: 28),
         label: const Text(
           'Create New Trip',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  Widget _buildSearchBar() {
+  void _showPlannerMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                context: context,
+                icon: Icons.event_note,
+                label: 'Planner Home',
+                route: '/trip_planner_dashboard',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                context: context,
+                icon: Icons.timeline,
+                label: 'Trip Timeline',
+                route: '/trip_planner_timeline',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                context: context,
+                icon: Icons.account_balance_wallet,
+                label: 'Wallet',
+                route: '/wallet_loyalty',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                context: context,
+                icon: Icons.flight,
+                label: 'My Trips',
+                route: '/my_trips',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlannerMenuItem({
+    required BuildContext sheetContext,
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String route,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: const Color(0xFF005F9F)),
+      title: Text(label),
+      onTap: () {
+        Navigator.of(sheetContext).pop();
+        context.go(route);
+      },
+    );
+  }
+
+  void _handleBottomNavTap(BuildContext context, int index) {
+    const routes = [
+      '/home',
+      '/my_trips',
+      '/trip_planner_dashboard',
+      '/wallet_loyalty',
+      '/profile_registration',
+    ];
+
+    if (index == 2) {
+      return;
+    }
+
+    context.go(routes[index]);
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFE5E8F0),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: const TextField(
-        decoration: InputDecoration(
+      child: TextField(
+        readOnly: true,
+        onTap: () => context.push('/add_location_search'),
+        decoration: const InputDecoration(
           icon: Icon(Icons.search, color: Color(0xFF3F4752)),
           hintText: 'Search hotels, flights, or attractions',
           hintStyle: TextStyle(color: Color(0xFFBFC7D4)),
@@ -106,6 +189,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
     return Column(
       children: [
         _buildTripCard(
+          context: context,
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuAtd4rG6jbMlvqj0CuXDXckWUi-pj5sTdmlJPfRO4SLB_9A3_PsnLBbAsR4fRQzIUJB14dJg0RDMNPxOa0LeXdmMgoYVwC07jF8Wh9Q8qkji0BkjhzmQZ1UrTJTv24RzbVove60hfORAhdQ0Eo4lWFx6OErXIEpF_3i2XmSEifD2Jrqr2jI2hesQeS3mvsaGARVKYkPmtRnYAPekzD_dz7IwcrT0pUYoPItMbAmsY-F7Eex3BiHJL_fPCYN37Ns1Bp8p5kTXVH5TOE',
           status: 'Upcoming',
@@ -121,6 +205,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         _buildTripCard(
+          context: context,
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuC9aOEbMD1vS_f3Xead13joL4Eu0_-ETCpIK6ej8QjajItJ70QmOr6rpTH7V-V_tto-2hxMVJmlQJNPf5NPF2ARC-xg9Q5ny-XwawoJYR-9wk18hXui_T1bFDa3mxl5IglR84Sl3EqC23SnnSkDhDtrVnEGdzMvRA23O2JDIxEkypMqnFt1KNUVp3YGjCdU665J_0ORFY1p5HDpVsr-PpSdKbarBPKMnKP9g6PCmknNO7iujTeuxDZ6oQ3Dq4hi_X2Al1JkvrwZGrk',
           status: 'Dreaming',
@@ -134,6 +219,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         _buildTripCard(
+          context: context,
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuDvq_UmHkKWggLrqMcQTyyIss5_hwV1Cc3TByustuY3azVeGju-nVy9oLoEfpMLUQoyzQFUP_xUws-5bGheo7PhS0syGzxIiTT-b69Wd8vJ8F6xdTFGxnZvQ8RK6IR8TOajLTb9KR1ryQKnzFz1S35UDscjLxO-OY8ko8shxE5PxRkaXrWq8iFaTLeMrZbAJ1WeEq_QmxtpQRjtJrl4RhdpcCsDHmMtL_9ZlvW7uCDOM6plxv3QpQLE17640BLHT8oESVfsW-9UAGw',
           status: 'Completed',
@@ -147,41 +233,45 @@ class TripPlannerDashboardScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(48),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F4FC).withOpacity(0.3),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFBFC7D4), // outline-variant
-              style: BorderStyle.solid, // Using solid instead of dashed as default
-              width: 2,
+        InkWell(
+          onTap: () => context.push('/plan_new_trip_form'),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F4FC).withOpacity(0.3),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFBFC7D4), // outline-variant
+                style: BorderStyle.solid, // Using solid instead of dashed as default
+                width: 2,
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD1E4FF),
-                  shape: BoxShape.circle,
+            child: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD1E4FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.add_location_alt, color: Color(0xFF005F9F), size: 32),
                 ),
-                child: const Icon(Icons.add_location_alt, color: Color(0xFF005F9F), size: 32),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Plan a New Adventure',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Ready for your next getaway? Start mapping out your journey.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Plan a New Adventure',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Ready for your next getaway? Start mapping out your journey.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -189,6 +279,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildTripCard({
+    required BuildContext context,
     required String imageUrl,
     required String status,
     required Color statusColor,
@@ -198,136 +289,140 @@ class TripPlannerDashboardScreen extends StatelessWidget {
     required List<String> avatars,
     bool hasMore = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Image.network(
-                imageUrl,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Container(height: 200, color: Colors.grey[200]),
-              ),
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status.toUpperCase(),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () => context.push('/trip_planner_timeline'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF181C22),
-                  ),
+                Image.network(
+                  imageUrl,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(height: 200, color: Colors.grey[200]),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 16, color: Color(0xFF3F4752)),
-                    const SizedBox(width: 8),
-                    Text(
-                      dates,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF3F4752), fontWeight: FontWeight.w500),
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        for (int i = 0; i < avatars.length; i++)
-                          Align(
-                            widthFactor: 0.7,
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white,
-                              child: CircleAvatar(
-                                radius: 14,
-                                backgroundImage: NetworkImage(avatars[i]),
-                              ),
-                            ),
-                          ),
-                        if (hasMore)
-                          Align(
-                            widthFactor: 0.7,
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white,
-                              child: CircleAvatar(
-                                radius: 14,
-                                backgroundColor: const Color(0xFF9DCAFF),
-                                child: const Text(
-                                  '+3',
-                                  style: TextStyle(color: Color(0xFF00497C), fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5E1F),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
                       ),
-                      onPressed: () {},
-                      child: const Text('View Timeline', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          )
-        ],
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF181C22),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16, color: Color(0xFF3F4752)),
+                      const SizedBox(width: 8),
+                      Text(
+                        dates,
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF3F4752), fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          for (int i = 0; i < avatars.length; i++)
+                            Align(
+                              widthFactor: 0.7,
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.white,
+                                child: CircleAvatar(
+                                  radius: 14,
+                                  backgroundImage: NetworkImage(avatars[i]),
+                                ),
+                              ),
+                            ),
+                          if (hasMore)
+                            Align(
+                              widthFactor: 0.7,
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.white,
+                                child: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: const Color(0xFF9DCAFF),
+                                  child: const Text(
+                                    '+3',
+                                    style: TextStyle(color: Color(0xFF00497C), fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF5E1F),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        onPressed: () => context.push('/trip_planner_timeline'),
+                        child: const Text('View Timeline', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
@@ -341,22 +436,28 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        currentIndex: 2,
+        onTap: (index) => _handleBottomNavTap(context, index),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'EXPLORE',
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.travel_explore),
-            label: 'TRIPS',
+            icon: Icon(Icons.flight_rounded),
+            label: 'My Trips',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'SAVED',
+            icon: Icon(Icons.event_note_rounded),
+            label: 'Planner',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'PROFILE',
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
           ),
         ],
       ),

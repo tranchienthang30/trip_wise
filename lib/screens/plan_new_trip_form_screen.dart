@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class PlanNewTripFormScreen extends StatefulWidget {
   const PlanNewTripFormScreen({super.key});
@@ -102,7 +103,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
       centerTitle: true,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF005F9F)),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => context.go('/trip_planner_dashboard'),
       ),
       title: const Text(
         'Plan Trip',
@@ -257,7 +258,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     Expanded(
                       flex: 1,
                       child: TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.go('/trip_planner_dashboard'),
                         style: TextButton.styleFrom(
                           backgroundColor: const Color(0xFFF0F4FC),
                           foregroundColor: const Color(0xFF005F9F),
@@ -273,7 +274,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () => context.go('/trip_planner_dashboard'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFF5E1F),
                           foregroundColor: Colors.white,

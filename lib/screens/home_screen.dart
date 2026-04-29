@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -12,24 +13,28 @@ class HomeScreen extends StatelessWidget {
     _TravelCategory(
       icon: Icons.bed_rounded,
       label: 'HOTELS',
+      route: '/search_filter',
       backgroundColor: Color(0xFFE4F1FF),
       iconColor: TripwiseColors.primary,
     ),
     _TravelCategory(
       icon: Icons.flight_rounded,
       label: 'FLIGHTS',
+      route: '/service_details',
       backgroundColor: Color(0xFFFBE6DF),
       iconColor: TripwiseColors.secondary,
     ),
     _TravelCategory(
       icon: Icons.explore_rounded,
       label: 'TOURS',
+      route: '/service_details',
       backgroundColor: Color(0xFFE4F1FF),
       iconColor: TripwiseColors.primary,
     ),
     _TravelCategory(
       icon: Icons.train_rounded,
       label: 'TRAIN',
+      route: '/service_details',
       backgroundColor: Color(0xFFE4F1FF),
       iconColor: TripwiseColors.primary,
     ),
@@ -127,15 +132,18 @@ class HomeScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () => context.push('/add_location_search'),
             icon: const Icon(Icons.search_rounded),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 20),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: TripwiseColors.surfaceContainerHigh,
-              backgroundImage: const NetworkImage(_avatarUrl),
+            child: GestureDetector(
+              onTap: () => context.go('/profile_registration'),
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: TripwiseColors.surfaceContainerHigh,
+                backgroundImage: NetworkImage(_avatarUrl),
+              ),
             ),
           ),
         ],
@@ -149,7 +157,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               _buildSearchCard(context),
               const SizedBox(height: 28),
-              _buildCategoryRow(),
+              _buildCategoryRow(context),
               const SizedBox(height: 28),
               _buildOfferScroller(),
               const SizedBox(height: 34),
@@ -177,7 +185,7 @@ class HomeScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
-        onTap: (index) {},
+        onTap: (index) => _handleBottomNavTap(context, index),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -202,6 +210,22 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _handleBottomNavTap(BuildContext context, int index) {
+    const routes = [
+      '/home',
+      '/my_trips',
+      '/trip_planner_dashboard',
+      '/wallet_loyalty',
+      '/profile_registration',
+    ];
+
+    if (index == 0) {
+      return;
+    }
+
+    context.go(routes[index]);
   }
 
   Widget _buildSearchCard(BuildContext context) {
@@ -229,26 +253,31 @@ class HomeScreen extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 22),
-          Container(
-            decoration: BoxDecoration(
-              color: TripwiseColors.surfaceContainer,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: TripwiseColors.primary,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Destination',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: TripwiseColors.onSurfaceVariant.withOpacity(0.65),
-                      ),
-                ),
-              ],
+          InkWell(
+            onTap: () => context.push('/add_location_search'),
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              decoration: BoxDecoration(
+                color: TripwiseColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: TripwiseColors.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Destination',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color:
+                              TripwiseColors.onSurfaceVariant.withOpacity(0.65),
+                        ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -275,7 +304,7 @@ class HomeScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => context.push('/search_filter'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: TripwiseColors.secondaryContainer,
                 foregroundColor: TripwiseColors.onSecondary,
@@ -296,13 +325,16 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryRow() {
+  Widget _buildCategoryRow(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: _categories
           .map(
             (category) => Expanded(
-              child: _CategoryChip(category: category),
+              child: _CategoryChip(
+                category: category,
+                onTap: () => context.push(category.route),
+              ),
             ),
           )
           .toList(),
@@ -392,7 +424,7 @@ class HomeScreen extends StatelessWidget {
         ),
         if (actionLabel != null)
           TextButton(
-            onPressed: () {},
+            onPressed: () => context.push('/search_filter'),
             child: Text(
               actionLabel,
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -462,36 +494,44 @@ class _SearchDetailCard extends StatelessWidget {
 }
 
 class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category});
+  const _CategoryChip({
+    required this.category,
+    required this.onTap,
+  });
 
   final _TravelCategory category;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: category.backgroundColor,
-            shape: BoxShape.circle,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(32),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: category.backgroundColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              category.icon,
+              color: category.iconColor,
+              size: 28,
+            ),
           ),
-          child: Icon(
-            category.icon,
-            color: category.iconColor,
-            size: 28,
+          const SizedBox(height: 10),
+          Text(
+            category.label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  letterSpacing: 1.1,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          category.label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                letterSpacing: 1.1,
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -503,79 +543,83 @@ class _OfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 290,
-      height: 168,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        image: DecorationImage(
-          image: NetworkImage(offer.imageUrl),
-          fit: BoxFit.cover,
-        ),
-      ),
+    return InkWell(
+      onTap: () => context.push('/service_details'),
+      borderRadius: BorderRadius.circular(26),
       child: Container(
+        width: 290,
+        height: 168,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(26),
-          gradient: LinearGradient(
-            colors: [
-              Colors.black.withOpacity(0.42),
-              Colors.black.withOpacity(0.08),
-            ],
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
+          image: DecorationImage(
+            image: NetworkImage(offer.imageUrl),
+            fit: BoxFit.cover,
           ),
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'LIMITED OFFER',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withOpacity(0.75),
-                    letterSpacing: 1.1,
-                  ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: LinearGradient(
+              colors: [
+                Colors.black.withOpacity(0.42),
+                Colors.black.withOpacity(0.08),
+              ],
+              begin: Alignment.bottomLeft,
+              end: Alignment.topRight,
             ),
-            const SizedBox(height: 6),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 185),
-              child: Text(
-                offer.title,
-                maxLines: 2,
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LIMITED OFFER',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withOpacity(0.75),
+                      letterSpacing: 1.1,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 185),
+                child: Text(
+                  offer.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        height: 1.0,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                offer.subtitle,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      height: 1.0,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.9),
                     ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              offer.subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-            ),
-            const Spacer(),
-            FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: offer.accentColor,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                minimumSize: const Size(0, 38),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => context.push('/service_details'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: offer.accentColor,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  minimumSize: const Size(0, 38),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                child: Text(offer.buttonLabel),
               ),
-              child: Text(offer.buttonLabel),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -589,67 +633,71 @@ class _RecommendedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: item.height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        image: DecorationImage(
-          image: NetworkImage(item.imageUrl),
-          fit: BoxFit.cover,
-        ),
-      ),
+    return InkWell(
+      onTap: () => context.push('/service_details'),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
+        height: item.height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          gradient: LinearGradient(
-            colors: [
-              Colors.black.withOpacity(0.55),
-              Colors.black.withOpacity(0.02),
-            ],
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
+          image: DecorationImage(
+            image: NetworkImage(item.imageUrl),
+            fit: BoxFit.cover,
           ),
         ),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              item.title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
+              colors: [
+                Colors.black.withOpacity(0.55),
+                Colors.black.withOpacity(0.02),
+              ],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
             ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: TripwiseColors.secondary,
-                    borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                item.title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: TripwiseColors.secondary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text(
+                      item.priceLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    item.priceLabel,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                  const SizedBox(width: 8),
+                  Text(
+                    item.durationLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(0.82),
                         ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  item.durationLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.82),
-                      ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -746,7 +794,7 @@ class _HotelTile extends StatelessWidget {
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () => context.push('/service_details'),
                     child: const Text(
                       'DETAILS',
                       style: TextStyle(fontWeight: FontWeight.w800),
@@ -766,12 +814,14 @@ class _TravelCategory {
   const _TravelCategory({
     required this.icon,
     required this.label,
+    required this.route,
     required this.backgroundColor,
     required this.iconColor,
   });
 
   final IconData icon;
   final String label;
+  final String route;
   final Color backgroundColor;
   final Color iconColor;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -15,7 +16,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
   bool _saveCard = true;
 
-  void _onAddCardTap() => _showAddedSnackBarAndPop('Card added');
+  void _onAddCardTap() => context.push('/payment_success');
 
   void _onMethodTap(String label) =>
       _showAddedSnackBarAndPop('$label selected');

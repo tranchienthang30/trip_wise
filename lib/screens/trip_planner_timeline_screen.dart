@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -61,7 +62,6 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
   ];
 
   int _selectedDayIndex = 0;
-  int _currentNavIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -70,38 +70,46 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       appBar: AppBar(
         toolbarHeight: 68,
         titleSpacing: 20,
-        title: Row(
-          children: [
-            const Icon(
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: TripwiseColors.onSurfaceVariant,
+          ),
+          onPressed: () => _handleBackNavigation(context),
+        ),
+        title: Text(
+          'Tripwise',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: TripwiseColors.primary,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
               Icons.menu_rounded,
               color: TripwiseColors.onSurfaceVariant,
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Tripwise',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: TripwiseColors.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-            ),
-          ],
-        ),
-        actions: [
+            onPressed: () => _showPlannerMenu(context),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 20),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: TripwiseColors.primaryContainer,
-                  width: 2,
+            child: GestureDetector(
+              onTap: () => context.go('/profile_registration'),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: TripwiseColors.primaryContainer,
+                    width: 2,
+                  ),
                 ),
-              ),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(_avatarUrl),
+                child: const CircleAvatar(
+                  radius: 18,
+                  backgroundImage: NetworkImage(_avatarUrl),
+                ),
               ),
             ),
           ),
@@ -133,7 +141,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => context.push('/add_activity'),
         backgroundColor: TripwiseColors.secondaryContainer,
         foregroundColor: Colors.white,
         elevation: 6,
@@ -142,10 +150,10 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: _currentNavIndex,
+        currentIndex: 2,
         selectedItemColor: TripwiseColors.secondaryContainer,
         unselectedItemColor: TripwiseColors.outline,
-        onTap: (index) => setState(() => _currentNavIndex = index),
+        onTap: _handleBottomNavTap,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -170,6 +178,88 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
         ],
       ),
     );
+  }
+
+  void _showPlannerMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                icon: Icons.event_note_rounded,
+                label: 'Planner Home',
+                route: '/trip_planner_dashboard',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                icon: Icons.flight_rounded,
+                label: 'My Trips',
+                route: '/my_trips',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                icon: Icons.add_circle_rounded,
+                label: 'Add Activity',
+                route: '/add_activity',
+              ),
+              _buildPlannerMenuItem(
+                sheetContext: sheetContext,
+                icon: Icons.account_balance_wallet_rounded,
+                label: 'Wallet',
+                route: '/wallet_loyalty',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlannerMenuItem({
+    required BuildContext sheetContext,
+    required IconData icon,
+    required String label,
+    required String route,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: TripwiseColors.primary),
+      title: Text(label),
+      onTap: () {
+        Navigator.of(sheetContext).pop();
+        context.go(route);
+      },
+    );
+  }
+
+  void _handleBottomNavTap(int index) {
+    const routes = [
+      '/home',
+      '/my_trips',
+      '/trip_planner_dashboard',
+      '/wallet_loyalty',
+      '/profile_registration',
+    ];
+
+    if (index == 2) {
+      return;
+    }
+
+    context.go(routes[index]);
+  }
+
+  void _handleBackNavigation(BuildContext context) {
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    context.go('/my_trips');
   }
 }
 
@@ -568,7 +658,7 @@ class _AddActivityButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 56),
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/add_activity'),
+        onTap: () => context.push('/add_activity'),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: double.infinity,

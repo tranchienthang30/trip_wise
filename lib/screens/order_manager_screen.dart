@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class OrderManagerScreen extends StatelessWidget {
   const OrderManagerScreen({super.key});
@@ -29,7 +30,7 @@ class OrderManagerScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -154,6 +155,7 @@ class OrderManagerScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: _buildStandardOrderCard(
+                    context: context,
                     title: 'Azure Horizon Bay Resort',
                     price: '\,240.00',
                     guestName: 'Marcus Thorne',
@@ -162,6 +164,7 @@ class OrderManagerScreen extends StatelessWidget {
                   )),
                   const SizedBox(width: 32),
                   Expanded(child: _buildStandardOrderCard(
+                    context: context,
                     title: 'Serene Alpine Lodge',
                     price: '\.50',
                     guestName: 'Elena Rodriguez',
@@ -171,13 +174,14 @@ class OrderManagerScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
-              _buildPremiumOrderCard(true),
+              _buildPremiumOrderCard(context, true),
             ],
           );
         } else {
           return Column(
             children: [
               _buildStandardOrderCard(
+                context: context,
                 title: 'Azure Horizon Bay Resort',
                 price: '\,240.00',
                 guestName: 'Marcus Thorne',
@@ -186,6 +190,7 @@ class OrderManagerScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               _buildStandardOrderCard(
+                context: context,
                 title: 'Serene Alpine Lodge',
                 price: '\.50',
                 guestName: 'Elena Rodriguez',
@@ -193,7 +198,7 @@ class OrderManagerScreen extends StatelessWidget {
                 imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA9uerUVfiZOAw5rVKQmL_lIbVXucXyzRiUyyEVmCAP_2Qc3fOJaVCDCkzfPnmMsr7xLIiuUN5TUt85uwBI_5jugO8XgqAfj6bXt5x-IaoEUVq3Mc0RlBMKjRGm-o4Pgaa5nheeEvTA2vsdy_BsjGxULFzqbpMRAswc-aSGiHNb1fuI3JHnvZI2r1QhL_UO6-4sxjxnJ3uzRutun0zDDLF0PL_2R8r6005ukVPiSASq32XUnj7hsVe-Ip8AReLgV8j9lfl-4CbguYY',
               ),
               const SizedBox(height: 32),
-              _buildPremiumOrderCard(false),
+              _buildPremiumOrderCard(context, false),
             ],
           );
         }
@@ -202,6 +207,7 @@ class OrderManagerScreen extends StatelessWidget {
   }
 
   Widget _buildStandardOrderCard({
+    required BuildContext context,
     required String title,
     required String price,
     required String guestName,
@@ -300,7 +306,7 @@ class OrderManagerScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () => context.push('/direct_messaging'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF0F4FC),
                   foregroundColor: const Color(0xFF005F9F),
@@ -317,7 +323,7 @@ class OrderManagerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumOrderCard(bool isWide) {
+  Widget _buildPremiumOrderCard(BuildContext context, bool isWide) {
     Widget content = Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -457,7 +463,7 @@ class OrderManagerScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () => context.push('/direct_messaging'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF0F4FC),
                           foregroundColor: const Color(0xFF005F9F),
@@ -485,7 +491,7 @@ class OrderManagerScreen extends StatelessWidget {
     return content;
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
@@ -509,6 +515,22 @@ class OrderManagerScreen extends StatelessWidget {
         selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
         unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
         currentIndex: 2, // Orders
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/provider_dashboard');
+              break;
+            case 1:
+              context.go('/provider_listings');
+              break;
+            case 2:
+              context.go('/order_manager');
+              break;
+            case 3:
+              context.go('/provider_finance');
+              break;
+          }
+        },
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_outlined),

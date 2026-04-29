@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -104,6 +105,20 @@ class _ProviderFinancePayoutScreenState
           setState(() {
             _selectedNavIndex = index;
           });
+          switch (index) {
+            case 0:
+              context.go('/provider_dashboard');
+              break;
+            case 1:
+              context.go('/provider_listings');
+              break;
+            case 2:
+              context.go('/order_manager');
+              break;
+            case 3:
+              context.go('/provider_finance');
+              break;
+          }
         },
         items: const [
           BottomNavigationBarItem(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:ui';
 
 class DirectMessagingScreen extends StatelessWidget {
@@ -11,7 +12,7 @@ class DirectMessagingScreen extends StatelessWidget {
         bool isDesktop = constraints.maxWidth > 768;
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FF),
-          appBar: _buildAppBar(),
+          appBar: _buildAppBar(context),
           body: Row(
             children: [
               if (isDesktop) _buildSideNav(),
@@ -32,7 +33,7 @@ class DirectMessagingScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white.withOpacity(0.8),
       elevation: 0,
@@ -52,7 +53,7 @@ class DirectMessagingScreen extends StatelessWidget {
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF004779)),
-        onPressed: () {},
+        onPressed: () => context.go('/order_manager'),
       ),
       titleSpacing: 0,
       title: Row(

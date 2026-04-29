@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AddNewListingFormScreen extends StatefulWidget {
   const AddNewListingFormScreen({super.key});
@@ -69,7 +70,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF1D4ED8)),
-        onPressed: () {},
+        onPressed: () => context.go('/provider_listings'),
       ),
       actions: [
         Container(
@@ -493,13 +494,13 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
   Widget _buildPublishAction() {
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5E1F), // secondary-container
-              foregroundColor: Colors.white,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => context.go('/provider_listings'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5E1F), // secondary-container
+                foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
               elevation: 8,
@@ -545,6 +546,22 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         currentIndex: 1, // Listings
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/provider_dashboard');
+              break;
+            case 1:
+              context.go('/provider_listings');
+              break;
+            case 2:
+              context.go('/order_manager');
+              break;
+            case 3:
+              context.go('/provider_finance');
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),

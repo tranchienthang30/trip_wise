@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
-import 'payment_success_screen.dart';
 
 class BookingCheckoutScreen extends StatefulWidget {
   const BookingCheckoutScreen({super.key});
@@ -23,7 +23,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           color: TripwiseColors.onSurface,
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.go('/service_details'),
         ),
         title: Text(
           'Checkout',
@@ -192,7 +192,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                 child: ElevatedButton(
                   onPressed: _agreeToTerms
                       ? () {
-                          _showBookingConfirmation(context);
+                          _goToAddPayment();
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -372,12 +372,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     );
   }
 
-  void _showBookingConfirmation(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const PaymentSuccessScreen(),
-      ),
-    );
+  void _goToAddPayment() {
+    context.push('/add_payment');
   }
 }

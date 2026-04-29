@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AddLocationSearchScreen extends StatefulWidget {
   const AddLocationSearchScreen({super.key});
@@ -70,7 +71,9 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF005F9F)),
-        onPressed: () {},
+        onPressed: () => context.canPop()
+            ? context.pop()
+            : context.go('/trip_planner_dashboard'),
       ),
       title: const Text(
         'Location Search',
@@ -114,6 +117,7 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
       ),
       child: TextField(
         controller: _searchController,
+        onSubmitted: (_) => context.push('/search_filter'),
         decoration: InputDecoration(
           hintText: 'Search hotels, flights, or attractions',
           hintStyle: const TextStyle(color: Color(0xFF3F4752), fontSize: 16), // text-on-surface-variant
@@ -149,11 +153,11 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
           clipBehavior: Clip.none,
           child: Row(
             children: [
-              _buildRecentSearchChip('history', 'Tokyo, Japan'),
+              _buildRecentSearchChip('history', 'Tokyo, Japan', context),
               const SizedBox(width: 12),
-              _buildRecentSearchChip('history', 'Santorini Villas'),
+              _buildRecentSearchChip('history', 'Santorini Villas', context),
               const SizedBox(width: 12),
-              _buildRecentSearchChip('history', 'Flights to NYC'),
+              _buildRecentSearchChip('history', 'Flights to NYC', context),
             ],
           ),
         ),
@@ -161,20 +165,24 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     );
   }
 
-  Widget _buildRecentSearchChip(String iconName, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // px-4 py-2
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FC), // bg-surface-container-low
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.history, size: 18, color: Color(0xFF3F4752)),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF181C22))), // text-label-md
-        ],
+  Widget _buildRecentSearchChip(String iconName, String label, BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/search_filter'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // px-4 py-2
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F4FC), // bg-surface-container-low
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.history, size: 18, color: Color(0xFF3F4752)),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF181C22))), // text-label-md
+          ],
+        ),
       ),
     );
   }
@@ -193,11 +201,11 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
           clipBehavior: Clip.none, // Allow shadow to flow out
           child: Row(
             children: [
-              _buildPopularChip(Icons.local_cafe, 'Artisan Coffee'),
+              _buildPopularChip(Icons.local_cafe, 'Artisan Coffee', context),
               const SizedBox(width: 12),
-              _buildPopularChip(Icons.museum, 'Local Museums'),
+              _buildPopularChip(Icons.museum, 'Local Museums', context),
               const SizedBox(width: 12),
-              _buildPopularChip(Icons.park, 'City Parks'),
+              _buildPopularChip(Icons.park, 'City Parks', context),
             ],
           ),
         ),
@@ -205,28 +213,32 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     );
   }
 
-  Widget _buildPopularChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white, // bg-surface-container-lowest
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFBFC7D4).withOpacity(0.15)), // border-outline-variant/15
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.06),
-            blurRadius: 40,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF005F9F)), // text-primary
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF005F9F))),
-        ],
+  Widget _buildPopularChip(IconData icon, String label, BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/search_filter'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white, // bg-surface-container-lowest
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFBFC7D4).withOpacity(0.15)), // border-outline-variant/15
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF005F9F).withOpacity(0.06),
+              blurRadius: 40,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: const Color(0xFF005F9F)), // text-primary
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF005F9F))),
+          ],
+        ),
       ),
     );
   }
@@ -304,77 +316,81 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
   }
 
   Widget _buildResultCard(String imageUrl, IconData icon, String type, String title, String value, String subtitle, {required bool isStar, bool isListView = false}) {
-    return Container(
-      height: isListView ? 120 : null,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.06),
-            blurRadius: 40,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          SizedBox(
-            width: isListView ? 120 : 140, // approx 1/3
-            height: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, size: 14, color: const Color(0xFF3F4752)),
-                      const SizedBox(width: 4),
-                      Text(type, style: const TextStyle(fontSize: 12, color: Color(0xFF3F4752))),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      if (isStar) ...[
-                        const Icon(Icons.star, size: 14, color: Color(0xFFFF5E1F)),
-                        const SizedBox(width: 4),
-                        Text(value, style: const TextStyle(fontSize: 12, color: Color(0xFFFF5E1F))),
-                      ] else ...[
-                        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF005F9F))),
-                      ],
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          subtitle,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF3F4752)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )
-                    ],
-                  )
-                ],
+    return InkWell(
+      onTap: () => context.push('/search_filter'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: isListView ? 120 : null,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF005F9F).withOpacity(0.06),
+              blurRadius: 40,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            SizedBox(
+              width: isListView ? 120 : 140, // approx 1/3
+              height: double.infinity,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(icon, size: 14, color: const Color(0xFF3F4752)),
+                        const SizedBox(width: 4),
+                        Text(type, style: const TextStyle(fontSize: 12, color: Color(0xFF3F4752))),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (isStar) ...[
+                          const Icon(Icons.star, size: 14, color: Color(0xFFFF5E1F)),
+                          const SizedBox(width: 4),
+                          Text(value, style: const TextStyle(fontSize: 12, color: Color(0xFFFF5E1F))),
+                        ] else ...[
+                          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF005F9F))),
+                        ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            subtitle,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF3F4752)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

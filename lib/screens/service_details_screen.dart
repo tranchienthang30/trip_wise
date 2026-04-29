@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -98,8 +99,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
       ),
       bottomNavigationBar: _BookingBar(
         price: _price,
-        onBookNow: () =>
-            Navigator.pushNamed(context, '/booking_checkout'),
+        onBookNow: () => context.push('/booking_checkout'),
       ),
     );
   }
@@ -115,7 +115,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           Icons.arrow_back_ios_new_rounded,
           color: TripwiseColors.primary,
         ),
-        onPressed: () => Navigator.maybePop(context),
+        onPressed: () => context.pop(),
       ),
       title: const Text(
         'Tripwise',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class MyTripsScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
-            onTap: () {},
+            onTap: () => context.push('/add_location_search'),
             child: Icon(
               Icons.search,
               color: TripwiseColors.primary,
@@ -41,11 +42,14 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Center(
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: TripwiseColors.surfaceContainerHigh,
-                backgroundImage: const NetworkImage(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A',
+              child: GestureDetector(
+                onTap: () => context.go('/profile_registration'),
+                child: const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: TripwiseColors.surfaceContainerHigh,
+                  backgroundImage: NetworkImage(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A',
+                  ),
                 ),
               ),
             ),
@@ -113,7 +117,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -269,7 +273,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       ],
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => context.push('/service_details'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TripwiseColors.secondaryContainer,
                         foregroundColor: TripwiseColors.onSecondary,
@@ -449,7 +453,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => context.push('/service_details'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: TripwiseColors.surfaceContainerLowest,
                 foregroundColor: TripwiseColors.primary,
@@ -608,7 +612,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => context.push('/service_details'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: TripwiseColors.surfaceContainerLowest,
                 foregroundColor: TripwiseColors.primary,
@@ -711,7 +715,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push('/service_details'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TripwiseColors.primary,
                   foregroundColor: TripwiseColors.onPrimary,
@@ -736,10 +740,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildBottomNavBar() {
+  Widget _buildBottomNavBar(BuildContext context) {
     return BottomNavigationBar(
       currentIndex: 1,
-      onTap: (index) {},
+      onTap: (index) => _handleBottomNavTap(context, index),
       items: [
         BottomNavigationBarItem(
           icon: const Icon(Icons.home),
@@ -763,6 +767,22 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         ),
       ],
     );
+  }
+
+  void _handleBottomNavTap(BuildContext context, int index) {
+    const routes = [
+      '/home',
+      '/my_trips',
+      '/trip_planner_dashboard',
+      '/wallet_loyalty',
+      '/profile_registration',
+    ];
+
+    if (index == 1) {
+      return;
+    }
+
+    context.go(routes[index]);
   }
 }
 

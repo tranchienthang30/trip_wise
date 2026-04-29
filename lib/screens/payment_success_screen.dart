@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
@@ -14,7 +15,7 @@ class PaymentSuccessScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.close),
           color: TripwiseColors.onSurface,
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.go('/my_trips'),
         ),
         title: Text(
           'Tripwise',
@@ -127,7 +128,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.go('/my_trips');
                     },
                     child: const Text('View My Trips', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   ),

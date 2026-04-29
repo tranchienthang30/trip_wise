@@ -193,7 +193,7 @@ class _ProviderListingManagementScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          context.push('/provider_listing_add');
+          context.push('/add_new_listing_form');
         },
         backgroundColor: TripwiseColors.secondaryContainer,
         icon: const Icon(Icons.add),
@@ -533,7 +533,22 @@ class _ProviderListingManagementScreenState
       currentIndex: 1,
       selectedItemColor: TripwiseColors.secondaryContainer,
       unselectedItemColor: TripwiseColors.onSurfaceVariant,
-      onTap: (index) {},
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            context.go('/provider_dashboard');
+            break;
+          case 1:
+            context.go('/provider_listings');
+            break;
+          case 2:
+            context.go('/order_manager');
+            break;
+          case 3:
+            context.go('/provider_finance');
+            break;
+        }
+      },
       items: [
         BottomNavigationBarItem(
           icon: const Icon(Icons.dashboard),

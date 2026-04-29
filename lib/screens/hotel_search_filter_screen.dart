@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 
@@ -89,7 +90,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
   _SearchSortMode _sortMode = _SearchSortMode.popularity;
   String _searchQuery = '';
   bool _isMapView = false;
-  int _selectedBottomNavIndex = 1;
+  int _selectedBottomNavIndex = 2;
 
   List<_HotelImageCardData> get _visibleHotels {
     final visibleHotels = _hotelCards.where(_matchesHotelCard).toList();
@@ -419,8 +420,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
     required String price,
     required String rating,
   }) {
-    final navigator = Navigator.of(context);
-
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -459,7 +458,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(sheetContext).pop();
-                    navigator.pushNamed('/booking_checkout');
+                    context.push('/booking_checkout');
                   },
                   child: const Text('Continue To Booking'),
                 ),
@@ -472,13 +471,12 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
   }
 
   void _handleBackPressed() {
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
+    if (context.canPop()) {
+      context.pop();
       return;
     }
 
-    navigator.pushReplacementNamed('/home');
+    context.go('/add_location_search');
   }
 
   void _handleBottomNavigationTap(int index) {
@@ -486,7 +484,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
       _selectedBottomNavIndex = index;
     });
 
-    final navigator = Navigator.of(context);
     String routeName;
 
     switch (index) {
@@ -497,10 +494,10 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
         routeName = '/my_trips';
         break;
       case 2:
-        routeName = '/booking_checkout';
+        routeName = '/trip_planner_dashboard';
         break;
       case 3:
-        routeName = '/provider_finance';
+        routeName = '/wallet_loyalty';
         break;
       case 4:
         routeName = '/profile_registration';
@@ -510,7 +507,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
         break;
     }
 
-    navigator.pushReplacementNamed(routeName);
+    context.go(routeName);
   }
 
   void _showActionFeedback(String message) {
