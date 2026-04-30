@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class ProviderListingAddScreen extends StatefulWidget {
@@ -64,6 +65,16 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
               ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.swap_horiz_rounded,
+              color: TripwiseColors.primary,
+            ),
+            tooltip: 'Back to Planner',
+            onPressed: () => context.go('/trip_planner_dashboard'),
+          ),
+        ],
       ),
       body: Stepper(
         currentStep: _currentStep,

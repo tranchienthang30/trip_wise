@@ -41,6 +41,14 @@ class ProviderDashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.swap_horiz_rounded,
+              color: Color(0xFF005F9F),
+            ),
+            tooltip: 'Back to Planner',
+            onPressed: () => context.go('/trip_planner_dashboard'),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(

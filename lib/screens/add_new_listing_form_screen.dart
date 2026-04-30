@@ -73,6 +73,11 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         onPressed: () => context.go('/provider_listings'),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF004779)),
+          tooltip: 'Back to Planner',
+          onPressed: () => context.go('/trip_planner_dashboard'),
+        ),
         Container(
           margin: const EdgeInsets.only(right: 24),
           child: TextButton(

@@ -89,6 +89,12 @@ class _ProviderFinancePayoutScreenState
         ),
         actions: [
           IconButton(
+            onPressed: () => context.go('/trip_planner_dashboard'),
+            icon: const Icon(Icons.swap_horiz_rounded),
+            color: TripwiseColors.primary,
+            tooltip: 'Back to Planner',
+          ),
+          IconButton(
             onPressed: () {},
             icon: const Icon(Icons.notifications_none_rounded),
             color: TripwiseColors.onSurface,

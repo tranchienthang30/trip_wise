@@ -8,7 +8,7 @@ class VipServicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 100),
         child: Column(
@@ -35,7 +35,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: const Color(0xFFF8F9FF).withOpacity(0.8),
       elevation: 10,
@@ -52,6 +52,11 @@ class VipServicesScreen extends StatelessWidget {
         ),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF3F4752)),
+          tooltip: 'Back to Planner',
+          onPressed: () => context.go('/trip_planner_dashboard'),
+        ),
         IconButton(
           icon: const Icon(Icons.notifications_outlined, color: Color(0xFF3F4752)),
           onPressed: () {},

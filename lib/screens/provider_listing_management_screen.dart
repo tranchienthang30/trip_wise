@@ -40,6 +40,14 @@ class _ProviderListingManagementScreenState
         actions: [
           IconButton(
             icon: Icon(
+              Icons.swap_horiz_rounded,
+              color: TripwiseColors.primary,
+            ),
+            tooltip: 'Back to Planner',
+            onPressed: () => context.go('/trip_planner_dashboard'),
+          ),
+          IconButton(
+            icon: Icon(
               Icons.notifications,
               color: TripwiseColors.primary,
             ),

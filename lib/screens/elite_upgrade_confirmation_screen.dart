@@ -52,6 +52,11 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
         onPressed: () => context.go('/vip_services'),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF1D4ED8)),
+          tooltip: 'Back to Planner',
+          onPressed: () => context.go('/trip_planner_dashboard'),
+        ),
         Container(
           margin: const EdgeInsets.only(right: 24),
           width: 40,

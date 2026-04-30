@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 
 class ProviderAnalyticsScreen extends StatefulWidget {
@@ -38,6 +39,14 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.swap_horiz_rounded,
+              color: TripwiseColors.primary,
+            ),
+            tooltip: 'Back to Planner',
+            onPressed: () => context.go('/trip_planner_dashboard'),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: DropdownButton<String>(
