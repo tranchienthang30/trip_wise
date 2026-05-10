@@ -102,13 +102,9 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 onPressed: () {
                   _saveSecurityPreferences();
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TripwiseColors.primary,
-                  foregroundColor: TripwiseColors.onPrimary,
+                style: TripwiseButtonStyles.primaryElevated(
+                  radius: 12,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 icon: const Icon(Icons.save),
                 label: const Text(
@@ -193,7 +189,6 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: TripwiseColors.primary,
           ),
         ],
       ),

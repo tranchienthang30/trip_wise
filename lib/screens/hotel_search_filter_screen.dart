@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
 
 class HotelSearchFilterScreen extends StatefulWidget {
   const HotelSearchFilterScreen({super.key});
@@ -297,7 +298,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
                     title: const Text('Highlighted stays only'),
                     subtitle: const Text('Top picks and popular properties'),
                     value: draftOnlyHighlighted,
-                    activeColor: TripwiseColors.secondaryContainer,
+                    activeColor: TripwiseColors.primary,
                     onChanged: (value) {
                       setModalState(() {
                         draftOnlyHighlighted = value;
@@ -535,14 +536,9 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
           height: 56,
           child: ElevatedButton.icon(
             onPressed: _toggleMapView,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: TripwiseColors.secondaryContainer,
-              foregroundColor: Colors.white,
+            style: TripwiseButtonStyles.primaryElevated(
+              radius: 28,
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              elevation: 0,
             ),
             icon: Icon(
               _isMapView ? Icons.view_agenda_outlined : Icons.map_outlined,
@@ -559,35 +555,8 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedBottomNavIndex,
-        selectedItemColor: TripwiseColors.secondaryContainer,
-        unselectedItemColor: TripwiseColors.onSurfaceVariant.withOpacity(0.6),
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        onTap: _handleBottomNavigationTap,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'HOME',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
-            label: 'MY TRIPS',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
-            label: 'PLANNER',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'WALLET',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'PROFILE',
-          ),
-        ],
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.planner,
       ),
       body: SafeArea(
         child: ListView(

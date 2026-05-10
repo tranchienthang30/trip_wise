@@ -195,12 +195,8 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                           _goToAddPayment();
                         }
                       : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.primary,
-                    foregroundColor: TripwiseColors.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 12,
                     disabledBackgroundColor: TripwiseColors.outline.withOpacity(0.3),
                   ),
                   child: const Text(

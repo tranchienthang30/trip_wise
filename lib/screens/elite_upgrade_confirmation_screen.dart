@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class EliteUpgradeConfirmationScreen extends StatelessWidget {
   const EliteUpgradeConfirmationScreen({super.key});
 
@@ -8,7 +12,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 120),
         child: Center(
@@ -28,60 +32,14 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.vip,
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white.withOpacity(0.8),
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: true,
-      title: const Text(
-        'Elite Upgrade',
-        style: TextStyle(
-          color: Color(0xFF1D4ED8), // approximate blue-700
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF1D4ED8)),
-        onPressed: () => context.go('/vip_services'),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF1D4ED8)),
-          tooltip: 'Back to Planner',
-          onPressed: () => context.go('/trip_planner_dashboard'),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 24),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFFE1E2E8),
-            border: Border.all(color: const Color(0xFFD1E4FF), width: 2),
-            image: const DecorationImage(
-              image: NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuAUumeS-0gtHv4vjeRrK6CmH5f_P8WPeTZlkquxAOm59yR5mkLgF5OEnM8ZboncBZDPqgqSnYFHkULGq4DHtzD4pGnrE0NBdlkpYEVuXHsQV95WPVcnv-7UVAc0xpY1tbj5q_pCegoRCHhhaKpRq0OrWJrXUvnPPogiexBFx__Hm38VBEYvkh_DRf0nMSWDT_-ThuYIa-8GzmKrG0qQJXZFsqVivXOiJg13yO-x-T5rfeTGOeBM5xKUaUUElPqwAAdgrzRptxMATpAT',
-              ),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1.0),
-        child: Container(
-          color: const Color(0xFFEFF6FF).withOpacity(0.1), // border-blue-50/10
-          height: 1.0,
-        ),
-      ),
-    );
+  PreferredSizeWidget _buildAppBar() {
+    return const ProviderAppBar();
   }
 
   Widget _buildHeroSection() {
@@ -331,12 +289,9 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => context.go('/vip_services'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1F), // secondary-container
-                foregroundColor: Colors.white,
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 32,
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                elevation: 4, // shadow-lg
               ),
               child: const Text('Confirm Upgrade', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
@@ -416,7 +371,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFF97316), // text-orange-500 equivalent color
+        selectedItemColor: TripwiseColors.primary,
         unselectedItemColor: const Color(0xFF94A3B8), // text-slate-400
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5),

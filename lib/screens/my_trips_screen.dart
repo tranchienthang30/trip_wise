@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key});
@@ -16,46 +18,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 60,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => context.push('/add_location_search'),
-            child: Icon(
-              Icons.search,
-              color: TripwiseColors.primary,
-            ),
-          ),
-        ),
-        title: Text(
-          'Tripwise',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        centerTitle: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(
-              child: GestureDetector(
-                onTap: () => context.go('/profile_registration'),
-                child: const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: TripwiseColors.surfaceContainerHigh,
-                  backgroundImage: NetworkImage(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A',
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +80,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.myTrips,
+      ),
     );
   }
 
@@ -274,15 +239,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () => context.push('/service_details'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TripwiseColors.secondaryContainer,
-                        foregroundColor: TripwiseColors.onSecondary,
+                      style: TripwiseButtonStyles.primaryElevated(
+                        radius: 12,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       icon: const Icon(Icons.qr_code_2),
@@ -454,8 +415,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => context.push('/service_details'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TripwiseColors.surfaceContainerLowest,
+              style: TripwiseButtonStyles.surfaceElevated(
                 foregroundColor: TripwiseColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -613,8 +573,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => context.push('/service_details'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TripwiseColors.surfaceContainerLowest,
+              style: TripwiseButtonStyles.surfaceElevated(
                 foregroundColor: TripwiseColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -716,15 +675,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () => context.push('/service_details'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TripwiseColors.primary,
-                  foregroundColor: TripwiseColors.onPrimary,
+                style: TripwiseButtonStyles.primaryElevated(
+                  radius: 10,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 icon: const Icon(Icons.vpn_key, size: 16),

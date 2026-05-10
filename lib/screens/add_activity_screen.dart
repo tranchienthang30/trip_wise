@@ -436,17 +436,13 @@ class _HeroActivityCard extends StatelessWidget {
                     onPressed: onAdd,
                     icon: const Icon(Icons.add_rounded, size: 22),
                     label: const Text('Add to Trip'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TripwiseColors.secondaryContainer,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+                    style: TripwiseButtonStyles.primaryElevated(
+                      radius: 999,
                       textStyle: const TextStyle(
                         fontWeight: FontWeight.w800,
                       ),
                       elevation: 8,
-                      shadowColor: TripwiseColors.secondary.withOpacity(0.30),
+                      shadowColor: TripwiseColors.primary.withOpacity(0.30),
                     ),
                   ),
                 ),

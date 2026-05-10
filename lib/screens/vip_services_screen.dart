@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class VipServicesScreen extends StatelessWidget {
   const VipServicesScreen({super.key});
 
@@ -8,7 +12,7 @@ class VipServicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 100),
         child: Column(
@@ -31,53 +35,14 @@ class VipServicesScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: _buildFab(),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.vip,
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: const Color(0xFFF8F9FF).withOpacity(0.8),
-      elevation: 10,
-      shadowColor: const Color(0xFF005F9F).withOpacity(0.06),
-      scrolledUnderElevation: 0,
-      centerTitle: false,
-      title: const Text(
-        'TRIPWISE PROVIDER',
-        style: TextStyle(
-          color: Color(0xFF181C22),
-          fontSize: 18,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.5,
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF3F4752)),
-          tooltip: 'Back to Planner',
-          onPressed: () => context.go('/trip_planner_dashboard'),
-        ),
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: Color(0xFF3F4752)),
-          onPressed: () {},
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 24, left: 8),
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(0xFFE5E8F0),
-            image: DecorationImage(
-              image: NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuCYPh4UohyR76M3hcHgOT0id_pf2JmDk0rZC77eahJOSKpwdoAnEW5is7KF0Vlt6CjNAc21j4Xx-RXVTTvpcFF1nr7r-NXKLPMARQaaTl9_pcgRoNcbMKDaqKqxlyeJS2lGVx2ZLmuE3BhC-A0DIqwQOlm-Vht4eHGIhztszzEwHIhhBSvANylGZL6X3wMjH_O1tjuwt9H6SqKwlXSjyzCXWCCed_ItkbjWMH0hsqcHiV90DMLehqIEvu6Y0y0dPy3VKS7nJqbe9vM',
-              ),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ],
-    );
+  PreferredSizeWidget _buildAppBar() {
+    return const ProviderAppBar();
   }
 
   Widget _buildHeroSection() {
@@ -315,13 +280,10 @@ class VipServicesScreen extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: () =>
                               context.push('/elite_upgrade_confirmation'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF5E1F),
-                            foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
+                          style: TripwiseButtonStyles.primaryElevated(
+                            radius: 12,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
                         child: const Text('UPGRADE NOW', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                       ),
                     ),
@@ -455,12 +417,14 @@ class VipServicesScreen extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE5E8F0),
-                        foregroundColor: const Color(0xFF181C22),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      style: TripwiseButtonStyles.surfaceElevated(
+                        radius: 24,
+                        backgroundColor: TripwiseColors.surfaceContainerHigh,
+                        foregroundColor: TripwiseColors.onSurface,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                       ),
                       child: const Text('SELECT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                     ),
@@ -538,8 +502,6 @@ class VipServicesScreen extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 24.0, right: 8.0),
       child: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: const Color(0xFFFF5E1F),
-        foregroundColor: Colors.white,
         child: const Icon(Icons.add_chart, size: 28),
       ),
     );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class TripPlannerTimelineScreen extends StatefulWidget {
   const TripPlannerTimelineScreen({super.key});
@@ -67,54 +69,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 20,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: TripwiseColors.onSurfaceVariant,
-          ),
-          onPressed: () => _handleBackNavigation(context),
-        ),
-        title: Text(
-          'Tripwise',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.menu_rounded,
-              color: TripwiseColors.onSurfaceVariant,
-            ),
-            onPressed: () => _showPlannerMenu(context),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: GestureDetector(
-              onTap: () => context.go('/profile_registration'),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: TripwiseColors.primaryContainer,
-                    width: 2,
-                  ),
-                ),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage(_avatarUrl),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -142,40 +97,12 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/add_activity'),
-        backgroundColor: TripwiseColors.secondaryContainer,
-        foregroundColor: Colors.white,
         elevation: 6,
         child: const Icon(Icons.add_rounded, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 2,
-        selectedItemColor: TripwiseColors.secondaryContainer,
-        unselectedItemColor: TripwiseColors.outline,
-        onTap: _handleBottomNavTap,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
-            label: 'My Trips',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
-            label: 'Planner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.planner,
       ),
     );
   }

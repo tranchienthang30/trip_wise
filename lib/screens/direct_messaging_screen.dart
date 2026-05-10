@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'dart:ui';
+
+import '../widgets/shared_top_bars.dart';
 
 class DirectMessagingScreen extends StatelessWidget {
   const DirectMessagingScreen({super.key});
@@ -12,7 +12,7 @@ class DirectMessagingScreen extends StatelessWidget {
         bool isDesktop = constraints.maxWidth > 768;
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FF),
-          appBar: _buildAppBar(context),
+          appBar: const ProviderAppBar(),
           body: Row(
             children: [
               if (isDesktop) _buildSideNav(),
@@ -30,77 +30,6 @@ class DirectMessagingScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white.withOpacity(0.8),
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(color: Colors.transparent),
-        ),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          color: const Color(0xFFEFF6FF).withOpacity(0.1),
-          height: 1,
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF004779)),
-        onPressed: () => context.go('/order_manager'),
-      ),
-      titleSpacing: 0,
-      title: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundImage: const NetworkImage(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAwkgKjIfjQRXJZ0Upbvg11Xt6wr7eenGCFU5mpvHG6_qmCR0v2N9E2yHgTxSP1W2OJk1JZxvXesiRwXJ2u1Pek91eYIwmO2vy-_mg6XEbh3AtUNvRq_RPZzaHrP3wUmHVywTauMyQlV6tg-Me_NRKpEWVRuuEprdb7lCvW1g7DmfRJYIsdR_6PN-GCng9QnmMQWIXCaIFeM4C2yB-SMSUs69idNPcPMj2PrhuKiHcyhj7b2OjMKjiBVQFqNcd3vXzPxzQF7hlANwkW',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Elena Rossi',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF004779),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              Text(
-                'AZURE HORIZON BAY RESORT',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF64748B), // slate-500
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.call, color: Color(0xFF64748B)),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-      ],
     );
   }
 
@@ -163,6 +92,8 @@ class DirectMessagingScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       children: [
+        _buildConversationHeader(),
+        const SizedBox(height: 24),
         _buildDateHeader('YESTERDAY'),
         const SizedBox(height: 16),
         _buildReceivedMessage(
@@ -193,6 +124,67 @@ class DirectMessagingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 32), // spacer for bottom nav input
       ],
+    );
+  }
+
+  Widget _buildConversationHeader() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF005F9F).withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 24,
+            backgroundImage: NetworkImage(
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuAwkgKjIfjQRXJZ0Upbvg11Xt6wr7eenGCFU5mpvHG6_qmCR0v2N9E2yHgTxSP1W2OJk1JZxvXesiRwXJ2u1Pek91eYIwmO2vy-_mg6XEbh3AtUNvRq_RPZzaHrP3wUmHVywTauMyQlV6tg-Me_NRKpEWVRuuEprdb7lCvW1g7DmfRJYIsdR_6PN-GCng9QnmMQWIXCaIFeM4C2yB-SMSUs69idNPcPMj2PrhuKiHcyhj7b2OjMKjiBVQFqNcd3vXzPxzQF7hlANwkW',
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Elena Rossi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF004779),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'AZURE HORIZON BAY RESORT',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.call, color: Color(0xFF64748B)),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+            onPressed: () {},
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class AddNewListingFormScreen extends StatefulWidget {
   const AddNewListingFormScreen({super.key});
 
@@ -49,57 +53,14 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
+      ),
     );
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white.withOpacity(0.8),
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: false,
-      title: const Text(
-        'Add Listing',
-        style: TextStyle(
-          color: Color(0xFF0F172A), // slate-900 equivalent
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.5,
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF1D4ED8)),
-        onPressed: () => context.go('/provider_listings'),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF004779)),
-          tooltip: 'Back to Planner',
-          onPressed: () => context.go('/trip_planner_dashboard'),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 24),
-          child: TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFF2F3F9), // surface-container-low
-              foregroundColor: const Color(0xFF004779), // primary
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            ),
-            child: const Text('Save Draft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          ),
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1.0),
-        child: Container(
-          color: const Color(0xFFDBEAFE).withOpacity(0.2), // border-blue-100/20 approx
-          height: 1.0,
-        ),
-      ),
-    );
+    return const ProviderAppBar();
   }
 
   Widget _buildLeftColumn() {
@@ -503,14 +464,11 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => context.go('/provider_listings'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5E1F), // secondary-container
-                foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-              elevation: 8,
-              shadowColor: const Color(0xFFFF5E1F).withOpacity(0.3),
-            ),
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 32,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                elevation: 8,
+              ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
@@ -545,7 +503,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFEA580C), // orange-600 approx
+        selectedItemColor: TripwiseColors.primary,
         unselectedItemColor: const Color(0xFF94A3B8), // slate-400
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),

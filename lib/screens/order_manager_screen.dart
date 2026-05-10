@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class OrderManagerScreen extends StatelessWidget {
   const OrderManagerScreen({super.key});
 
@@ -8,7 +12,7 @@ class OrderManagerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 120),
         child: Center(
@@ -30,58 +34,14 @@ class OrderManagerScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.orders,
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: const Color(0xFFF8F9FF).withOpacity(0.8),
-      elevation: 10,
-      shadowColor: const Color(0xFF005F9F).withOpacity(0.06),
-      scrolledUnderElevation: 0,
-      centerTitle: false,
-      title: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFD1E4FF),
-              image: DecorationImage(
-                image: NetworkImage(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuAcwOAqf943qOhiMKjMs-8MjDkgzc7d7lGQfElSaoiLVWhXjMiobAlaME1MCppAHokcWiula-8bITGFdtBeya0lF2symbkGD7FAdouj8PFPiLkllArsJkKcOik74RJ5DQqRlvocn4JbJNzGupYR9KlW1VQe3R40MYXClVoTsd0zo-WQaqzNCQaPDVg4CMZZahqG0ogcpQL3bX2p_YhpD_Od1jb_Jsd3ANrbKgDuztDaPOy9gbqUie4M8lc1a4vQtf4CuymZTgpJbXw',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'TRIPWISE PROVIDER',
-            style: TextStyle(
-              color: Color(0xFF181C22),
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF0194F3)),
-          tooltip: 'Back to Planner',
-          onPressed: () => context.go('/trip_planner_dashboard'),
-        ),
-        IconButton(
-          icon: const Icon(Icons.notifications, color: Color(0xFF0194F3)),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-      ],
-    );
+  PreferredSizeWidget _buildAppBar() {
+    return const ProviderAppBar();
   }
 
   Widget _buildHeader() {
@@ -299,12 +259,9 @@ class OrderManagerScreen extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5E1F),
-                    foregroundColor: Colors.white,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 12,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('Accept', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
@@ -312,12 +269,11 @@ class OrderManagerScreen extends StatelessWidget {
               const SizedBox(width: 12),
               ElevatedButton(
                 onPressed: () => context.push('/direct_messaging'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF0F4FC),
-                  foregroundColor: const Color(0xFF005F9F),
+                style: TripwiseButtonStyles.surfaceElevated(
+                  radius: 12,
+                  backgroundColor: TripwiseColors.surfaceContainerLow,
+                  foregroundColor: TripwiseColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Icon(Icons.chat_bubble),
               ),
@@ -456,12 +412,9 @@ class OrderManagerScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF5E1F),
-                            foregroundColor: Colors.white,
+                          style: TripwiseButtonStyles.primaryElevated(
+                            radius: 12,
                             padding: const EdgeInsets.symmetric(vertical: 20),
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: const Text('Accept Reservation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
@@ -469,12 +422,11 @@ class OrderManagerScreen extends StatelessWidget {
                       const SizedBox(width: 16),
                       ElevatedButton(
                         onPressed: () => context.push('/direct_messaging'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF0F4FC),
-                          foregroundColor: const Color(0xFF005F9F),
+                        style: TripwiseButtonStyles.surfaceElevated(
+                          radius: 12,
+                          backgroundColor: TripwiseColors.surfaceContainerLow,
+                          foregroundColor: TripwiseColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Row(
                           children: const [

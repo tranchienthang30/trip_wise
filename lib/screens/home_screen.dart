@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -120,34 +122,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 20,
-        title: Text(
-          'Tripwise',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => context.push('/add_location_search'),
-            icon: const Icon(Icons.search_rounded),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: GestureDetector(
-              onTap: () => context.go('/profile_registration'),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundColor: TripwiseColors.surfaceContainerHigh,
-                backgroundImage: NetworkImage(_avatarUrl),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -183,31 +158,8 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) => _handleBottomNavTap(context, index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
-            label: 'My Trips',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
-            label: 'Planner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.home,
       ),
     );
   }
@@ -305,17 +257,12 @@ class HomeScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => context.push('/search_filter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TripwiseColors.secondaryContainer,
-                foregroundColor: TripwiseColors.onSecondary,
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 24,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                elevation: 0,
               ),
               child: const Text('Search Destinations'),
             ),
@@ -605,11 +552,12 @@ class _OfferCard extends StatelessWidget {
               const Spacer(),
               FilledButton(
                 onPressed: () => context.push('/service_details'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
+                style: TripwiseButtonStyles.overlayFilled(
                   foregroundColor: offer.accentColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
                   minimumSize: const Size(0, 38),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(

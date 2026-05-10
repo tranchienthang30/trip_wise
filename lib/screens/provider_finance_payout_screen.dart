@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderFinancePayoutScreen extends StatefulWidget {
   const ProviderFinancePayoutScreen({super.key});
@@ -61,89 +61,13 @@ class _ProviderFinancePayoutScreenState
   ];
 
   int _selectedPeriod = 1;
-  int _selectedNavIndex = 3;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 58,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 14, top: 10, bottom: 10),
-          child: CircleAvatar(
-            backgroundColor: TripwiseColors.primaryFixed,
-            backgroundImage: const NetworkImage(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuBaszrIEZvetULMLtB4tGcayxtAiexPhLYVbVFR6IEPCOIXRLJpZzksMaf692woplhhlPAKnn5KaSkQbxtMSMmQF98rKS4m9WFG3pxEmLoHhVr2pRwShaZOIB11tl30K8z6Rrs08ECf0KPACkwUfZv5FJHN3wFJnFAahMaUNVlh1g1F60132JmcIEEPjecY7be3nn6f90BMysvWRRUC5MqdN1O-LypaVFCKjBTUtV0A5CnBBWi-UKvZLOCvb1elu0MgPd-h-dNilNE',
-            ),
-          ),
-        ),
-        centerTitle: false,
-        title: Text(
-          'TRIPWISE PROVIDER',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/trip_planner_dashboard'),
-            icon: const Icon(Icons.swap_horiz_rounded),
-            color: TripwiseColors.primary,
-            tooltip: 'Back to Planner',
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded),
-            color: TripwiseColors.onSurface,
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedNavIndex,
-        selectedItemColor: TripwiseColors.primary,
-        unselectedItemColor: TripwiseColors.onSurfaceVariant.withOpacity(0.72),
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        onTap: (index) {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          switch (index) {
-            case 0:
-              context.go('/provider_dashboard');
-              break;
-            case 1:
-              context.go('/provider_listings');
-              break;
-            case 2:
-              context.go('/order_manager');
-              break;
-            case 3:
-              context.go('/provider_finance');
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_customize_rounded),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Listings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Finance',
-          ),
-        ],
+      appBar: const ProviderAppBar(),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.finance,
       ),
       body: SafeArea(
         top: false,
@@ -257,14 +181,9 @@ class _PayoutSummaryCard extends StatelessWidget {
                 height: 48,
                 child: ElevatedButton.icon(
                   onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.secondaryContainer,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 24,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    elevation: 0,
                   ),
                   iconAlignment: IconAlignment.end,
                   icon: const Icon(Icons.content_copy_rounded, size: 16),

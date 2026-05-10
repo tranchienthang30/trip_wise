@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderListingAddScreen extends StatefulWidget {
   const ProviderListingAddScreen({super.key});
@@ -51,31 +52,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Add New Listing',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.swap_horiz_rounded,
-              color: TripwiseColors.primary,
-            ),
-            tooltip: 'Back to Planner',
-            onPressed: () => context.go('/trip_planner_dashboard'),
-          ),
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: Stepper(
         currentStep: _currentStep,
         onStepContinue: () {
@@ -317,6 +294,9 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
             isActive: _currentStep >= 2,
           ),
         ],
+      ),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
       ),
     );
   }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class ProviderDashboardScreen extends StatelessWidget {
   const ProviderDashboardScreen({super.key});
 
@@ -8,56 +12,7 @@ class ProviderDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FF).withOpacity(0.9),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        titleSpacing: 24,
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFD1E4FF), width: 2),
-                image: const DecorationImage(
-                  image: NetworkImage(
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuDUvf8uuK4F3LArKzVHGi4IFD-nhEZGzVjlexLUPeABs04M6yguIdknSYKfaDF-RW5UWMmLb919NX4Ny_pL0L03-0uFS1ytHE4JgG3uDEJ8LFUlzIT6N9STaRkFnTBtZOytTChv5LHFkcGpZtlQq8blB2a5g0BPnhdwHy9WDFyNpO-alAbroUki6iUD61g1C-PWNfM4jUtbO_GQCA78pRCG0nAV8abXI6enryYAQ5PQmyeFMSU_A-1zo17kGpNThVHxGFeHiVzu6J0'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Tripwise Business',
-              style: TextStyle(
-                color: Color(0xFF005F9F),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.swap_horiz_rounded,
-              color: Color(0xFF005F9F),
-            ),
-            tooltip: 'Back to Planner',
-            onPressed: () => context.go('/trip_planner_dashboard'),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              icon: const Icon(Icons.notifications, color: Color(0xFF005F9F)),
-              onPressed: () {},
-            ),
-          )
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
         child: Column(
@@ -97,7 +52,9 @@ class ProviderDashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.dashboard,
+      ),
     );
   }
 
@@ -311,9 +268,7 @@ class ProviderDashboardScreen extends StatelessWidget {
         ),
         TextButton(
           onPressed: () {},
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF005F9F),
-          ),
+          style: TripwiseButtonStyles.text(),
           child: const Text('View All Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
@@ -439,7 +394,7 @@ class ProviderDashboardScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
         currentIndex: 0,
-        selectedItemColor: const Color(0xFFFF5E1F),
+        selectedItemColor: TripwiseColors.primary,
         unselectedItemColor: const Color(0xFF3F4752).withOpacity(0.7),
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, letterSpacing: 0.5),

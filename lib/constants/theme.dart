@@ -42,7 +42,7 @@ class TripwiseTheme {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: TripwiseColors.surface,
-        selectedItemColor: TripwiseColors.secondary,
+        selectedItemColor: TripwiseColors.primary,
         unselectedItemColor: Colors.grey[600],
         elevation: 0,
         type: BottomNavigationBarType.fixed,
@@ -68,33 +68,61 @@ class TripwiseTheme {
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: TripwiseColors.primary,
-          foregroundColor: TripwiseColors.onPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        style: TripwiseButtonStyles.primaryElevated(
+          minimumSize: const Size(0, 52),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: TripwiseColors.primary,
-          side: const BorderSide(color: TripwiseColors.outline),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        style: TripwiseButtonStyles.outlined(
+          minimumSize: const Size(0, 52),
+          borderColor: TripwiseColors.outline,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: TripwiseColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        style: TripwiseButtonStyles.text(
+          minimumSize: const Size(0, 40),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: TripwiseColors.primary,
+          foregroundColor: TripwiseColors.onPrimary,
+          surfaceTintColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: TripwiseColors.primary,
+        foregroundColor: TripwiseColors.onPrimary,
+        elevation: 6,
+        highlightElevation: 8,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return TripwiseColors.onPrimary;
+          }
+
+          return TripwiseColors.surfaceContainerLowest;
+        }),
+        trackColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return TripwiseColors.primary;
+          }
+
+          return TripwiseColors.surfaceContainerHigh;
+        }),
+        trackOutlineColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return TripwiseColors.primary;
+          }
+
+          return TripwiseColors.outlineVariant;
+        }),
       ),
     );
   }

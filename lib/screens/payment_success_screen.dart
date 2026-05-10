@@ -123,10 +123,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TripwiseColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    ),
+                    style: TripwiseButtonStyles.primaryElevated(radius: 28),
                     onPressed: () {
                       context.go('/my_trips');
                     },

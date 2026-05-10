@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderAnalyticsScreen extends StatefulWidget {
   final String? listingId;
@@ -24,58 +25,45 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Analytics',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.swap_horiz_rounded,
-              color: TripwiseColors.primary,
-            ),
-            tooltip: 'Back to Planner',
-            onPressed: () => context.go('/trip_planner_dashboard'),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButton<String>(
-              value: _selectedPeriod,
-              underline: SizedBox.shrink(),
-              style: TextStyle(color: TripwiseColors.primary),
-              items: ['7 days', '30 days', '90 days', '1 year']
-                  .map((period) => DropdownMenuItem(
-                        value: period,
-                        child: Text(period),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedPeriod = value;
-                  });
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Analytics',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  DropdownButton<String>(
+                    value: _selectedPeriod,
+                    underline: const SizedBox.shrink(),
+                    style: TextStyle(color: TripwiseColors.primary),
+                    items: ['7 days', '30 days', '90 days', '1 year']
+                        .map(
+                          (period) => DropdownMenuItem(
+                            value: period,
+                            child: Text(period),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedPeriod = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               // KPI Cards
               Row(
                 children: [
@@ -228,6 +216,9 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
       ),
     );
   }

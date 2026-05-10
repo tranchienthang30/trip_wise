@@ -62,3 +62,185 @@ class TripwiseColors {
   // On Background
   static const Color onBackground = Color(0xFF181c22);
 }
+
+class TripwiseButtonStyles {
+  static const EdgeInsets _defaultPadding =
+      EdgeInsets.symmetric(horizontal: 24, vertical: 14);
+
+  static ButtonStyle primaryElevated({
+    double radius = 16,
+    EdgeInsetsGeometry padding = _defaultPadding,
+    Size? minimumSize,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+    double elevation = 4,
+    Color? shadowColor,
+    Color? disabledBackgroundColor,
+    Color? disabledForegroundColor,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: TripwiseColors.primary,
+      foregroundColor: TripwiseColors.onPrimary,
+      disabledBackgroundColor: disabledBackgroundColor,
+      disabledForegroundColor: disabledForegroundColor,
+      shadowColor: shadowColor ?? TripwiseColors.primary.withOpacity(0.24),
+      surfaceTintColor: Colors.transparent,
+      elevation: elevation,
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle accentElevated({
+    double radius = 16,
+    EdgeInsetsGeometry padding = _defaultPadding,
+    Size? minimumSize,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+    double elevation = 4,
+    Color? shadowColor,
+    Color? disabledBackgroundColor,
+    Color? disabledForegroundColor,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: TripwiseColors.secondaryContainer,
+      foregroundColor: TripwiseColors.onSecondary,
+      disabledBackgroundColor: disabledBackgroundColor,
+      disabledForegroundColor: disabledForegroundColor,
+      shadowColor:
+          shadowColor ?? TripwiseColors.secondaryContainer.withOpacity(0.28),
+      surfaceTintColor: Colors.transparent,
+      elevation: elevation,
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle surfaceElevated({
+    double radius = 16,
+    EdgeInsetsGeometry padding = _defaultPadding,
+    Size? minimumSize,
+    Color backgroundColor = TripwiseColors.surfaceContainerLowest,
+    Color foregroundColor = TripwiseColors.primary,
+    BorderSide? side,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+    double elevation = 2,
+    Color? shadowColor,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      shadowColor: shadowColor ?? Colors.black.withOpacity(0.08),
+      surfaceTintColor: Colors.transparent,
+      elevation: elevation,
+      side: side,
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle outlined({
+    double radius = 16,
+    EdgeInsetsGeometry padding = _defaultPadding,
+    Size? minimumSize,
+    Color foregroundColor = TripwiseColors.primary,
+    Color borderColor = TripwiseColors.outlineVariant,
+    Color? backgroundColor,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+  }) {
+    return OutlinedButton.styleFrom(
+      foregroundColor: foregroundColor,
+      backgroundColor: backgroundColor,
+      side: BorderSide(color: borderColor),
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle destructiveOutlined({
+    double radius = 16,
+    EdgeInsetsGeometry padding = _defaultPadding,
+    Size? minimumSize,
+  }) {
+    return outlined(
+      radius: radius,
+      padding: padding,
+      minimumSize: minimumSize,
+      foregroundColor: TripwiseColors.error,
+      borderColor: TripwiseColors.error,
+    );
+  }
+
+  static ButtonStyle text({
+    double radius = 12,
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 10,
+    ),
+    Size? minimumSize,
+    Color foregroundColor = TripwiseColors.primary,
+    Color? backgroundColor,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+  }) {
+    return TextButton.styleFrom(
+      foregroundColor: foregroundColor,
+      backgroundColor: backgroundColor,
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle overlayFilled({
+    double radius = 999,
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(
+      horizontal: 18,
+      vertical: 10,
+    ),
+    Size? minimumSize,
+    Color backgroundColor = Colors.white,
+    required Color foregroundColor,
+    TextStyle? textStyle,
+    MaterialTapTargetSize? tapTargetSize,
+  }) {
+    return FilledButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      surfaceTintColor: Colors.transparent,
+      tapTargetSize: tapTargetSize,
+      textStyle: textStyle,
+      padding: padding,
+      minimumSize: minimumSize,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}

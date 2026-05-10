@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProfileRegistrationScreen extends StatefulWidget {
   const ProfileRegistrationScreen({super.key});
@@ -15,37 +17,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.search,
-            color: TripwiseColors.primary,
-          ),
-          onPressed: () => context.push('/add_location_search'),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Tripwise',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundColor: TripwiseColors.primaryContainer,
-              backgroundImage: const NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuCj0DhjFAIlxKtcA8YX2bJTP-FgPiYR3lLWz9n4GS4QVmTNm8PhceGldIC1t_Y2OrLAdhusqbykiLCBCH_-0Jnu3Ouj2PngPlH90R221kLWQ3ra2FfIfcjeVAGtOsB1pj6oTK1_Wr5IFe27vL9pfmWcX0nHBzrisjmb52VV9HwuDiS1V4JO5nSZaGwOxnh5m4ZJBIuOC7TYcaEfRVZX1LKMyW0GnFHQ3Fc6kdWkCiz16AMmXDYJn3k1P9lnIpRLxVywss3OoNf6eiY',
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -165,15 +137,11 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     ElevatedButton.icon(
                       onPressed: () =>
                           context.push('/provider_registration_form'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TripwiseColors.secondaryContainer,
-                        foregroundColor: TripwiseColors.onSecondary,
+                      style: TripwiseButtonStyles.primaryElevated(
+                        radius: 12,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       icon: const Icon(Icons.arrow_forward),
@@ -182,19 +150,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: () => context.go('/provider_dashboard'),
-                      style: OutlinedButton.styleFrom(
+                      style: TripwiseButtonStyles.outlined(
+                        radius: 12,
                         foregroundColor: TripwiseColors.onPrimaryContainer,
-                        side: BorderSide(
-                          color: TripwiseColors.onPrimaryContainer.withOpacity(
-                            0.2,
-                          ),
-                        ),
+                        borderColor:
+                            TripwiseColors.onPrimaryContainer.withOpacity(0.2),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       icon: const Icon(Icons.storefront_rounded),
@@ -315,7 +278,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.profile,
+      ),
     );
   }
 
@@ -379,6 +344,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Document upload is not available yet.'),
+        backgroundColor: TripwiseColors.primary,
       ),
     );
   }
@@ -424,7 +390,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: TripwiseColors.outlineVariant,
+                color: isDestructive ? TripwiseColors.error : TripwiseColors.primary,
               ),
             ],
           ),

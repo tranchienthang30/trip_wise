@@ -403,7 +403,7 @@ class _AboutBlock extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         TextButton(
-          style: TextButton.styleFrom(
+          style: TripwiseButtonStyles.text(
             padding: EdgeInsets.zero,
             minimumSize: const Size(0, 36),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -570,14 +570,12 @@ class _MapPreviewCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
+                    style: TripwiseButtonStyles.outlined(
+                      radius: 12,
                       foregroundColor: TripwiseColors.primary,
                       backgroundColor: TripwiseColors.surfaceContainerLow,
-                      side: BorderSide.none,
+                      borderColor: Colors.transparent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
                     onPressed: () {},
                     child: const Text(
@@ -668,13 +666,11 @@ class _HostCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
+              style: TripwiseButtonStyles.outlined(
+                radius: 12,
                 foregroundColor: TripwiseColors.onSurface,
-                side: const BorderSide(color: TripwiseColors.outlineVariant),
+                borderColor: TripwiseColors.outlineVariant,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
               onPressed: () {},
               child: const Text(
@@ -704,7 +700,7 @@ class _ReviewsSection extends StatelessWidget {
         _SectionHeader(
           'Guest Reviews',
           trailing: TextButton(
-            style: TextButton.styleFrom(
+            style: TripwiseButtonStyles.text(
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, 32),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -882,19 +878,14 @@ class _BookingBar extends StatelessWidget {
                 ],
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TripwiseColors.secondaryContainer,
-                  foregroundColor: Colors.white,
+                style: TripwiseButtonStyles.primaryElevated(
+                  radius: 14,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 28,
                     vertical: 16,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
                   elevation: 10,
-                  shadowColor:
-                      TripwiseColors.secondaryContainer.withOpacity(0.4),
+                  shadowColor: TripwiseColors.primary.withOpacity(0.4),
                 ),
                 onPressed: onBookNow,
                 child: const Text(

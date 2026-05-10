@@ -173,10 +173,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TripwiseColors.secondaryContainer,
-                      foregroundColor: TripwiseColors.onSecondary,
-                    ),
                     icon: const Icon(Icons.mail),
                     label: const Text('Contact Support'),
                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderListingEditScreen extends StatefulWidget {
   final String? listingId;
@@ -48,31 +49,7 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Edit Listing',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.swap_horiz_rounded,
-              color: TripwiseColors.primary,
-            ),
-            tooltip: 'Back to Planner',
-            onPressed: () => context.go('/trip_planner_dashboard'),
-          ),
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -103,7 +80,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                       bottom: 12,
                       right: 12,
                       child: FloatingActionButton.small(
-                        backgroundColor: TripwiseColors.primary,
                         onPressed: () {},
                         child: Icon(
                           Icons.camera_alt,
@@ -250,13 +226,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.primary,
-                    foregroundColor: TripwiseColors.onPrimary,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 12,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -279,13 +251,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: TripwiseColors.error,
-                    side: BorderSide(color: TripwiseColors.error),
+                  style: TripwiseButtonStyles.destructiveOutlined(
+                    radius: 12,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   onPressed: () {
                     showDialog(
@@ -332,6 +300,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
       ),
     );
   }

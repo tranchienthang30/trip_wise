@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderRegistrationFormScreen extends StatefulWidget {
   const ProviderRegistrationFormScreen({super.key});
@@ -43,22 +44,7 @@ class _ProviderRegistrationFormScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: TripwiseColors.primary),
-          onPressed: () => context.pop(),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Provider Registration',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -240,12 +226,11 @@ class _ProviderRegistrationFormScreenState
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => context.pop(),
-                        style: OutlinedButton.styleFrom(
+                        style: TripwiseButtonStyles.outlined(
+                          radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: TripwiseColors.outline),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          foregroundColor: TripwiseColors.onSurface,
+                          borderColor: TripwiseColors.outline,
                         ),
                         child: Text(
                           'Cancel',
@@ -264,13 +249,9 @@ class _ProviderRegistrationFormScreenState
                             _submitRegistration();
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: TripwiseColors.primary,
-                          foregroundColor: TripwiseColors.onPrimary,
+                        style: TripwiseButtonStyles.primaryElevated(
+                          radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                         ),
                         child: const Text(
                           'Submit',

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 // Brand palette has no green; matches HTML mock for credit indicator.
 const Color _creditGreenBg = Color(0xFFD7F4DD);
@@ -93,47 +95,7 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 20,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.search_rounded,
-            color: TripwiseColors.primary,
-          ),
-          onPressed: () => context.push('/add_location_search'),
-        ),
-        title: Text(
-          'Tripwise',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: GestureDetector(
-              onTap: () => context.go('/profile_registration'),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: TripwiseColors.primaryContainer,
-                    width: 2,
-                  ),
-                ),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage(_avatarUrl),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -162,34 +124,8 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentNavIndex,
-        selectedItemColor: TripwiseColors.secondaryContainer,
-        unselectedItemColor: TripwiseColors.outline,
-        onTap: _handleBottomNavTap,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
-            label: 'My Trips',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
-            label: 'Planner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.wallet,
       ),
     );
   }
@@ -326,15 +262,11 @@ class _PrimaryWalletCard extends StatelessWidget {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => context.push('/add_payment'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TripwiseColors.secondaryContainer,
-                        foregroundColor: Colors.white,
+                      style: TripwiseButtonStyles.primaryElevated(
+                        radius: 14,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
                         ),
                         textStyle: const TextStyle(
                           fontWeight: FontWeight.w800,
@@ -351,18 +283,14 @@ class _PrimaryWalletCard extends StatelessWidget {
                           ),
                         );
                       },
-                      style: OutlinedButton.styleFrom(
+                      style: TripwiseButtonStyles.outlined(
+                        radius: 14,
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.white.withOpacity(0.10),
-                        side: BorderSide(
-                          color: Colors.white.withOpacity(0.30),
-                        ),
+                        borderColor: Colors.white.withOpacity(0.30),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
                         ),
                         textStyle: const TextStyle(
                           fontWeight: FontWeight.w800,
@@ -495,7 +423,7 @@ class _LoyaltyPointsCard extends StatelessWidget {
                 context,
                 'Rewards catalog will be available here soon.',
               ),
-              style: TextButton.styleFrom(
+              style: TripwiseButtonStyles.text(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -841,15 +769,13 @@ class _LoyaltyPerkBanner extends StatelessWidget {
                     context,
                     'Reward redemption will be available in Wallet soon.',
                   ),
-                  style: ElevatedButton.styleFrom(
+                  style: TripwiseButtonStyles.surfaceElevated(
+                    radius: 999,
                     backgroundColor: Colors.white,
                     foregroundColor: TripwiseColors.secondary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
                     ),
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.w900,

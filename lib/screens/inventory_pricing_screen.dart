@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 // Brand palette has no green; matches HTML mock for available-day indicator.
 const Color _availableGreen = Color(0xFF22C55E);
@@ -15,9 +17,6 @@ class InventoryPricingScreen extends StatefulWidget {
 }
 
 class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA5SxqLMpzcg5dMTl7osEQlvMV9-cKgQs2Bh80DeXJ_kW1Ol08gECvbA7xryT4XCE5Pn7HK__TA-BWF9U14lw8eGNHC9pK654Wpq4ThAg6MOFsD32SNrfnphe-_x6z4i62jmkJN2YCw6usrVZDfaF1zq-fnqr5HFux1LThKwDaFg5o-EPEuSpdsTzDaX5QtWOx1-4_OppL4knrYFolBKvoZ6aMyWCzKJGgqEn_oIjB3d4vSBjs05APNIWxH_ss-ZqfdL9IRO0gMneo';
-
   static const List<String> _weekdayLabels = [
     'MON',
     'TUE',
@@ -65,7 +64,6 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
 
   int _selectedDay = 5;
   bool _isAvailable = true;
-  int _currentNavIndex = 1;
   late final TextEditingController _priceController;
 
   @override
@@ -88,37 +86,7 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: const Padding(
-          padding: EdgeInsets.all(8),
-          child: CircleAvatar(
-            backgroundColor: TripwiseColors.primaryFixed,
-            backgroundImage: NetworkImage(_avatarUrl),
-          ),
-        ),
-        title: Text(
-          'Tripwise Business',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: const Icon(
-                Icons.notifications_rounded,
-                color: TripwiseColors.primary,
-              ),
-              onPressed: () {},
-            ),
-          ),
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -149,30 +117,8 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentNavIndex,
-        selectedItemColor: TripwiseColors.secondaryContainer,
-        unselectedItemColor: TripwiseColors.outline,
-        onTap: (index) => setState(() => _currentNavIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_rounded),
-            label: 'Listings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.payments_rounded),
-            label: 'Finance',
-          ),
-        ],
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
       ),
     );
   }
@@ -563,13 +509,9 @@ class _DaySettingsCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TripwiseColors.secondaryContainer,
-                foregroundColor: Colors.white,
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 14,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
                 textStyle: const TextStyle(
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,

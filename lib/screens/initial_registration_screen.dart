@@ -248,7 +248,7 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
                   children: [
                     Checkbox(
                       value: _acceptTerms,
-                      activeColor: TripwiseColors.secondaryContainer,
+                      activeColor: TripwiseColors.primary,
                       onChanged: (value) {
                         setState(() {
                           _acceptTerms = value ?? false;
@@ -276,12 +276,8 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.secondaryContainer,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 20,
                     textStyle: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,

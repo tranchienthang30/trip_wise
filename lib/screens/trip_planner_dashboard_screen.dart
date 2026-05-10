@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
 class TripPlannerDashboardScreen extends StatelessWidget {
   const TripPlannerDashboardScreen({super.key});
 
@@ -8,44 +12,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FF).withOpacity(0.9),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFF005F9F)),
-          onPressed: () => _showPlannerMenu(context),
-        ),
-        title: const Text(
-          'Voyage',
-          style: TextStyle(
-              color: Color(0xFF005F9F),
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: GestureDetector(
-              onTap: () => context.go('/profile_registration'),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFD1E4FF), width: 2),
-                  image: const DecorationImage(
-                    image: NetworkImage(
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuA5DAnB3-2pZxgQf-tM5tZJfq5_lrz5ICs6xPs6d7ZW1DUqsjwKCBZwNOvS3JDsNfcu8YmBOjZlmcLQhEu3dXf7ikTLqOQVL3JwODTMx0LpKwe3RcztE4pYwaA2S86HB7I2uj_dTL_QJO7Hox8wLm8t8WBJuVxOlgO9NYUrrB3BpdvYiF4y8FukRdRPbND8qJN5UzvWcXa-TBz7CIG9IyPEsRGise4qrMNgsd1PgeAJFbDtmCwuCnXiR5hOUqJrmSkPWOOIvCyHLpg'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          )
-        ],
-      ),
+      appBar: const PlannerAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
@@ -74,15 +41,16 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFFF5E1F),
         onPressed: () => context.push('/plan_new_trip_form'),
-        icon: const Icon(Icons.add, color: Colors.white, size: 28),
+        icon: const Icon(Icons.add, size: 28),
         label: const Text(
           'Create New Trip',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.planner,
+      ),
     );
   }
 
@@ -401,12 +369,12 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                         ],
                       ),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF5E1F),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          elevation: 0,
+                        style: TripwiseButtonStyles.primaryElevated(
+                          radius: 12,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                         ),
                         onPressed: () => context.push('/trip_planner_timeline'),
                         child: const Text('View Timeline', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -431,7 +399,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFEA580C), // orange-600
+        selectedItemColor: TripwiseColors.primary,
         unselectedItemColor: const Color(0xFF94A3B8), // slate-400
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),

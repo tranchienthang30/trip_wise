@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderRegistrationScreen extends StatefulWidget {
   const ProviderRegistrationScreen({super.key});
@@ -56,39 +57,13 @@ class _ProviderRegistrationScreenState
       );
   }
 
-  void _handleBack() {
-    if (Navigator.of(context).canPop()) {
-      context.pop();
-      return;
-    }
-
-    context.go('/profile_registration');
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: TripwiseColors.primary,
-          ),
-          onPressed: _handleBack,
-        ),
-        title: Text(
-          'Provider Registration',
-          style: textTheme.titleLarge?.copyWith(
-            color: TripwiseColors.primary,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         child: Form(
@@ -203,7 +178,7 @@ class _ProviderRegistrationScreenState
                       _acceptedTerms = value ?? false;
                     });
                   },
-                  activeColor: TripwiseColors.secondaryContainer,
+                  activeColor: TripwiseColors.primary,
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
                   title: Text(
@@ -220,13 +195,9 @@ class _ProviderRegistrationScreenState
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _submitRegistration,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TripwiseColors.secondaryContainer,
-                    foregroundColor: Colors.white,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 14,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
                   ),
                   child: const Text(
                     'Submit Registration',

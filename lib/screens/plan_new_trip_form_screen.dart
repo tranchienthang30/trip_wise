@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
+
 class PlanNewTripFormScreen extends StatefulWidget {
   const PlanNewTripFormScreen({super.key});
 
@@ -259,13 +261,11 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                       flex: 1,
                       child: TextButton(
                         onPressed: () => context.go('/trip_planner_dashboard'),
-                        style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFF0F4FC),
-                          foregroundColor: const Color(0xFF005F9F),
+                        style: TripwiseButtonStyles.text(
+                          radius: 12,
+                          backgroundColor: TripwiseColors.surfaceContainerLow,
+                          foregroundColor: TripwiseColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                         ),
                         child: const Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
@@ -275,14 +275,9 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                       flex: 2,
                       child: ElevatedButton(
                         onPressed: () => context.go('/trip_planner_dashboard'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF5E1F),
-                          foregroundColor: Colors.white,
+                        style: TripwiseButtonStyles.primaryElevated(
+                          radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 20),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
 
 class ProviderListingManagementScreen extends StatefulWidget {
   const ProviderListingManagementScreen({super.key});
@@ -18,43 +20,7 @@ class _ProviderListingManagementScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: TripwiseColors.primaryFixed,
-            backgroundImage: const NetworkImage(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuBaszrIEZvetULMLtB4tGcayxtAiexPhLYVbVFR6IEPCOIXRLJpZzksMaf692woplhhlPAKnn5KaSkQbxtMSMmQF98rKS4m9WFG3pxEmLoHhVr2pRwShaZOIB11tl30K8z6Rrs08ECf0KPACkwUfZv5FJHN3wFJnFAahMaUNVlh1g1F60132JmcIEEPjecY7be3nn6f90BMysvWRRUC5MqdN1O-LypaVFCKjBTUtV0A5CnBBWi-UKvZLOCvb1elu0MgPd-h-dNilNE',
-            ),
-          ),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Tripwise Business',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.swap_horiz_rounded,
-              color: TripwiseColors.primary,
-            ),
-            tooltip: 'Back to Planner',
-            onPressed: () => context.go('/trip_planner_dashboard'),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.notifications,
-              color: TripwiseColors.primary,
-            ),
-            onPressed: () {},
-          ),
-        ],
-      ),
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,11 +169,12 @@ class _ProviderListingManagementScreenState
         onPressed: () {
           context.push('/add_new_listing_form');
         },
-        backgroundColor: TripwiseColors.secondaryContainer,
         icon: const Icon(Icons.add),
         label: const Text('Add Listing'),
       ),
-      bottomNavigationBar: _buildProviderBottomNavBar(),
+      bottomNavigationBar: const ProviderTaskbar(
+        currentTab: ProviderTaskbarTab.listings,
+      ),
     );
   }
 
@@ -308,12 +275,10 @@ class _ProviderListingManagementScreenState
                           '/provider_listing_edit?id=1&title=Azure Horizon Bay Resort',
                         );
                       },
-                      style: ElevatedButton.styleFrom(
+                      style: TripwiseButtonStyles.surfaceElevated(
+                        radius: 24,
                         backgroundColor: TripwiseColors.surfaceContainerHigh,
                         foregroundColor: TripwiseColors.onSurface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
@@ -386,12 +351,10 @@ class _ProviderListingManagementScreenState
                     onPressed: () {
                       context.push('/provider_listing_edit?id=$id&title=$title');
                     },
-                    style: ElevatedButton.styleFrom(
+                    style: TripwiseButtonStyles.surfaceElevated(
+                      radius: 10,
                       backgroundColor: TripwiseColors.surfaceContainerLow,
                       foregroundColor: TripwiseColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     icon: const Icon(Icons.edit, size: 16),
@@ -492,18 +455,14 @@ class _ProviderListingManagementScreenState
                         onPressed: () {
                           context.push('/provider_listing_edit?id=$id&title=$title');
                         },
-                        style: OutlinedButton.styleFrom(
+                        style: TripwiseButtonStyles.outlined(
+                          radius: 8,
                           foregroundColor: TripwiseColors.primary,
-                          side: const BorderSide(color: TripwiseColors.primary),
+                          borderColor: TripwiseColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          textStyle: const TextStyle(fontSize: 11),
                         ),
-                        child: const Text(
-                          'Edit',
-                          style: TextStyle(fontSize: 11),
-                        ),
+                        child: const Text('Edit'),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -512,13 +471,12 @@ class _ProviderListingManagementScreenState
                         onPressed: () {
                           context.push('/provider_analytics?id=$id&title=$title');
                         },
-                        style: OutlinedButton.styleFrom(
+                        style: TripwiseButtonStyles.outlined(
+                          radius: 8,
                           foregroundColor: TripwiseColors.onSurfaceVariant,
-                          side: const BorderSide(color: TripwiseColors.outlineVariant),
+                          borderColor: TripwiseColors.outlineVariant,
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          textStyle: const TextStyle(fontSize: 11),
                         ),
                         child: const Text(
                           'Analytics',
@@ -539,7 +497,7 @@ class _ProviderListingManagementScreenState
   Widget _buildProviderBottomNavBar() {
     return BottomNavigationBar(
       currentIndex: 1,
-      selectedItemColor: TripwiseColors.secondaryContainer,
+      selectedItemColor: TripwiseColors.primary,
       unselectedItemColor: TripwiseColors.onSurfaceVariant,
       onTap: (index) {
         switch (index) {

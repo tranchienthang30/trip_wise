@@ -548,14 +548,10 @@ class _AddCardCta extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: TripwiseColors.secondaryContainer,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+          style: TripwiseButtonStyles.primaryElevated(
+            radius: 20,
             elevation: 8,
-            shadowColor: TripwiseColors.secondary.withOpacity(0.30),
+            shadowColor: TripwiseColors.primary.withOpacity(0.30),
             textStyle: const TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 16,
