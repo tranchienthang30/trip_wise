@@ -40,7 +40,9 @@ class TripPlannerDashboardScreen extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'create_trip_fab',
         onPressed: () => context.push('/plan_new_trip_form'),
         icon: const Icon(Icons.add, size: 28),
         label: const Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import 'planner_assistant_chat.dart';
 
 const String _sharedAvatarUrl =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A';
@@ -29,6 +30,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       ),
       actions: [
+        const PlannerAssistantHeaderButton(),
         IconButton(
           onPressed: () => context.push('/notifications'),
           icon: const Icon(
