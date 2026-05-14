@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/colors.dart';
 import '../models/hotel_detail.dart';
 import '../services/hotels_api.dart';
 import '../utils/currency.dart';
+import 'image_gallery_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   const ServiceDetailsScreen({super.key, required this.hotelId});
@@ -18,19 +21,49 @@ class ServiceDetailsScreen extends StatefulWidget {
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final HotelsApi _api = HotelsApi();
   late Future<HotelDetail> _future;
+  HotelDetail? _data;
   bool _isFavorited = false;
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  void _load() {
     _future = _api.fetchHotelDetail(widget.hotelId);
+    _future.then((data) {
+      if (!mounted) return;
+      setState(() => _data = data);
+    }).catchError((_) {});
   }
 
   void _retry() {
     setState(() {
-      _future = _api.fetchHotelDetail(widget.hotelId);
+      _data = null;
+      _load();
     });
   }
+
+  Future<void> _onShare() async {
+    final data = _data;
+    if (data == null) return;
+    final price = data.priceFrom == null
+        ? ''
+        : '\nFrom ${formatVnd(data.priceFrom)} / night';
+    await Share.share(
+      'Check out ${data.name} on Tripwise.\n${data.address}$price',
+      subject: data.name,
+    );
+  }
+
+  Future<void> _onOpenExternalMap() async {
+    final url = _data?.googleMapUrl;
+    if (url == null || url.isEmpty) return;
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
+  void _onContactSupport() => context.push('/direct_messaging');
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +83,11 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             );
           }
           final data = snapshot.data!;
-          return _DetailBody(data: data);
+          return _DetailBody(
+            data: data,
+            onOpenExternalMap: _onOpenExternalMap,
+            onContactSupport: _onContactSupport,
+          );
         },
       ),
       bottomNavigationBar: FutureBuilder<HotelDetail>(
@@ -95,7 +132,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             Icons.ios_share_rounded,
             color: TripwiseColors.primary,
           ),
-          onPressed: () {},
+          onPressed: _data == null ? null : _onShare,
         ),
         IconButton(
           icon: Icon(
@@ -160,9 +197,27 @@ class _ErrorView extends StatelessWidget {
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.data});
+  const _DetailBody({
+    required this.data,
+    required this.onOpenExternalMap,
+    required this.onContactSupport,
+  });
 
   final HotelDetail data;
+  final VoidCallback onOpenExternalMap;
+  final VoidCallback onContactSupport;
+
+  void _openGallery(BuildContext context, List<String> images, int index) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ImageGalleryScreen(
+          images: images,
+          initialIndex: index,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +226,10 @@ class _DetailBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HeroGrid(images: data.images),
+          _HeroGrid(
+            images: data.images,
+            onTapImage: (i) => _openGallery(context, data.images, i),
+          ),
           const SizedBox(height: 28),
           _IdentityHeader(
             category: data.category,
@@ -194,12 +252,13 @@ class _DetailBody extends StatelessWidget {
           ],
           const SizedBox(height: 32),
           _MapPreviewCard(
-            mapImage: data.images.isNotEmpty ? data.images.first : null,
             location: data.address,
+            hasMapUrl: data.googleMapUrl != null,
+            onOpenExternalMap: onOpenExternalMap,
           ),
           if (data.host != null) ...[
             const SizedBox(height: 24),
-            _HostCard(hostName: data.host!.name),
+            _HostCard(hostName: data.host!.name, onContactSupport: onContactSupport),
           ],
           if (data.reviewCount > 0) ...[
             const SizedBox(height: 32),
@@ -214,16 +273,15 @@ class _DetailBody extends StatelessWidget {
 // ---------- Network image with graceful fallback ----------
 
 class _NetImage extends StatelessWidget {
-  const _NetImage(this.url, {this.fit = BoxFit.cover});
+  const _NetImage(this.url);
 
   final String url;
-  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
     return Image.network(
       url,
-      fit: fit,
+      fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         color: TripwiseColors.surfaceContainerLow,
         alignment: Alignment.center,
@@ -252,9 +310,33 @@ class _NetImage extends StatelessWidget {
 // ---------- Hero grid (adapts to 1 / 2 / 3+ images) ----------
 
 class _HeroGrid extends StatelessWidget {
-  const _HeroGrid({required this.images});
+  const _HeroGrid({required this.images, required this.onTapImage});
 
   final List<String> images;
+  final ValueChanged<int> onTapImage;
+
+  Widget _tile({
+    required int index,
+    required double radius,
+    Widget? overlay,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTapImage(index),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _NetImage(images[index]),
+              if (overlay != null) overlay,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,13 +356,10 @@ class _HeroGrid extends StatelessWidget {
       );
     }
     if (images.length == 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: SizedBox(
-          height: 260,
-          width: double.infinity,
-          child: _NetImage(images[0]),
-        ),
+      return SizedBox(
+        height: 260,
+        width: double.infinity,
+        child: _tile(index: 0, radius: 20),
       );
     }
     return SizedBox(
@@ -290,10 +369,7 @@ class _HeroGrid extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: _NetImage(images[0]),
-            ),
+            child: _tile(index: 0, radius: 20),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -301,23 +377,15 @@ class _HeroGrid extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: _NetImage(images[1]),
-                  ),
-                ),
+                Expanded(child: _tile(index: 1, radius: 16)),
                 if (images.length >= 3) ...[
                   const SizedBox(height: 10),
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _NetImage(images[2]),
-                          if (images.length > 3)
-                            Container(
+                    child: _tile(
+                      index: 2,
+                      radius: 16,
+                      overlay: images.length > 3
+                          ? Container(
                               color: Colors.black.withOpacity(0.4),
                               alignment: Alignment.center,
                               child: Text(
@@ -329,9 +397,8 @@ class _HeroGrid extends StatelessWidget {
                                   letterSpacing: 0.6,
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
+                            )
+                          : null,
                     ),
                   ),
                 ],
@@ -581,10 +648,15 @@ class _AmenitiesGrid extends StatelessWidget {
 // ---------- Map preview ----------
 
 class _MapPreviewCard extends StatelessWidget {
-  const _MapPreviewCard({required this.mapImage, required this.location});
+  const _MapPreviewCard({
+    required this.location,
+    required this.hasMapUrl,
+    required this.onOpenExternalMap,
+  });
 
-  final String? mapImage;
   final String location;
+  final bool hasMapUrl;
+  final VoidCallback onOpenExternalMap;
 
   @override
   Widget build(BuildContext context) {
@@ -601,56 +673,25 @@ class _MapPreviewCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(20),
+      child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: AspectRatio(
-              aspectRatio: 16 / 10,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (mapImage != null)
-                    ColorFiltered(
-                      colorFilter: const ColorFilter.matrix(<double>[
-                        0.2126, 0.7152, 0.0722, 0, 0, //
-                        0.2126, 0.7152, 0.0722, 0, 0, //
-                        0.2126, 0.7152, 0.0722, 0, 0, //
-                        0, 0, 0, 0.85, 0, //
-                      ]),
-                      child: _NetImage(mapImage!),
-                    )
-                  else
-                    Container(color: TripwiseColors.surfaceContainerLow),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: TripwiseColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: TripwiseColors.primary.withOpacity(0.35),
-                            blurRadius: 14,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: TripwiseColors.primaryFixed,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.location_on_rounded,
+              color: TripwiseColors.primary,
+              size: 28,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -666,29 +707,28 @@ class _MapPreviewCard extends StatelessWidget {
                   style: textTheme.bodySmall?.copyWith(
                     color: TripwiseColors.onSurfaceVariant,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    style: TripwiseButtonStyles.outlined(
-                      radius: 12,
-                      foregroundColor: TripwiseColors.primary,
-                      backgroundColor: TripwiseColors.surfaceContainerLow,
-                      borderColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: () {},
-                    child: const Text(
-                      'VIEW ON MAP',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        fontSize: 12,
-                      ),
-                    ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          TextButton(
+            onPressed: hasMapUrl ? onOpenExternalMap : null,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'OPEN',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    fontSize: 12,
                   ),
                 ),
+                SizedBox(width: 4),
+                Icon(Icons.open_in_new_rounded, size: 16),
               ],
             ),
           ),
@@ -701,9 +741,10 @@ class _MapPreviewCard extends StatelessWidget {
 // ---------- Host card ----------
 
 class _HostCard extends StatelessWidget {
-  const _HostCard({required this.hostName});
+  const _HostCard({required this.hostName, required this.onContactSupport});
 
   final String hostName;
+  final VoidCallback onContactSupport;
 
   @override
   Widget build(BuildContext context) {
@@ -762,7 +803,7 @@ class _HostCard extends StatelessWidget {
                 borderColor: TripwiseColors.outlineVariant,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () {},
+              onPressed: onContactSupport,
               child: const Text(
                 'Contact Support',
                 style: TextStyle(fontWeight: FontWeight.w800),

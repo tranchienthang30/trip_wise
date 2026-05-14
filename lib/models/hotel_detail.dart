@@ -18,6 +18,7 @@ class HotelDetail {
     required this.host,
     required this.policies,
     required this.isFavoritedByMe,
+    required this.googleMapUrl,
   });
 
   final int id;
@@ -38,6 +39,7 @@ class HotelDetail {
   final HotelHost? host;
   final HotelPolicies policies;
   final bool isFavoritedByMe;
+  final String? googleMapUrl;
 
   factory HotelDetail.fromJson(Map<String, dynamic> json) {
     return HotelDetail(
@@ -65,6 +67,7 @@ class HotelDetail {
         (json['policies'] as Map<String, dynamic>?) ?? const {},
       ),
       isFavoritedByMe: json['isFavoritedByMe'] as bool? ?? false,
+      googleMapUrl: json['googleMapUrl'] as String?,
     );
   }
 }
