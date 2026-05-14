@@ -75,8 +75,10 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const BookingCheckoutScreen(),
     ),
     GoRoute(
-      path: '/service_details',
-      builder: (context, state) => const ServiceDetailsScreen(),
+      path: '/service_details/:id',
+      builder: (context, state) => ServiceDetailsScreen(
+        hotelId: int.parse(state.pathParameters['id']!),
+      ),
     ),
     GoRoute(
       path: '/add_payment',

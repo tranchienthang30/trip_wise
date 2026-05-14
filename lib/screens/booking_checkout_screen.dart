@@ -23,7 +23,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           color: TripwiseColors.onSurface,
-          onPressed: () => context.go('/service_details'),
+          onPressed: () => context.go('/service_details/1'),
         ),
         title: Text(
           'Checkout',

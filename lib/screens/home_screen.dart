@@ -22,21 +22,21 @@ class HomeScreen extends StatelessWidget {
     _TravelCategory(
       icon: Icons.flight_rounded,
       label: 'FLIGHTS',
-      route: '/service_details',
+      route: '/service_details/2',
       backgroundColor: Color(0xFFFBE6DF),
       iconColor: TripwiseColors.secondary,
     ),
     _TravelCategory(
       icon: Icons.explore_rounded,
       label: 'TOURS',
-      route: '/service_details',
+      route: '/service_details/3',
       backgroundColor: Color(0xFFE4F1FF),
       iconColor: TripwiseColors.primary,
     ),
     _TravelCategory(
       icon: Icons.train_rounded,
       label: 'TRAIN',
-      route: '/service_details',
+      route: '/service_details/4',
       backgroundColor: Color(0xFFE4F1FF),
       iconColor: TripwiseColors.primary,
     ),
@@ -50,6 +50,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
       accentColor: TripwiseColors.primary,
+      hotelId: 5,
     ),
     _OfferItem(
       title: 'Seoul City Break',
@@ -58,6 +59,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=1200&q=80',
       accentColor: TripwiseColors.secondary,
+      hotelId: 6,
     ),
   ];
 
@@ -69,6 +71,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=900&q=80',
       height: 240,
+      hotelId: 7,
     ),
     _RecommendedItem(
       title: 'Vernazza',
@@ -77,6 +80,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=900&q=80',
       height: 180,
+      hotelId: 8,
     ),
   ];
 
@@ -88,6 +92,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
       height: 180,
+      hotelId: 9,
     ),
     _RecommendedItem(
       title: 'Kyoto',
@@ -96,6 +101,7 @@ class HomeScreen extends StatelessWidget {
       imageUrl:
           'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=900&q=80',
       height: 240,
+      hotelId: 10,
     ),
   ];
 
@@ -107,6 +113,7 @@ class HomeScreen extends StatelessWidget {
       ratingLabel: '4.9',
       imageUrl:
           'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
+      hotelId: 11,
     ),
     _HotelItem(
       name: 'Noir Boutique Hotel',
@@ -115,6 +122,7 @@ class HomeScreen extends StatelessWidget {
       ratingLabel: '4.8',
       imageUrl:
           'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80',
+      hotelId: 12,
     ),
   ];
 
@@ -491,7 +499,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => context.push('/service_details'),
+      onTap: () => context.push('/service_details/${offer.hotelId}'),
       borderRadius: BorderRadius.circular(26),
       child: Container(
         width: 290,
@@ -551,7 +559,7 @@ class _OfferCard extends StatelessWidget {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: () => context.push('/service_details'),
+                onPressed: () => context.push('/service_details/${offer.hotelId}'),
                 style: TripwiseButtonStyles.overlayFilled(
                   foregroundColor: offer.accentColor,
                   padding: const EdgeInsets.symmetric(
@@ -582,7 +590,7 @@ class _RecommendedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => context.push('/service_details'),
+      onTap: () => context.push('/service_details/${item.hotelId}'),
       borderRadius: BorderRadius.circular(28),
       child: Container(
         height: item.height,
@@ -742,7 +750,7 @@ class _HotelTile extends StatelessWidget {
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => context.push('/service_details'),
+                    onPressed: () => context.push('/service_details/${hotel.hotelId}'),
                     child: const Text(
                       'DETAILS',
                       style: TextStyle(fontWeight: FontWeight.w800),
@@ -781,6 +789,7 @@ class _OfferItem {
     required this.buttonLabel,
     required this.imageUrl,
     required this.accentColor,
+    required this.hotelId,
   });
 
   final String title;
@@ -788,6 +797,7 @@ class _OfferItem {
   final String buttonLabel;
   final String imageUrl;
   final Color accentColor;
+  final int hotelId;
 }
 
 class _RecommendedItem {
@@ -797,6 +807,7 @@ class _RecommendedItem {
     required this.durationLabel,
     required this.imageUrl,
     required this.height,
+    required this.hotelId,
   });
 
   final String title;
@@ -804,6 +815,7 @@ class _RecommendedItem {
   final String durationLabel;
   final String imageUrl;
   final double height;
+  final int hotelId;
 }
 
 class _HotelItem {
@@ -813,6 +825,7 @@ class _HotelItem {
     required this.priceLabel,
     required this.ratingLabel,
     required this.imageUrl,
+    required this.hotelId,
   });
 
   final String name;
@@ -820,4 +833,5 @@ class _HotelItem {
   final String priceLabel;
   final String ratingLabel;
   final String imageUrl;
+  final int hotelId;
 }

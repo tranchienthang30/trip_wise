@@ -2,104 +2,67 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/hotel_detail.dart';
+import '../services/hotels_api.dart';
+import '../utils/currency.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
-  const ServiceDetailsScreen({super.key});
+  const ServiceDetailsScreen({super.key, required this.hotelId});
+
+  final int hotelId;
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
 }
 
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
-  static const String _title = 'Azure Horizon Bay Resort';
-  static const String _location = 'Portofino, Amalfi Coast, Italy';
-  static const String _category = 'LUXURY RESORT';
-  static const double _rating = 5.0;
-  static const int _reviewCount = 2450;
-  static const String _price = '\$1,250';
-  static const String _description =
-      'Experience the pinnacle of Mediterranean luxury at Azure Horizon Bay. '
-      'Perched on the limestone cliffs of Portofino, our resort offers a '
-      'seamless blend of heritage architecture and contemporary comfort. '
-      'Every suite features floor-to-ceiling windows with panoramic views of '
-      'the Ligurian Sea.';
-
-  static const List<String> _heroImages = [
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAzZUCpV6fH_eK8_MIYMXfndezjt66PvXt5ME_GSEvETX2gMh20hKAxWKGSz-R0aFp4CjgJzbLefOlibu_gCyo2XhzMC6YVtckfQHRxlFk9acqo2sOnvMQvB8Z0ulVidMV_yOhlYtWK6OopKBNWCm0g8fSPRpdRlouEDFqLNRTV4UkNZnozJDiut82zz7kriHpMmG0HucXSncoh-WNzC0C5a2volDlW_7YZ6VKwr7wx6mKHjlVchqnd2BhfPHQ4zDVlRE7BocliTOw',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCXTRASLOYGm4cMum2cirxnbJRNj3rwYKRvhQS1THV9PtN0xbuey6EVJQ94Dp2_GmAQ_V8-lnVorcBGFQJbF6z-pBosHCbF1uazVrOoJ__kLaIKemrCmIfgvXxxzJ4sLUBn3WKaJFONt-cXy5k0ChEQ6_NABa2Bwpmb17Tw2ERcmKqRW6oS1GWd38i7MksuIzGheGP1nlYdRxfD-uTuBRLAHXQHqADG8bNq8WlEhqiLrqSRp4Qswxr6FUm3RnNzx_YbCia6nDGHigw',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCpXNSwlx-TqVxN1uzTucDoHOXBSXZWRTuD_P-OCJEN-IFTeQTJt2BTlTPDqFSEwBscPRu0eSHbK_uOCp-jLNpHr90ElSKgHdYtcacMkjkS_tDPipT2eYZ1CBIyYB7sBq0K41RPHjnIrBHratReuo8p5yCHiN53mFl8RbmC1SrwC-ZSOHD-yfn1VAUd8hFLic1pX8WHTREq5eS3LcVb2RwgT9BavANIfn44djMP52kDLkZfVm9UZ5Q1XWElg0bNhFwXna0ZRgcwoUw',
-  ];
-
-  static const String _mapImage =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuArbaD-G0BfCskeUujSGybgvBunBNkakLLAYCt0URf2pFAcyRHnSjSiww6oQwkPzh6ooHU9jz9TUXk9_2zHdvrYZ8JU46xwWWwcIAFzpzSOc2kHKElGBloZIHnAWV08f6D0WLbTzWyQeupXhBRYmaf97o1RtQeIAYOPuZQA4zTsfqfAi7mVTxF9KB5jfUsej55OHdUyNq12a9vkUMLFhGeZyi6He8522WUI-6dff7bFJtHM8OxE4mcBYenkn6aoO8yBSSvBgBOck_o';
-
-  static const List<({IconData icon, String label})> _amenities = [
-    (icon: Icons.wifi_rounded, label: 'Free Wi-Fi'),
-    (icon: Icons.pool_rounded, label: 'Infinity Pool'),
-    (icon: Icons.fitness_center_rounded, label: 'Modern Gym'),
-    (icon: Icons.restaurant_rounded, label: 'Fine Dining'),
-    (icon: Icons.spa_rounded, label: 'Luxury Spa'),
-    (icon: Icons.ac_unit_rounded, label: 'Climate Control'),
-  ];
-
-  static const List<({String name, String avatar, String quote})> _reviews = [
-    (
-      name: 'Elena Rossi',
-      avatar:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuBWja-gFW6N2pDpVrK082sODzjlflLqy1-9_564J0-6C9j1J8j2wyDPEqdUIDEf2Bf4uE0ralhY4rG_v7fIB39vcxt9bHxGP9JWnjIahqjAajsQdnKYaFMDConC2bZYQ7wuQ1yGT876Qkv6iLDJZawIqsU60ZpiScS6F7W7oc-cUBlnsTNgGg1sTJaEHYyPe8FTwOcrqptEsEoxpOfimJpG2JTaOZh_BWpwkm6i5jbcwGDaXvKWsXaVTMsYEEIXtPPaoH4Xdisv1js',
-      quote:
-          '"Unmatched views and incredible service. The spa treatment was the highlight of our entire trip. Truly a 5-star experience."',
-    ),
-    (
-      name: 'Marcus Sterling',
-      avatar:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuC___bvwgnv8lKHLdD0DfKtGEf_68o9GG4FAIpOCF6OviU_Iec70T-F6O0zzz4wUnoH1T8Q59z-lKM_mJRqTscMNVSXwzKoz-6qc2C34juEFddUrtgcI1fpeeciB1T7Wnp9nWhkmjn5F7L4m3TmbhJ56CCsergtcx58WB0F2SkhMowxuVeUkUzKHcpiUhxFjFKTfKDbRDI3UcpSfYW6rBvjc70akd7EYa5aW3Lc7Tx-J-JiZmXaqmX2CWTBFBM_tq5EZu1NmlwqSnY',
-      quote:
-          '"The location is breathtaking. Watching the sunset from the balcony with a glass of local wine was a dream. Can\'t wait to return."',
-    ),
-  ];
-
+  final HotelsApi _api = HotelsApi();
+  late Future<HotelDetail> _future;
   bool _isFavorited = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _api.fetchHotelDetail(widget.hotelId);
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _api.fetchHotelDetail(widget.hotelId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _HeroGrid(images: _heroImages),
-            const SizedBox(height: 28),
-            _IdentityHeader(
-              category: _category,
-              title: _title,
-              location: _location,
-              rating: _rating,
-              reviewCount: _reviewCount,
-            ),
-            const SizedBox(height: 32),
-            const _SectionHeader('About this place'),
-            const SizedBox(height: 12),
-            _AboutBlock(description: _description),
-            const SizedBox(height: 32),
-            const _SectionHeader('What this place offers'),
-            const SizedBox(height: 12),
-            _AmenitiesGrid(amenities: _amenities),
-            const SizedBox(height: 32),
-            _MapPreviewCard(mapImage: _mapImage, location: _location),
-            const SizedBox(height: 24),
-            const _HostCard(),
-            const SizedBox(height: 32),
-            _ReviewsSection(reviews: _reviews),
-          ],
-        ),
+      body: FutureBuilder<HotelDetail>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _ErrorView(
+              error: snapshot.error,
+              onRetry: _retry,
+            );
+          }
+          final data = snapshot.data!;
+          return _DetailBody(data: data);
+        },
       ),
-      bottomNavigationBar: _BookingBar(
-        price: _price,
-        onBookNow: () => context.push('/booking_checkout'),
+      bottomNavigationBar: FutureBuilder<HotelDetail>(
+        future: _future,
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          return _BookingBar(
+            price: data == null ? '—' : formatVnd(data.priceFrom),
+            freeCancellation: data?.policies.freeCancellation ?? false,
+            onBookNow: data == null ? null : () => context.push('/booking_checkout'),
+          );
+        },
       ),
     );
   }
@@ -149,7 +112,144 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 }
 
-// ---------- Hero asymmetric grid ----------
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load this place",
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailBody extends StatelessWidget {
+  const _DetailBody({required this.data});
+
+  final HotelDetail data;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HeroGrid(images: data.images),
+          const SizedBox(height: 28),
+          _IdentityHeader(
+            category: data.category,
+            title: data.name,
+            location: data.locationPath.isEmpty ? data.address : data.locationPath,
+            rating: data.rating,
+            reviewCount: data.reviewCount,
+          ),
+          const SizedBox(height: 32),
+          const _SectionHeader('About this place'),
+          const SizedBox(height: 12),
+          _AboutBlock(
+            description: data.description ?? 'No description yet for this place.',
+          ),
+          if (data.amenities.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            const _SectionHeader('What this place offers'),
+            const SizedBox(height: 12),
+            _AmenitiesGrid(amenities: data.amenities),
+          ],
+          const SizedBox(height: 32),
+          _MapPreviewCard(
+            mapImage: data.images.isNotEmpty ? data.images.first : null,
+            location: data.address,
+          ),
+          if (data.host != null) ...[
+            const SizedBox(height: 24),
+            _HostCard(hostName: data.host!.name),
+          ],
+          if (data.reviewCount > 0) ...[
+            const SizedBox(height: 32),
+            const _ReviewsPlaceholder(),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------- Network image with graceful fallback ----------
+
+class _NetImage extends StatelessWidget {
+  const _NetImage(this.url, {this.fit = BoxFit.cover});
+
+  final String url;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (_, __, ___) => Container(
+        color: TripwiseColors.surfaceContainerLow,
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.broken_image_rounded,
+          size: 36,
+          color: TripwiseColors.onSurfaceVariant,
+        ),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          color: TripwiseColors.surfaceContainerLow,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ---------- Hero grid (adapts to 1 / 2 / 3+ images) ----------
 
 class _HeroGrid extends StatelessWidget {
   const _HeroGrid({required this.images});
@@ -158,6 +258,31 @@ class _HeroGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (images.isEmpty) {
+      return Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.image_rounded,
+          size: 48,
+          color: TripwiseColors.onSurfaceVariant,
+        ),
+      );
+    }
+    if (images.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          height: 260,
+          width: double.infinity,
+          child: _NetImage(images[0]),
+        ),
+      );
+    }
     return SizedBox(
       height: 280,
       child: Row(
@@ -167,7 +292,7 @@ class _HeroGrid extends StatelessWidget {
             flex: 3,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(images[0], fit: BoxFit.cover),
+              child: _NetImage(images[0]),
             ),
           ),
           const SizedBox(width: 10),
@@ -179,34 +304,37 @@ class _HeroGrid extends StatelessWidget {
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(images[1], fit: BoxFit.cover),
+                    child: _NetImage(images[1]),
                   ),
                 ),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(images[2], fit: BoxFit.cover),
-                        Container(
-                          color: Colors.black.withOpacity(0.4),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '+12 Photos',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                              letterSpacing: 0.6,
+                if (images.length >= 3) ...[
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _NetImage(images[2]),
+                          if (images.length > 3)
+                            Container(
+                              color: Colors.black.withOpacity(0.4),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '+${images.length - 2} Photos',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -309,10 +437,7 @@ class _Pill extends StatelessWidget {
 }
 
 class _StarRow extends StatelessWidget {
-  const _StarRow({
-    required this.rating,
-    required this.reviewCount,
-  });
+  const _StarRow({required this.rating, required this.reviewCount});
 
   final double rating;
   final int reviewCount;
@@ -320,18 +445,21 @@ class _StarRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final filled = rating.round().clamp(0, 5);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (int i = 0; i < 5; i++)
-          const Icon(
-            Icons.star_rounded,
+          Icon(
+            i < filled ? Icons.star_rounded : Icons.star_outline_rounded,
             size: 16,
             color: TripwiseColors.secondary,
           ),
         const SizedBox(width: 6),
         Text(
-          '${rating.toStringAsFixed(1)} (${_formatCount(reviewCount)} Reviews)',
+          reviewCount == 0
+              ? rating.toStringAsFixed(1)
+              : '${rating.toStringAsFixed(1)} (${_formatCount(reviewCount)} Reviews)',
           style: textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w700,
             color: TripwiseColors.onSurfaceVariant,
@@ -355,28 +483,19 @@ class _StarRow extends StatelessWidget {
 // ---------- Section header ----------
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title, {this.trailing});
+  const _SectionHeader(this.title);
 
   final String title;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ),
-        if (trailing != null) trailing!,
-      ],
+    return Text(
+      title,
+      style: textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.2,
+      ),
     );
   }
 }
@@ -391,37 +510,12 @@ class _AboutBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          description,
-          style: textTheme.bodyLarge?.copyWith(
-            color: TripwiseColors.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextButton(
-          style: TripwiseButtonStyles.text(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(0, 36),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: TripwiseColors.primary,
-          ),
-          onPressed: () {},
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Read more',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-            ],
-          ),
-        ),
-      ],
+    return Text(
+      description,
+      style: textTheme.bodyLarge?.copyWith(
+        color: TripwiseColors.onSurfaceVariant,
+        height: 1.5,
+      ),
     );
   }
 }
@@ -431,7 +525,7 @@ class _AboutBlock extends StatelessWidget {
 class _AmenitiesGrid extends StatelessWidget {
   const _AmenitiesGrid({required this.amenities});
 
-  final List<({IconData icon, String label})> amenities;
+  final List<String> amenities;
 
   @override
   Widget build(BuildContext context) {
@@ -458,11 +552,15 @@ class _AmenitiesGrid extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(a.icon, color: TripwiseColors.primary, size: 22),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: TripwiseColors.primary,
+                        size: 22,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          a.label,
+                          a,
                           style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -485,7 +583,7 @@ class _AmenitiesGrid extends StatelessWidget {
 class _MapPreviewCard extends StatelessWidget {
   const _MapPreviewCard({required this.mapImage, required this.location});
 
-  final String mapImage;
+  final String? mapImage;
   final String location;
 
   @override
@@ -514,15 +612,18 @@ class _MapPreviewCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ColorFiltered(
-                    colorFilter: const ColorFilter.matrix(<double>[
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0, 0, 0, 0.85, 0,
-                    ]),
-                    child: Image.network(mapImage, fit: BoxFit.cover),
-                  ),
+                  if (mapImage != null)
+                    ColorFiltered(
+                      colorFilter: const ColorFilter.matrix(<double>[
+                        0.2126, 0.7152, 0.0722, 0, 0, //
+                        0.2126, 0.7152, 0.0722, 0, 0, //
+                        0.2126, 0.7152, 0.0722, 0, 0, //
+                        0, 0, 0, 0.85, 0, //
+                      ]),
+                      child: _NetImage(mapImage!),
+                    )
+                  else
+                    Container(color: TripwiseColors.surfaceContainerLow),
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(10),
@@ -561,7 +662,7 @@ class _MapPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$location • 10 mins from Piazza Martiri',
+                  location,
                   style: textTheme.bodySmall?.copyWith(
                     color: TripwiseColors.onSurfaceVariant,
                   ),
@@ -600,7 +701,9 @@ class _MapPreviewCard extends StatelessWidget {
 // ---------- Host card ----------
 
 class _HostCard extends StatelessWidget {
-  const _HostCard();
+  const _HostCard({required this.hostName});
+
+  final String hostName;
 
   @override
   Widget build(BuildContext context) {
@@ -640,24 +743,11 @@ class _HostCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tripwise Concierge',
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'GOLD TIER SERVICE',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: TripwiseColors.onSurfaceVariant,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  hostName,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -685,135 +775,29 @@ class _HostCard extends StatelessWidget {
   }
 }
 
-// ---------- Reviews ----------
+// ---------- Reviews placeholder (real reviews collection not built yet) ----------
 
-class _ReviewsSection extends StatelessWidget {
-  const _ReviewsSection({required this.reviews});
-
-  final List<({String name, String avatar, String quote})> reviews;
+class _ReviewsPlaceholder extends StatelessWidget {
+  const _ReviewsPlaceholder();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          'Guest Reviews',
-          trailing: TextButton(
-            style: TripwiseButtonStyles.text(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: TripwiseColors.primary,
-            ),
-            onPressed: () {},
-            child: const Text(
-              'SEE ALL',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        for (int i = 0; i < reviews.length; i++) ...[
-          _ReviewCard(review: reviews[i]),
-          if (i != reviews.length - 1) const SizedBox(height: 14),
-        ],
-      ],
-    );
-  }
-}
-
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.review});
-
-  final ({String name, String avatar, String quote}) review;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border(
-          left: BorderSide(
-            color: TripwiseColors.primary.withOpacity(0.2),
-            width: 4,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: TripwiseColors.primary.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundImage: NetworkImage(review.avatar),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    review.name,
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: const [
-                      Icon(Icons.star_rounded,
-                          size: 14, color: TripwiseColors.secondary),
-                      Icon(Icons.star_rounded,
-                          size: 14, color: TripwiseColors.secondary),
-                      Icon(Icons.star_rounded,
-                          size: 14, color: TripwiseColors.secondary),
-                      Icon(Icons.star_rounded,
-                          size: 14, color: TripwiseColors.secondary),
-                      Icon(Icons.star_rounded,
-                          size: 14, color: TripwiseColors.secondary),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            review.quote,
-            style: textTheme.bodyMedium?.copyWith(
-              color: TripwiseColors.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
+    return const _SectionHeader('Guest Reviews');
   }
 }
 
 // ---------- Sticky booking bar ----------
 
 class _BookingBar extends StatelessWidget {
-  const _BookingBar({required this.price, required this.onBookNow});
+  const _BookingBar({
+    required this.price,
+    required this.freeCancellation,
+    required this.onBookNow,
+  });
 
   final String price;
-  final VoidCallback onBookNow;
+  final bool freeCancellation;
+  final VoidCallback? onBookNow;
 
   @override
   Widget build(BuildContext context) {
@@ -865,16 +849,18 @@ class _BookingBar extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'FREE CANCELLATION',
-                    style: TextStyle(
-                      color: TripwiseColors.secondaryContainer,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
+                  if (freeCancellation) ...[
+                    const SizedBox(height: 4),
+                    const Text(
+                      'FREE CANCELLATION',
+                      style: TextStyle(
+                        color: TripwiseColors.secondaryContainer,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               ElevatedButton(

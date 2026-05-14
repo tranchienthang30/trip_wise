@@ -238,7 +238,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       ],
                     ),
                     ElevatedButton.icon(
-                      onPressed: () => context.push('/service_details'),
+                      onPressed: () => context.push('/service_details/1'),
                       style: TripwiseButtonStyles.primaryElevated(
                         radius: 12,
                         padding: const EdgeInsets.symmetric(
@@ -414,7 +414,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => context.push('/service_details'),
+              onPressed: () => context.push('/service_details/1'),
               style: TripwiseButtonStyles.surfaceElevated(
                 foregroundColor: TripwiseColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -572,7 +572,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => context.push('/service_details'),
+              onPressed: () => context.push('/service_details/1'),
               style: TripwiseButtonStyles.surfaceElevated(
                 foregroundColor: TripwiseColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -674,7 +674,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () => context.push('/service_details'),
+                onPressed: () => context.push('/service_details/1'),
                 style: TripwiseButtonStyles.primaryElevated(
                   radius: 10,
                   padding: const EdgeInsets.symmetric(
