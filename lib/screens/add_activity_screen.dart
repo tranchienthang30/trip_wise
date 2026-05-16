@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/activity_catalog.dart';
 import '../services/activities_api.dart';
+import '../services/trips_api.dart';
 
 // UI chip labels -> server category. Index 0 ("All") means no filter.
 const List<String> _chipLabels = [
@@ -21,7 +22,12 @@ const List<String?> _chipCategory = [
 ];
 
 class AddActivityScreen extends StatefulWidget {
-  const AddActivityScreen({super.key});
+  const AddActivityScreen({super.key, this.tripId, this.dayIndex});
+
+  /// When both are provided, "Add to Trip" persists the activity onto this
+  /// trip/day; otherwise it falls back to a confirm-and-pop (no trip context).
+  final String? tripId;
+  final int? dayIndex;
 
   @override
   State<AddActivityScreen> createState() => _AddActivityScreenState();
@@ -29,12 +35,14 @@ class AddActivityScreen extends StatefulWidget {
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
   final ActivitiesApi _api = ActivitiesApi();
+  final TripsApi _tripsApi = TripsApi();
   final TextEditingController _searchController = TextEditingController();
 
   ActivityCatalog? _data;
   Object? _error;
   int _selectedChipIndex = 0;
   String _query = '';
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -83,15 +91,49 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     }).toList();
   }
 
-  void _onAddTap() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Added to your trip'),
-        duration: Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    Navigator.of(context).pop();
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(milliseconds: 1600),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  Future<void> _onAddTap(CatalogActivity activity) async {
+    if (_submitting) return;
+    final tripId = widget.tripId;
+    final dayIndex = widget.dayIndex;
+
+    // Opened without trip context — legacy confirm-and-pop.
+    if (tripId == null || dayIndex == null) {
+      _snack('Added to your trip');
+      Navigator.of(context).pop();
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      await _tripsApi.addItem(
+        tripId: tripId,
+        dayIndex: dayIndex,
+        activityId: activity.id,
+      );
+      if (!mounted) return;
+      _snack('Added “${activity.title}” to your trip');
+      Navigator.of(context).pop(true);
+    } on TripsApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack('Something went wrong. Please try again.');
+    }
   }
 
   @override
@@ -425,7 +467,7 @@ class _HeroActivityCard extends StatelessWidget {
   const _HeroActivityCard({required this.activity, required this.onAdd});
 
   final CatalogActivity activity;
-  final VoidCallback onAdd;
+  final ValueChanged<CatalogActivity> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -529,7 +571,7 @@ class _HeroActivityCard extends StatelessWidget {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: onAdd,
+                    onPressed: () => onAdd(activity),
                     icon: const Icon(Icons.add_rounded, size: 22),
                     label: const Text('Add to Trip'),
                     style: TripwiseButtonStyles.primaryElevated(
@@ -555,7 +597,7 @@ class _PopularActivitiesGrid extends StatelessWidget {
   const _PopularActivitiesGrid({required this.items, required this.onAdd});
 
   final List<CatalogActivity> items;
-  final VoidCallback onAdd;
+  final ValueChanged<CatalogActivity> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -593,7 +635,7 @@ class _SmallActivityCard extends StatelessWidget {
   const _SmallActivityCard({required this.data, required this.onAdd});
 
   final CatalogActivity data;
-  final VoidCallback onAdd;
+  final ValueChanged<CatalogActivity> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -622,7 +664,7 @@ class _SmallActivityCard extends StatelessWidget {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: _AddIconButton(onTap: onAdd),
+                  child: _AddIconButton(onTap: () => onAdd(data)),
                 ),
               ],
             ),
@@ -665,7 +707,7 @@ class _WideActivityCard extends StatelessWidget {
   const _WideActivityCard({required this.data, required this.onAdd});
 
   final CatalogActivity data;
-  final VoidCallback onAdd;
+  final ValueChanged<CatalogActivity> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -719,7 +761,7 @@ class _WideActivityCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _WidePrimaryAddButton(onTap: onAdd),
+                      _WidePrimaryAddButton(onTap: () => onAdd(data)),
                     ],
                   ),
                   Text(

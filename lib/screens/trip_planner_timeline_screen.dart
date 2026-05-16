@@ -30,7 +30,11 @@ import '../widgets/shared_top_bars.dart';
 }
 
 class TripPlannerTimelineScreen extends StatefulWidget {
-  const TripPlannerTimelineScreen({super.key});
+  const TripPlannerTimelineScreen({super.key, this.tripId});
+
+  /// Which trip to show. When null the screen falls back to the user's
+  /// ONGOING trip (else the first).
+  final String? tripId;
 
   @override
   State<TripPlannerTimelineScreen> createState() =>
@@ -42,12 +46,28 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
 
   TripsResponse? _data;
   Object? _error;
+  String? _selectedTripId;
   int _selectedDayIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _selectedTripId = widget.tripId;
     _load();
+  }
+
+  /// The resolved trip: the explicitly-requested id when present & found,
+  /// otherwise the ONGOING/first trip.
+  Trip? get _trip {
+    final d = _data;
+    if (d == null) return null;
+    final id = _selectedTripId;
+    if (id != null) {
+      for (final t in d.trips) {
+        if (t.id == id) return t;
+      }
+    }
+    return d.current;
   }
 
   Future<void> _load() async {
@@ -60,7 +80,8 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       if (!mounted) return;
       setState(() {
         _data = data;
-        _selectedDayIndex = 0;
+        // Pin the resolved id so later reloads stay on the same trip.
+        _selectedTripId ??= data.current?.id;
       });
     } catch (e) {
       if (!mounted) return;
@@ -69,7 +90,14 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
   }
 
   Future<void> _openAddActivity() async {
-    await context.push('/add_activity');
+    final trip = _trip;
+    if (trip == null || trip.days.isEmpty) return;
+    final di = _selectedDayIndex.clamp(0, trip.days.length - 1);
+    final dayIndex = trip.days[di].dayIndex;
+    await context.push(
+      '/add_activity?tripId=${Uri.encodeQueryComponent(trip.id)}'
+      '&dayIndex=$dayIndex',
+    );
     if (!mounted) return;
     await _load();
   }
@@ -99,7 +127,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
     if (_data == null) {
       return _ErrorView(error: _error, onRetry: _load);
     }
-    final trip = _data!.current;
+    final trip = _trip;
     if (trip == null) {
       return const _EmptyTripsView();
     }

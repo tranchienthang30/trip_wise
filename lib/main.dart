@@ -65,7 +65,9 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/trip_planner_timeline',
-      builder: (context, state) => const TripPlannerTimelineScreen(),
+      builder: (context, state) => TripPlannerTimelineScreen(
+        tripId: state.uri.queryParameters['id'],
+      ),
     ),
     GoRoute(
       path: '/plan_new_trip_form',
@@ -193,7 +195,12 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/add_activity',
-      builder: (context, state) => const AddActivityScreen(),
+      builder: (context, state) => AddActivityScreen(
+        tripId: state.uri.queryParameters['tripId'],
+        dayIndex: int.tryParse(
+          state.uri.queryParameters['dayIndex'] ?? '',
+        ),
+      ),
     ),
     GoRoute(
       path: '/inventory_pricing',

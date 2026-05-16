@@ -2,42 +2,161 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/trip_timeline.dart';
+import '../services/trips_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
-class TripPlannerDashboardScreen extends StatelessWidget {
+const List<String> _months = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String _fmtDate(String? iso) {
+  if (iso == null || iso.length < 10) return '';
+  final y = int.tryParse(iso.substring(0, 4));
+  final m = int.tryParse(iso.substring(5, 7));
+  final d = int.tryParse(iso.substring(8, 10));
+  if (y == null || m == null || d == null || m < 1 || m > 12) return '';
+  return '${_months[m - 1]} $d, $y';
+}
+
+String _dateRange(String? start, String? end) {
+  final s = _fmtDate(start);
+  final e = _fmtDate(end);
+  if (s.isEmpty && e.isEmpty) return 'Dates to be planned';
+  if (s.isEmpty) return e;
+  if (e.isEmpty) return s;
+  return '$s  →  $e';
+}
+
+({String label, Color color, Color bg}) _statusChrome(String status) {
+  switch (status.toUpperCase()) {
+    case 'ONGOING':
+      return (
+        label: 'ONGOING',
+        color: const Color(0xFF005F9F),
+        bg: Colors.white.withOpacity(0.9),
+      );
+    case 'COMPLETED':
+      return (
+        label: 'COMPLETED',
+        color: const Color(0xFF64748B),
+        bg: const Color(0xFFF1F5F9).withOpacity(0.9),
+      );
+    default:
+      return (
+        label: 'UPCOMING',
+        color: const Color(0xFF005F9F),
+        bg: Colors.white.withOpacity(0.9),
+      );
+  }
+}
+
+/// Up to 3 unique companion avatars across the whole trip, + overflow count.
+({List<String> avatars, int extra}) _tripCompanions(Trip trip) {
+  final seen = <String>{};
+  final urls = <String>[];
+  for (final day in trip.days) {
+    for (final item in day.items) {
+      for (final c in item.companions) {
+        final img = c.image;
+        if (img != null && img.isNotEmpty && seen.add(img)) urls.add(img);
+      }
+    }
+  }
+  if (urls.length <= 3) return (avatars: urls, extra: 0);
+  return (avatars: urls.sublist(0, 3), extra: urls.length - 3);
+}
+
+class TripPlannerDashboardScreen extends StatefulWidget {
   const TripPlannerDashboardScreen({super.key});
+
+  @override
+  State<TripPlannerDashboardScreen> createState() =>
+      _TripPlannerDashboardScreenState();
+}
+
+class _TripPlannerDashboardScreenState
+    extends State<TripPlannerDashboardScreen> {
+  final TripsApi _api = TripsApi();
+
+  TripsResponse? _data;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _error = null;
+      _data = null;
+    });
+    try {
+      final data = await _api.fetchTrips();
+      if (!mounted) return;
+      setState(() => _data = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    }
+  }
+
+  Future<void> _openTimeline(String tripId) async {
+    await context.push(
+      '/trip_planner_timeline?id=${Uri.encodeQueryComponent(tripId)}',
+    );
+    if (!mounted) return;
+    await _load();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
       appBar: const PlannerAppBar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'My Plans',
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF181C22),
-                letterSpacing: -1.0,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'My Plans',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF181C22),
+                  letterSpacing: -1.0,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your upcoming journeys and past adventures curated in one place.',
-              style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
-            ),
-            const SizedBox(height: 24),
-            _buildSearchBar(context),
-            const SizedBox(height: 32),
-            _buildCards(context),
-            const SizedBox(height: 100), // padding for fab/bottom nav
-          ],
+              const SizedBox(height: 8),
+              const Text(
+                'Your upcoming journeys and past adventures curated in one place.',
+                style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
+              ),
+              const SizedBox(height: 24),
+              _buildSearchBar(context),
+              const SizedBox(height: 32),
+              _buildContent(context),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -54,83 +173,6 @@ class TripPlannerDashboardScreen extends StatelessWidget {
         currentTab: PlannerTaskbarTab.planner,
       ),
     );
-  }
-
-  void _showPlannerMenu(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                context: context,
-                icon: Icons.event_note,
-                label: 'Planner Home',
-                route: '/trip_planner_dashboard',
-              ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                context: context,
-                icon: Icons.timeline,
-                label: 'Trip Timeline',
-                route: '/trip_planner_timeline',
-              ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                context: context,
-                icon: Icons.account_balance_wallet,
-                label: 'Wallet',
-                route: '/wallet_loyalty',
-              ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                context: context,
-                icon: Icons.flight,
-                label: 'My Trips',
-                route: '/my_trips',
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPlannerMenuItem({
-    required BuildContext sheetContext,
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required String route,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFF005F9F)),
-      title: Text(label),
-      onTap: () {
-        Navigator.of(sheetContext).pop();
-        context.go(route);
-      },
-    );
-  }
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    const routes = [
-      '/home',
-      '/my_trips',
-      '/trip_planner_dashboard',
-      '/wallet_loyalty',
-      '/profile_registration',
-    ];
-
-    if (index == 2) {
-      return;
-    }
-
-    context.go(routes[index]);
   }
 
   Widget _buildSearchBar(BuildContext context) {
@@ -154,113 +196,63 @@ class TripPlannerDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCards(BuildContext context) {
-    // using a column for mobile-first layout 
-    return Column(
-      children: [
-        _buildTripCard(
-          context: context,
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAtd4rG6jbMlvqj0CuXDXckWUi-pj5sTdmlJPfRO4SLB_9A3_PsnLBbAsR4fRQzIUJB14dJg0RDMNPxOa0LeXdmMgoYVwC07jF8Wh9Q8qkji0BkjhzmQZ1UrTJTv24RzbVove60hfORAhdQ0Eo4lWFx6OErXIEpF_3i2XmSEifD2Jrqr2jI2hesQeS3mvsaGARVKYkPmtRnYAPekzD_dz7IwcrT0pUYoPItMbAmsY-F7Eex3BiHJL_fPCYN37Ns1Bp8p5kTXVH5TOE',
-          status: 'Upcoming',
-          statusColor: const Color(0xFF005F9F),
-          statusBg: Colors.white.withOpacity(0.9),
-          title: 'Summer in Bali',
-          dates: 'Aug 12 - Aug 24, 2024',
-          avatars: [
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuCS-pP84zAFVkbYoOzicPznMikv2nZaa1L1CEfeb09HSar6Xm42sZwvHvCbj3PqCiJ8xrJxDGv-rCiJoB5yN8ELVPuyUWVLxaQu9rTk7M7STyOywhF2xAG760Gh-7ZkrumqYNPXTf4lCMV-RRJsDzdRItnROKJrcG8TzrCPEek2Kytl19HDUnAX5gKZTxumCMB94SlHGbFB-nICgnSthxdnPso6m-Uku9aLgRg3hEyXoLNCIOOXh2GTD5iXnV6m5O-XelUUEcK6LNg',
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuCtgmmTOnmBfSrExNnVSbEZ4j9wuMQDsajWTCbTyBjlWN_G3yj-ZnWcxJJbhOkDYJvBvzk6M7lYcfkcMxR-keTPBqdTSjOXl0uGbn209v5pBf05sJL2cVF89W_pPlrnyUrBi6BWNrcwYHsK0rS7kesXU3xA9MZZyZiAAPxaYSrhzFpQ_d80A2hD9IqIHDeWpAra3JsK0mQp9oj_SXT8PGB6-UNwifEFZikKtgQ0bA3coghQqZjlt1vPXXMbVeYZlAw24GIyXqEh3-g'
-          ],
-          hasMore: true,
-        ),
-        const SizedBox(height: 24),
-        _buildTripCard(
-          context: context,
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuC9aOEbMD1vS_f3Xead13joL4Eu0_-ETCpIK6ej8QjajItJ70QmOr6rpTH7V-V_tto-2hxMVJmlQJNPf5NPF2ARC-xg9Q5ny-XwawoJYR-9wk18hXui_T1bFDa3mxl5IglR84Sl3EqC23SnnSkDhDtrVnEGdzMvRA23O2JDIxEkypMqnFt1KNUVp3YGjCdU665J_0ORFY1p5HDpVsr-PpSdKbarBPKMnKP9g6PCmknNO7iujTeuxDZ6oQ3Dq4hi_X2Al1JkvrwZGrk',
-          status: 'Dreaming',
-          statusColor: const Color(0xFF005F9F),
-          statusBg: Colors.white.withOpacity(0.9),
-          title: 'Winter in Tokyo',
-          dates: 'Dec 15 - Dec 30, 2024',
-          avatars: [
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuCZpR6ZOQr16POQL1Tvtc8CoHt-VrcwSiKWYEjOJxwKZgBWQ2YgBKNz-9wSHbjDbvRmZc2T7myjxsR2LbuIKU7UQIdc5Dke5B8njB0qhAesWvRlGzsDTQVbb928lVURn2KqtVpJGRQOo_okRM-N608-4GViRmMWFJCvFK_z3fQzWwAdgPj5ve2hFal7ghPNe6RWV2DeL_tgrX-32UR-hQhTxoEd8mPcRQDFZAlnTmg-amc3IPcwexibfPThyIkTibAOZlkNUU7fYRE',
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildTripCard(
-          context: context,
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuDvq_UmHkKWggLrqMcQTyyIss5_hwV1Cc3TByustuY3azVeGju-nVy9oLoEfpMLUQoyzQFUP_xUws-5bGheo7PhS0syGzxIiTT-b69Wd8vJ8F6xdTFGxnZvQ8RK6IR8TOajLTb9KR1ryQKnzFz1S35UDscjLxO-OY8ko8shxE5PxRkaXrWq8iFaTLeMrZbAJ1WeEq_QmxtpQRjtJrl4RhdpcCsDHmMtL_9ZlvW7uCDOM6plxv3QpQLE17640BLHT8oESVfsW-9UAGw',
-          status: 'Completed',
-          statusColor: const Color(0xFF64748B), // slate-500
-          statusBg: const Color(0xFFF1F5F9).withOpacity(0.9),
-          title: 'Spring in Paris',
-          dates: 'Apr 05 - Apr 12, 2023',
-          avatars: [
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuC0meq4hwqB8AEyYqlfGUOqIS7IS2HFZdx8l-NcGUjUZ3d1KV9Q8gE81Iz3l4ZTXFIVOXOhvx3i8eIjz1ZfgSF_TQy2y_Qvorso6Ntil-eAhZhwSJ15rBPbGwmyA-QsL_Lz3_OnSKRRlE8Agn7798oKc6f3nbghgmjhloRqpSGe8tNOfkJyFNoWgOa9Vu0rhKFbMt-XxPF8PFtBQvOcYrEHkKJ1MIXBkxYLbYve5uc9IPkHgAG5vt5GN4epWPl0xTGGWaXbLy47W9g',
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuCi1LIvTyGQtpnSbeKecGsSbcMZj-Rt51oJq-qfArZCaoTYHDo866tgOYJ9BPDBfw1KPeVBrTt1A4RVzvKqMDYo5Xe6-LI5zkpHOvZRwJtMG6SOGifqu4WN1XS7QSphwiXqZudUAHrbpwBNUO3Udt-ESLvIb0oe4to1mQ1-fJ2WsBV26KPB_l9E5xzRbQsQG2YIIE5XHPQbhNxDV6fahLlcUXUsQWXI7fgH9THvjba2d3823P1KRSl3YB-nUpT--9KbSKww_6NZSFU',
-          ],
-        ),
-        const SizedBox(height: 24),
-        InkWell(
-          onTap: () => context.push('/plan_new_trip_form'),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(48),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FC).withOpacity(0.3),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFBFC7D4), // outline-variant
-                style: BorderStyle.solid, // Using solid instead of dashed as default
-                width: 2,
+  Widget _buildContent(BuildContext context) {
+    if (_data == null && _error == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_data == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: Color(0xFF64748B),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Couldn't load your plans",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C22),
               ),
             ),
-            child: Column(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFD1E4FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add_location_alt, color: Color(0xFF005F9F), size: 32),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Plan a New Adventure',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ready for your next getaway? Start mapping out your journey.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
-                ),
-              ],
+            const SizedBox(height: 6),
+            Text(
+              _error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF3F4752)),
             ),
-          ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: _load, child: const Text('Try again')),
+          ],
         ),
+      );
+    }
+
+    final trips = _data!.trips;
+    return Column(
+      children: [
+        for (final t in trips) ...[
+          _buildTripCard(context, t),
+          const SizedBox(height: 24),
+        ],
+        _buildPlanNewCard(context),
       ],
     );
   }
 
-  Widget _buildTripCard({
-    required BuildContext context,
-    required String imageUrl,
-    required String status,
-    required Color statusColor,
-    required Color statusBg,
-    required String title,
-    required String dates,
-    required List<String> avatars,
-    bool hasMore = false,
-  }) {
+  Widget _buildTripCard(BuildContext context, Trip trip) {
+    final chrome = _statusChrome(trip.status);
+    final comp = _tripCompanions(trip);
+
     return InkWell(
-      onTap: () => context.push('/trip_planner_timeline'),
+      onTap: () => _openTimeline(trip.id),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
@@ -271,7 +263,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
@@ -280,27 +272,23 @@ class TripPlannerDashboardScreen extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Image.network(
-                  imageUrl,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(height: 200, color: Colors.grey[200]),
-                ),
+                _coverImage(trip.coverImage),
                 Positioned(
                   top: 16,
                   left: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: statusBg,
+                      color: chrome.bg,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      status.toUpperCase(),
+                      chrome.label,
                       style: TextStyle(
-                        color: statusColor,
+                        color: chrome.color,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
@@ -316,21 +304,39 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    trip.title,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF181C22),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  if (trip.destination != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      trip.destination!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF3F4752),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 16, color: Color(0xFF3F4752)),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Color(0xFF3F4752),
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        dates,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF3F4752), fontWeight: FontWeight.w500),
+                        _dateRange(trip.startDate, trip.endDate),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF3F4752),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -340,7 +346,7 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          for (int i = 0; i < avatars.length; i++)
+                          for (final url in comp.avatars)
                             Align(
                               widthFactor: 0.7,
                               child: CircleAvatar(
@@ -348,11 +354,11 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                                 backgroundColor: Colors.white,
                                 child: CircleAvatar(
                                   radius: 14,
-                                  backgroundImage: NetworkImage(avatars[i]),
+                                  backgroundImage: NetworkImage(url),
                                 ),
                               ),
                             ),
-                          if (hasMore)
+                          if (comp.extra > 0)
                             Align(
                               widthFactor: 0.7,
                               child: CircleAvatar(
@@ -361,9 +367,13 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                                 child: CircleAvatar(
                                   radius: 14,
                                   backgroundColor: const Color(0xFF9DCAFF),
-                                  child: const Text(
-                                    '+3',
-                                    style: TextStyle(color: Color(0xFF00497C), fontSize: 10, fontWeight: FontWeight.bold),
+                                  child: Text(
+                                    '+${comp.extra}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF00497C),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -378,58 +388,92 @@ class TripPlannerDashboardScreen extends StatelessWidget {
                             vertical: 12,
                           ),
                         ),
-                        onPressed: () => context.push('/trip_planner_timeline'),
-                        child: const Text('View Timeline', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () => _openTimeline(trip.id),
+                        child: const Text(
+                          'View Timeline',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-      ),
-      child: BottomNavigationBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: TripwiseColors.primary,
-        unselectedItemColor: const Color(0xFF94A3B8), // slate-400
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        currentIndex: 2,
-        onTap: (index) => _handleBottomNavTap(context, index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Home',
+  Widget _coverImage(String? url) {
+    const h = 200.0;
+    if (url == null || url.isEmpty) {
+      return Container(height: h, color: Colors.grey[200]);
+    }
+    return Image.network(
+      url,
+      height: h,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          Container(height: h, color: Colors.grey[200]),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          height: h,
+          color: Colors.grey[200],
+          child: const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
-            label: 'My Trips',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
-            label: 'Planner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPlanNewCard(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/plan_new_trip_form'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(48),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F4FC).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFBFC7D4), width: 2),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD1E4FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add_location_alt,
+                color: Color(0xFF005F9F),
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Plan a New Adventure',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C22),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Ready for your next getaway? Start mapping out your journey.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
+            ),
+          ],
+        ),
       ),
     );
   }
