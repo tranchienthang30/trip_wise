@@ -52,7 +52,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/add_location_search',
-      builder: (context, state) => const AddLocationSearchScreen(),
+      builder: (context, state) => AddLocationSearchScreen(
+        initialCategory: state.uri.queryParameters['category'] ?? 'all',
+        initialQuery: state.uri.queryParameters['query'] ?? '',
+      ),
     ),
     GoRoute(
       path: '/trip_planner_dashboard',
