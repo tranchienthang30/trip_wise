@@ -22,7 +22,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final HotelsApi _api = HotelsApi();
   late Future<HotelDetail> _future;
   HotelDetail? _data;
-  bool _isFavorited = false;
 
   @override
   void initState() {
@@ -133,15 +132,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             color: TripwiseColors.primary,
           ),
           onPressed: _data == null ? null : _onShare,
-        ),
-        IconButton(
-          icon: Icon(
-            _isFavorited
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            color: TripwiseColors.primary,
-          ),
-          onPressed: () => setState(() => _isFavorited = !_isFavorited),
         ),
         const SizedBox(width: 4),
       ],
