@@ -1,6 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../models/activity_catalog.dart';
+import '../services/activities_api.dart';
+
+// UI chip labels -> server category. Index 0 ("All") means no filter.
+const List<String> _chipLabels = [
+  'All',
+  'Food',
+  'Sightseeing',
+  'Transport',
+  'Outdoors',
+];
+const List<String?> _chipCategory = [
+  null,
+  'FOOD',
+  'SIGHTSEEING',
+  'TRANSPORT',
+  'OUTDOORS',
+];
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
@@ -10,64 +28,60 @@ class AddActivityScreen extends StatefulWidget {
 }
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCcIAGSMxG1SRQD2tqHKeWeZH89c0RP3iuUuZzPKWmEKvvsU6WqjOm_s6saa_E5bzLmqtCn9SYiOweZn6-R_q5vyU3-HxfELpqh2Jo_rY2kDDWyJNCEG2ml0kU5uIVp8fTAa_6BOLkYzZXNGggTtji5agKeLI2E3nY4alD_ta7RH12AyVNUxsdNO0g8fe_nYKkmI81EAB_s1rrT4OKlcW6WIP1oAKEOJdtAEh1Jlir9sHfrqE4o9qbREdAw5_6KgrWLE9rDVrhqvhuY';
+  final ActivitiesApi _api = ActivitiesApi();
+  final TextEditingController _searchController = TextEditingController();
 
-  static const String _heroImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDz6pmBJWMNUYRoVnqgcflySIr095siDlcLFd2cX7ZxiN_2AMvOUH9i6KzhoerlXxj08Ejt_OrKieaCY_8YG_mwcrRAHFb0HuUVHYYOavPBuxcc5ykUUuObt1DZLKA4WJ_jKFLMfpMohgDhoJ958ctWVYw5AIHkEHYLwbj22HhyPRxBaD1b3DGZEGSEgi-bmYJHMbZoivxmVz6gG71okmM-lN7nTWYeZ1igkRB5Byh3D__KLL08oTls69i0HydGnJabt35dqonHJj5A';
-
-  static const List<String> _categoryLabels = [
-    'Food',
-    'Sightseeing',
-    'Transport',
-    'Outdoors',
-  ];
-
-  static final List<_ActivityCardData> _smallTopRow = [
-    const _ActivityCardData(
-      title: 'Emerald Valley Hike',
-      description: 'A moderate 3km trail through lush ferns and pines.',
-      rating: '4.8',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCz-p9VFi6yn4ZGVlqYTkm1XVmstp7GiX4qa1J5LkK0yz3PiDNxLFGO5kj6IAGUMjGDMifyaPYaXfGnO0Q6IHiEHOY6GFqEDTIHqYOHF0ugbDr1JvAhfajM7ILQtUgXlrAnoXvEye8PD1cKDxrKZNAiH-acadIA8e9koPSaKQN9Hnqc_7_4RbRY4tBcjMMiIEiDuj1edMg2c22IjLvL0Y8VPB--N_0SRde6Q2Hi3e7dNHfzRmtOLA7TzSAt5XILgvmIEcIzs2k7xqWs',
-    ),
-    const _ActivityCardData(
-      title: 'City Night Tour',
-      description: 'Explore the vibrant lights and secret hidden bars.',
-      rating: '4.7',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuB-4vUg7B66IXiYGyBD2GNxL_8FDQPAvf68qWoM7rS19rtk31-bmws0ftf_5Bd6889vmCI_jyJ2M2xHIhw4sFHH4x942a0dtEMEPPng1AWuv6mwiIP3wVzxPFLiCTQUtcD_wTCbVfT53FZvNQChd1zKGJoF5Bvfg1FQgKzmSqjGayb0lHUR1JyvR0WgB15rDkSJEw_0ewNp3fohT88ItyiygPv_iC2mR-HcER74Q0Q2srFYW6MI9e9Qy4A0AIT6wSpHiP2xHsB8zZtF',
-    ),
-  ];
-
-  static final _ActivityCardData _wideCard = const _ActivityCardData(
-    title: 'Luxury Coastal Coach',
-    description:
-        'Stress-free transit with reclining seats and panoramic windows. Includes refreshments.',
-    rating: '4.5',
-    imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBx9Jx6Y7rc52RQojM15AfVJal0XdZMORwlu0I7V99n1BLyUQH0Qnh_wmGUUadU64zaR8H4NpiL9UWCZBnistxpkF7h0oMc0swxsak2ru-HXVitsRPiF2UtdKU9T-X_61hZs7P0D41A7ett6rucinrVWp4ph6wby0vfosHXz3Xk-K8n1FJ7KY3rpNul4T11pNKHWKm_H17ps8vGBv8FkJaf7ttzaZ3VC9P78ZyoYjcFcH2TPZSsSI7utu0cHQytVHR4ReiOUM2Hhb_Z',
-  );
-
-  static final List<_ActivityCardData> _smallBottomRow = [
-    const _ActivityCardData(
-      title: 'Artisan Gelato Tour',
-      description: 'Taste 10 authentic flavors from family-run cremerias.',
-      rating: '5.0',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCVL3cE8n3_oNPspscfUQXslZdH6ypS5R8RVNh2syg9xg9VAFmT8vVv_3-z8jElJ2ZAXB3GZwSpm4xR9X310J5T9mNQ8O-6Ygyb2xFq6mFV9640XvL-l5_py-y8xO1UgYus2sFpL5hS4xvf-bOrkAZOFA9VOphBe5QxHUltJTbmyozrkbI12hBPErnIt-SCFqgFeacIOOT3inGQL1aRzXytBPDYJAUWexfCBsJ3YFmfBHmIrDjtWTWn3jU47OWJ_lCJYiWZxEqES9qW',
-    ),
-    const _ActivityCardData(
-      title: 'Ruins & Relics Guided',
-      description:
-          'A deep dive into the history of the ancient world with local experts.',
-      rating: '4.9',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDIUiG-5nXPSIYXf30IoDr3J9e2ktQw0vPuXH5wGUvCjwENKQIQ7PFAHtvh4X2kiBvDuCps4y-JBhPMriuNU-E_hkLV_gJD7o1DtL1dhPadLU8L2JdJdikr0FqACx2r8_3AdZhQJLiiA8vZXiOJJHw--OtUo06q7Seip9cOhDQKRd5aFhepyoXoxucNsQauoNSHUp3sazEjIHsg6X63IScQaGIUpXea5Tx8VkdWhUs-aqeVzhXLS2INuMoI17wxPgbxTre5bSQ2jKNG',
-    ),
-  ];
-
+  ActivityCatalog? _data;
+  Object? _error;
   int _selectedChipIndex = 0;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _error = null;
+      _data = null;
+    });
+    try {
+      final data = await _api.fetchCatalog();
+      if (!mounted) return;
+      setState(() => _data = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    }
+  }
+
+  /// Client-side filter over the loaded catalog (category chip + search).
+  List<CatalogActivity> get _filtered {
+    final data = _data;
+    if (data == null) return const [];
+    final seen = <int>{};
+    final pool = <CatalogActivity>[
+      if (data.recommended != null) data.recommended!,
+      ...data.popular,
+    ].where((a) => seen.add(a.id)).toList();
+
+    final cat = _chipCategory[_selectedChipIndex];
+    final q = _query.trim().toLowerCase();
+    return pool.where((a) {
+      if (cat != null && a.category.toUpperCase() != cat) return false;
+      if (q.isEmpty) return true;
+      return a.title.toLowerCase().contains(q) ||
+          a.location.toLowerCase().contains(q);
+    }).toList();
+  }
 
   void _onAddTap() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -101,41 +115,58 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           'Add Activity',
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: TripwiseColors.surfaceContainerHigh,
-                  width: 2,
-                ),
-              ),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(_avatarUrl),
-              ),
-            ),
-          ),
-        ],
       ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SearchField(),
-              const SizedBox(height: 16),
-              _CategoryChips(
-                labels: _categoryLabels,
-                selectedIndex: _selectedChipIndex,
-                onSelect: (i) => setState(() => _selectedChipIndex = i),
-              ),
-              const SizedBox(height: 28),
+      body: SafeArea(top: false, child: _buildBody()),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_data == null && _error == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_data == null) {
+      return _ErrorView(error: _error, onRetry: _load);
+    }
+
+    final textTheme = Theme.of(context).textTheme;
+    final filtered = _filtered;
+    final hero = filtered.isNotEmpty ? filtered.first : null;
+    final rest = filtered.length > 1
+        ? filtered.sublist(1)
+        : const <CatalogActivity>[];
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SearchField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+            const SizedBox(height: 16),
+            _CategoryChips(
+              labels: _chipLabels,
+              selectedIndex: _selectedChipIndex,
+              onSelect: (i) => setState(() => _selectedChipIndex = i),
+            ),
+            const SizedBox(height: 28),
+            if (hero == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'No activities match your search.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: TripwiseColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              )
+            else ...[
               Text(
                 'RECOMMENDED FOR YOU',
                 style: textTheme.labelMedium?.copyWith(
@@ -145,59 +176,130 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _HeroActivityCard(
-                imageUrl: _heroImageUrl,
-                title: 'Cliffside Alfresco Dining',
-                description:
-                    'Experience authentic local flavors with an unobstructed view of the Amalfi coast.',
-                rating: '4.9',
-                onAdd: _onAddTap,
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Popular Activities',
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      'See all',
-                      style: textTheme.labelLarge?.copyWith(
-                        color: TripwiseColors.primary,
-                        fontWeight: FontWeight.w800,
+              _HeroActivityCard(activity: hero, onAdd: _onAddTap),
+              if (rest.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Popular Activities',
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _PopularActivitiesGrid(
-                topRow: _smallTopRow,
-                wide: _wideCard,
-                bottomRow: _smallBottomRow,
-                onAdd: _onAddTap,
-              ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _PopularActivitiesGrid(items: rest, onAdd: _onAddTap),
+              ],
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load activities",
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NetImage extends StatelessWidget {
+  const _NetImage({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final src = url;
+    if (src == null || src.isEmpty) {
+      return const ColoredBox(
+        color: TripwiseColors.surfaceContainerLow,
+        child: Center(
+          child: Icon(
+            Icons.image_not_supported_rounded,
+            color: TripwiseColors.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    return Image.network(
+      src,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const ColoredBox(
+        color: TripwiseColors.surfaceContainerLow,
+        child: Center(
+          child: Icon(
+            Icons.broken_image_rounded,
+            color: TripwiseColors.onSurfaceVariant,
+          ),
+        ),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return const ColoredBox(
+          color: TripwiseColors.surfaceContainerLow,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      },
+    );
+  }
+}
+
 class _SearchField extends StatelessWidget {
-  const _SearchField();
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return TextField(
+      controller: controller,
+      onChanged: onChanged,
       style: textTheme.bodyLarge,
       decoration: InputDecoration(
         prefixIcon: const Padding(
@@ -214,8 +316,10 @@ class _SearchField extends StatelessWidget {
         ),
         filled: true,
         fillColor: TripwiseColors.surfaceContainerLow,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
           borderSide: BorderSide.none,
@@ -315,19 +419,12 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _HeroActivityCard extends StatelessWidget {
-  const _HeroActivityCard({
-    required this.imageUrl,
-    required this.title,
-    required this.description,
-    required this.rating,
-    required this.onAdd,
-  });
+String _ratingText(double r) => r.toStringAsFixed(1);
 
-  final String imageUrl;
-  final String title;
-  final String description;
-  final String rating;
+class _HeroActivityCard extends StatelessWidget {
+  const _HeroActivityCard({required this.activity, required this.onAdd});
+
+  final CatalogActivity activity;
   final VoidCallback onAdd;
 
   @override
@@ -349,16 +446,13 @@ class _HeroActivityCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(imageUrl, fit: BoxFit.cover),
+          _NetImage(url: activity.image),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withOpacity(0.80),
-                  Colors.transparent,
-                ],
+                colors: [Colors.black.withOpacity(0.80), Colors.transparent],
                 stops: const [0.0, 0.55],
               ),
             ),
@@ -391,7 +485,7 @@ class _HeroActivityCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            rating,
+                            _ratingText(activity.rating),
                             style: textTheme.labelSmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -402,7 +496,7 @@ class _HeroActivityCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'TOP RATED',
+                      activity.category,
                       style: textTheme.labelSmall?.copyWith(
                         color: Colors.white.withOpacity(0.80),
                         fontWeight: FontWeight.w700,
@@ -413,7 +507,7 @@ class _HeroActivityCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  title,
+                  activity.title,
                   style: textTheme.displaySmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -422,7 +516,9 @@ class _HeroActivityCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  description,
+                  activity.description ?? activity.location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withOpacity(0.80),
                     fontWeight: FontWeight.w500,
@@ -438,9 +534,7 @@ class _HeroActivityCard extends StatelessWidget {
                     label: const Text('Add to Trip'),
                     style: TripwiseButtonStyles.primaryElevated(
                       radius: 999,
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w800),
                       elevation: 8,
                       shadowColor: TripwiseColors.primary.withOpacity(0.30),
                     ),
@@ -455,55 +549,50 @@ class _HeroActivityCard extends StatelessWidget {
   }
 }
 
+/// Lays the remaining activities into the original cadence: a row of two
+/// small cards, then a wide card, repeating — defensive to any length.
 class _PopularActivitiesGrid extends StatelessWidget {
-  const _PopularActivitiesGrid({
-    required this.topRow,
-    required this.wide,
-    required this.bottomRow,
-    required this.onAdd,
-  });
+  const _PopularActivitiesGrid({required this.items, required this.onAdd});
 
-  final List<_ActivityCardData> topRow;
-  final _ActivityCardData wide;
-  final List<_ActivityCardData> bottomRow;
+  final List<CatalogActivity> items;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
+    final blocks = <Widget>[];
+    int i = 0;
+    while (i < items.length) {
+      final pair = items.skip(i).take(2).toList();
+      i += pair.length;
+      blocks.add(
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _SmallActivityCard(data: topRow[0], onAdd: onAdd)),
+            Expanded(child: _SmallActivityCard(data: pair[0], onAdd: onAdd)),
             const SizedBox(width: 16),
-            Expanded(child: _SmallActivityCard(data: topRow[1], onAdd: onAdd)),
+            if (pair.length > 1)
+              Expanded(child: _SmallActivityCard(data: pair[1], onAdd: onAdd))
+            else
+              const Expanded(child: SizedBox.shrink()),
           ],
         ),
-        const SizedBox(height: 16),
-        _WideActivityCard(data: wide, onAdd: onAdd),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _SmallActivityCard(data: bottomRow[0], onAdd: onAdd),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _SmallActivityCard(data: bottomRow[1], onAdd: onAdd),
-            ),
-          ],
-        ),
-      ],
-    );
+      );
+      if (i < items.length) {
+        blocks
+          ..add(const SizedBox(height: 16))
+          ..add(_WideActivityCard(data: items[i], onAdd: onAdd));
+        i += 1;
+        if (i < items.length) blocks.add(const SizedBox(height: 16));
+      }
+    }
+    return Column(children: blocks);
   }
 }
 
 class _SmallActivityCard extends StatelessWidget {
   const _SmallActivityCard({required this.data, required this.onAdd});
 
-  final _ActivityCardData data;
+  final CatalogActivity data;
   final VoidCallback onAdd;
 
   @override
@@ -529,9 +618,7 @@ class _SmallActivityCard extends StatelessWidget {
             height: 140,
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.network(data.imageUrl, fit: BoxFit.cover),
-                ),
+                Positioned.fill(child: _NetImage(url: data.image)),
                 Positioned(
                   top: 12,
                   right: 12,
@@ -545,17 +632,19 @@ class _SmallActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _RatingRow(rating: data.rating),
+                _RatingRow(rating: _ratingText(data.rating)),
                 const SizedBox(height: 4),
                 Text(
                   data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data.description,
+                  data.description ?? data.location,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySmall?.copyWith(
@@ -575,7 +664,7 @@ class _SmallActivityCard extends StatelessWidget {
 class _WideActivityCard extends StatelessWidget {
   const _WideActivityCard({required this.data, required this.onAdd});
 
-  final _ActivityCardData data;
+  final CatalogActivity data;
   final VoidCallback onAdd;
 
   @override
@@ -599,9 +688,7 @@ class _WideActivityCard extends StatelessWidget {
         children: [
           Expanded(
             flex: 1,
-            child: SizedBox.expand(
-              child: Image.network(data.imageUrl, fit: BoxFit.cover),
-            ),
+            child: SizedBox.expand(child: _NetImage(url: data.image)),
           ),
           Expanded(
             flex: 2,
@@ -618,10 +705,12 @@ class _WideActivityCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _RatingRow(rating: data.rating),
+                            _RatingRow(rating: _ratingText(data.rating)),
                             const SizedBox(height: 4),
                             Text(
                               data.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -634,7 +723,7 @@ class _WideActivityCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    data.description,
+                    data.description ?? data.location,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(
@@ -731,18 +820,4 @@ class _WidePrimaryAddButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ActivityCardData {
-  const _ActivityCardData({
-    required this.title,
-    required this.description,
-    required this.rating,
-    required this.imageUrl,
-  });
-
-  final String title;
-  final String description;
-  final String rating;
-  final String imageUrl;
 }

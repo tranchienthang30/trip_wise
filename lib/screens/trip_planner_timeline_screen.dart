@@ -2,8 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/trip_timeline.dart';
+import '../services/trips_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+
+/// Maps a server activity category to the timeline accent + icon.
+({IconData icon, Color color}) _categoryStyle(String category) {
+  switch (category.toUpperCase()) {
+    case 'FOOD':
+      return (icon: Icons.restaurant_rounded, color: TripwiseColors.primary);
+    case 'SIGHTSEEING':
+      return (icon: Icons.museum_rounded, color: TripwiseColors.secondary);
+    case 'OUTDOORS':
+      return (
+        icon: Icons.hiking_rounded,
+        color: TripwiseColors.tertiaryContainer,
+      );
+    case 'TRANSPORT':
+      return (
+        icon: Icons.directions_bus_rounded,
+        color: TripwiseColors.primaryFixed,
+      );
+    default:
+      return (icon: Icons.place_rounded, color: TripwiseColors.primary);
+  }
+}
 
 class TripPlannerTimelineScreen extends StatefulWidget {
   const TripPlannerTimelineScreen({super.key});
@@ -14,89 +38,50 @@ class TripPlannerTimelineScreen extends StatefulWidget {
 }
 
 class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBNDHz7WLrX5DaA4b_SLMoT874Y_7U3noQ5JcF1ZKyT_mA-rZnH9GGkHPUoe_o0Qhz-aIVXO3AIaMZIQbsivnPUgtws8papEoSNflDt1kO41kZq6noxaJFVmGEAVHceFRrCjPAyPkCaAaJcvx-SEdIHDIHv3WeiGcrpqFTH6qxd2Bos8Kct713_kKmRrmXCIcnZC6eFE5AMobVLYdnXu9m2VO55JMKqEQJZ7qNiq49uDEMH7-m79n3aPxnF-TdZafZm4J0B1j1pChI';
+  final TripsApi _api = TripsApi();
 
-  static const String _heroImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBHif9Rk6f4Hl0adoXhSpdKyfkhBI7WOpTENtNkXaJRiMNVEombs9e75e1e2MtRlVqo79JUew7Td40_i-7BFV-ui2-JwZBhvKls7m0A2nUVBxzJcOtgcxq4Vi2Wop7-KtGzabv3snhtQjVT29sK2ZG9h7zUTtXbOe1bUsXTeiCl0S82AwljwQ-mUGVon3ZepPkZXQuZn8Y9dpIhOHKDuu5nuICkCBiRUN4ODqcJpLZ8iAgyTlbYlRAqhAeZ6lnDBqRnrlVkiefIKeU';
-
-  static const String _mapUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDHnWJd78wFdBGgN9uLgYM0We3Y-gsoWuf_Evdus3JlIVxTmom1e4ejRvcdHTZj5fFEdANPNCWznwyMbhpXfKFxXmsS0DHofvIzqGMKzukEg3MqisQfRkXYgLWTZBDpCWtD3MPdB8zJgJiHM_kGgZGFPP4ekTWfVlGvRbud_lW8VK29QhVTqK7RtCT74Gq1HOaqk5J0enbRJ6FMrU9oOxp0iMuc_3HBKebJmVoRBk8KsrLmKxWiaARNz8BlyLoF_DxzZAHEQ1E7-e0';
-
-  static const String _friend1Url =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBQWRg69kvKw8u2Me3cxcW-4ffx0lF5a1FlRJh_8Zcsju55YsLEY3VL8PhhBRRpl1Ia7lUbSRrzhZy_x2AOK3v7o1-KGsgKfYQR31pPzh9E8s4pKFuF39EDFVSWxyRBydiebHPG2WFi9KwPPIi55PzIR_84nBFISLsUQnrd8yVqPd0878VmbJ0WD8SfHVBX9SS0bOYcZcI939Ft2x1MJsNHHkn1OMH1_ecOiAk8nk8x7BDt90hZ38r2JAQB8KCKwVtEOh3KokoZZfU';
-
-  static const String _friend2Url =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuD6WpjW1yQs2fEbqkfFKHh4CphqMt36F-gNau9uGxMJLHMB916RS_jkLv0kAW4qT0lJSNIpyPfeEybinYD_FNtEmFcYyFYdcCdA_Vc6sqWQyANa7S_TJAwzUAkDAyKSmWdFfx48xxN2lN4UhoQm-FvCvV4pJ2iXR9o-EjpyKODJW09XYs1gohRJNVVQQxHSfIaUOwIw8ryCefLLTpedUJb2aaR9Mrc_3m5LgAxGJtTbai8wYSqMwkrvxhMCqGPN02dBylEFf5jcLVc';
-
-  static const List<String> _dayLabels = [
-    'Day 1',
-    'Day 2',
-    'Day 3',
-    'Day 4',
-    'Day 5',
-  ];
-
-  static final List<_TimelineItemData> _timelineItems = [
-    const _TimelineItemData(
-      time: '9:00 AM',
-      title: 'Breakfast at Sea Circus',
-      location: 'Seminyak, Bali',
-      icon: Icons.restaurant_rounded,
-      accentColor: TripwiseColors.primary,
-    ),
-    const _TimelineItemData(
-      time: '11:00 AM',
-      title: 'Surfing at Canggu',
-      location: 'Batu Bolong Beach',
-      icon: Icons.surfing_rounded,
-      accentColor: TripwiseColors.secondary,
-      friends: [_friend1Url, _friend2Url],
-      extraFriends: 2,
-    ),
-    const _TimelineItemData(
-      time: '2:00 PM',
-      title: 'Spa Session',
-      location: 'Bodyworks Spa',
-      icon: Icons.spa_rounded,
-      accentColor: TripwiseColors.tertiaryContainer,
-    ),
-  ];
-
+  TripsResponse? _data;
+  Object? _error;
   int _selectedDayIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _error = null;
+      _data = null;
+    });
+    try {
+      final data = await _api.fetchTrips();
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _selectedDayIndex = 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    }
+  }
+
+  Future<void> _openAddActivity() async {
+    await context.push('/add_activity');
+    if (!mounted) return;
+    await _load();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: const PlannerAppBar(),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _TripHero(
-                heroImageUrl: _heroImageUrl,
-                mapUrl: _mapUrl,
-                label: 'ONGOING TRIP',
-                title: 'Summer in Bali',
-              ),
-              const SizedBox(height: 28),
-              _DayTabs(
-                labels: _dayLabels,
-                selectedIndex: _selectedDayIndex,
-                onSelect: (i) => setState(() => _selectedDayIndex = i),
-              ),
-              const SizedBox(height: 28),
-              _Timeline(items: _timelineItems),
-            ],
-          ),
-        ),
-      ),
+      body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/add_activity'),
+        onPressed: _openAddActivity,
         elevation: 6,
         child: const Icon(Icons.add_rounded, size: 28),
       ),
@@ -107,86 +92,177 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
     );
   }
 
-  void _showPlannerMenu(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                icon: Icons.event_note_rounded,
-                label: 'Planner Home',
-                route: '/trip_planner_dashboard',
+  Widget _buildBody() {
+    if (_data == null && _error == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_data == null) {
+      return _ErrorView(error: _error, onRetry: _load);
+    }
+    final trip = _data!.current;
+    if (trip == null) {
+      return const _EmptyTripsView();
+    }
+
+    final days = trip.days;
+    final dayIndex = _selectedDayIndex.clamp(
+      0,
+      days.isEmpty ? 0 : days.length - 1,
+    );
+    final items = days.isEmpty ? const <TripItem>[] : days[dayIndex].items;
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TripHero(
+              heroImageUrl: trip.coverImage,
+              mapUrl: trip.mapImage,
+              label: trip.statusLabel,
+              title: trip.title,
+            ),
+            const SizedBox(height: 28),
+            if (days.isNotEmpty)
+              _DayTabs(
+                labels: [for (final d in days) 'Day ${d.dayIndex}'],
+                selectedIndex: dayIndex,
+                onSelect: (i) => setState(() => _selectedDayIndex = i),
               ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                icon: Icons.flight_rounded,
-                label: 'My Trips',
-                route: '/my_trips',
-              ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                icon: Icons.add_circle_rounded,
-                label: 'Add Activity',
-                route: '/add_activity',
-              ),
-              _buildPlannerMenuItem(
-                sheetContext: sheetContext,
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Wallet',
-                route: '/wallet_loyalty',
-              ),
-            ],
+            const SizedBox(height: 28),
+            _Timeline(items: items, onAddActivity: _openAddActivity),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NetImage extends StatelessWidget {
+  const _NetImage({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final src = url;
+    if (src == null || src.isEmpty) {
+      return const ColoredBox(
+        color: TripwiseColors.surfaceContainerLow,
+        child: Center(
+          child: Icon(
+            Icons.image_not_supported_rounded,
+            color: TripwiseColors.onSurfaceVariant,
           ),
+        ),
+      );
+    }
+    return Image.network(
+      src,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const ColoredBox(
+        color: TripwiseColors.surfaceContainerLow,
+        child: Center(
+          child: Icon(
+            Icons.broken_image_rounded,
+            color: TripwiseColors.onSurfaceVariant,
+          ),
+        ),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return const ColoredBox(
+          color: TripwiseColors.surfaceContainerLow,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
         );
       },
     );
   }
+}
 
-  Widget _buildPlannerMenuItem({
-    required BuildContext sheetContext,
-    required IconData icon,
-    required String label,
-    required String route,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: TripwiseColors.primary),
-      title: Text(label),
-      onTap: () {
-        Navigator.of(sheetContext).pop();
-        context.go(route);
-      },
+class _EmptyTripsView extends StatelessWidget {
+  const _EmptyTripsView();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.luggage_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No trips yet',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Plan a trip and your day-by-day timeline shows up here.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  void _handleBottomNavTap(int index) {
-    const routes = [
-      '/home',
-      '/my_trips',
-      '/trip_planner_dashboard',
-      '/wallet_loyalty',
-      '/profile_registration',
-    ];
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.error, required this.onRetry});
 
-    if (index == 2) {
-      return;
-    }
+  final Object? error;
+  final VoidCallback onRetry;
 
-    context.go(routes[index]);
-  }
-
-  void _handleBackNavigation(BuildContext context) {
-    final navigator = Navigator.of(context);
-
-    if (navigator.canPop()) {
-      navigator.pop();
-      return;
-    }
-
-    context.go('/my_trips');
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load your trip",
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -198,8 +274,8 @@ class _TripHero extends StatelessWidget {
     required this.title,
   });
 
-  final String heroImageUrl;
-  final String mapUrl;
+  final String? heroImageUrl;
+  final String? mapUrl;
   final String label;
   final String title;
 
@@ -222,16 +298,13 @@ class _TripHero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(heroImageUrl, fit: BoxFit.cover),
+          _NetImage(url: heroImageUrl),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withOpacity(0.55),
-                  Colors.transparent,
-                ],
+                colors: [Colors.black.withOpacity(0.55), Colors.transparent],
               ),
             ),
           ),
@@ -283,7 +356,7 @@ class _TripHero extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.hardEdge,
-              child: Image.network(mapUrl, fit: BoxFit.cover),
+              child: _NetImage(url: mapUrl),
             ),
           ),
         ],
@@ -372,12 +445,32 @@ class _DayPill extends StatelessWidget {
 }
 
 class _Timeline extends StatelessWidget {
-  const _Timeline({required this.items});
+  const _Timeline({required this.items, required this.onAddActivity});
 
-  final List<_TimelineItemData> items;
+  final List<TripItem> items;
+  final VoidCallback onAddActivity;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nothing planned for this day yet.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _AddActivityButton(onTap: onAddActivity),
+          ],
+        ),
+      );
+    }
     return Stack(
       children: [
         Positioned(
@@ -394,7 +487,7 @@ class _Timeline extends StatelessWidget {
               _TimelineItem(item: items[i]),
             ],
             const SizedBox(height: 20),
-            const _AddActivityButton(),
+            _AddActivityButton(onTap: onAddActivity),
           ],
         ),
       ],
@@ -405,11 +498,19 @@ class _Timeline extends StatelessWidget {
 class _TimelineItem extends StatelessWidget {
   const _TimelineItem({required this.item});
 
-  final _TimelineItemData item;
+  final TripItem item;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final style = _categoryStyle(item.category);
+    final companionImages = [
+      for (final c in item.companions)
+        if (c.image != null && c.image!.isNotEmpty) c.image!,
+    ];
+    final shown = companionImages.take(3).toList();
+    final extra = item.companions.length - shown.length;
+
     return Padding(
       padding: const EdgeInsets.only(left: 56),
       child: Stack(
@@ -424,7 +525,7 @@ class _TimelineItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(color: item.accentColor, width: 4),
+                border: Border.all(color: style.color, width: 4),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
@@ -457,12 +558,12 @@ class _TimelineItem extends StatelessWidget {
                     Text(
                       item.time,
                       style: textTheme.labelMedium?.copyWith(
-                        color: item.accentColor,
+                        color: style.color,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5,
                       ),
                     ),
-                    Icon(item.icon, color: item.accentColor, size: 22),
+                    Icon(style.icon, color: style.color, size: 22),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -482,19 +583,21 @@ class _TimelineItem extends StatelessWidget {
                       color: TripwiseColors.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      item.location,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: TripwiseColors.onSurfaceVariant,
+                    Expanded(
+                      child: Text(
+                        item.location,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: TripwiseColors.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                if (item.friends.isNotEmpty) ...[
+                if (shown.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _FriendsStack(
-                    friends: item.friends,
-                    extraFriends: item.extraFriends,
+                    friends: shown,
+                    extraFriends: extra > 0 ? extra : 0,
                   ),
                 ],
               ],
@@ -577,7 +680,9 @@ class _FriendsStack extends StatelessWidget {
 }
 
 class _AddActivityButton extends StatelessWidget {
-  const _AddActivityButton();
+  const _AddActivityButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -585,7 +690,7 @@ class _AddActivityButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 56),
       child: InkWell(
-        onTap: () => context.push('/add_activity'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: double.infinity,
@@ -619,24 +724,4 @@ class _AddActivityButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TimelineItemData {
-  const _TimelineItemData({
-    required this.time,
-    required this.title,
-    required this.location,
-    required this.icon,
-    required this.accentColor,
-    this.friends = const [],
-    this.extraFriends = 0,
-  });
-
-  final String time;
-  final String title;
-  final String location;
-  final IconData icon;
-  final Color accentColor;
-  final List<String> friends;
-  final int extraFriends;
 }
