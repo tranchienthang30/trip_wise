@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/wallet_overview.dart';
+import '../services/wallet_api.dart';
+import '../utils/currency.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
-// Brand palette has no green; matches HTML mock for credit indicator.
+// Brand palette has no green; matches HTML mock for the success indicator.
 const Color _creditGreenBg = Color(0xFFD7F4DD);
 const Color _creditGreenFg = Color(0xFF1F8A3A);
 
@@ -20,6 +23,11 @@ void _showWalletFlowNotice(BuildContext context, String message) {
     );
 }
 
+String _titleCase(String value) {
+  if (value.isEmpty) return value;
+  return value[0].toUpperCase() + value.substring(1).toLowerCase();
+}
+
 class WalletLoyaltyScreen extends StatefulWidget {
   const WalletLoyaltyScreen({super.key});
 
@@ -28,68 +36,20 @@ class WalletLoyaltyScreen extends StatefulWidget {
 }
 
 class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuALZIBT2-LuMB5fbfNAKWbwU5ZDSc8OAem4TDyVV9OgjZtbsX2d8YpBANmsPQvRppBSRErwIJUrh1hGeFHZ9Lygs6EcXDS1XHfJRcMtzg1aStwe6DM5hanwhG8_ea9NP4UEp8-BoRF5LJxa0woPTcXrz4iGOS90SMJwLrVNFWNkJ-UZpfbwCAItlsRtxD0WEfSGB7ukos5JIw31qIRMjhG4EtF-BxenKP0os3YqvWOepZG42NYGgtHbvw6lENZ84K-qIkAvHqR5Jkg';
+  final WalletApi _api = WalletApi();
+  late Future<WalletOverview> _future;
 
-  static const String _balance = '\$12,450.80';
-  static const String _points = '45,200';
-  static const String _pointsValue = '\$452.00';
-  static const String _pointsToGold = '4,800';
-  static const int _progressFlexCurrent = 75;
-  static const int _progressFlexRemaining = 25;
+  @override
+  void initState() {
+    super.initState();
+    _future = _api.fetchWallet();
+  }
 
-  static final List<_Transaction> _transactions = [
-    _Transaction(
-      icon: Icons.flight_takeoff_rounded,
-      iconBg: TripwiseColors.primaryFixed,
-      iconFg: TripwiseColors.primary,
-      title: 'Flight to Santorini',
-      subtitle: 'Oct 12, 2023 • Aegean Airlines',
-      amount: '-\$840.00',
-      amountColor: TripwiseColors.onSurface,
-      pillText: '+120 pts',
-      pillBg: TripwiseColors.primaryFixed,
-      pillFg: TripwiseColors.primary,
-    ),
-    _Transaction(
-      icon: Icons.restaurant_rounded,
-      iconBg: TripwiseColors.secondaryFixed,
-      iconFg: TripwiseColors.secondary,
-      title: 'Le Petit Maison',
-      subtitle: 'Oct 11, 2023 • Dining',
-      amount: '-\$156.40',
-      amountColor: TripwiseColors.onSurface,
-      pillText: '+15 pts',
-      pillBg: TripwiseColors.secondaryFixed,
-      pillFg: TripwiseColors.secondary,
-    ),
-    _Transaction(
-      icon: Icons.add_rounded,
-      iconBg: _creditGreenBg,
-      iconFg: _creditGreenFg,
-      title: 'Wallet Top-up',
-      subtitle: 'Oct 09, 2023 • Visa **** 4242',
-      amount: '+\$2,000.00',
-      amountColor: _creditGreenFg,
-      pillText: 'Completed',
-      pillBg: null,
-      pillFg: TripwiseColors.onSurfaceVariant,
-    ),
-    _Transaction(
-      icon: Icons.hotel_rounded,
-      iconBg: TripwiseColors.tertiaryFixed,
-      iconFg: TripwiseColors.tertiary,
-      title: 'Grand Plaza Hotel',
-      subtitle: 'Oct 05, 2023 • Accommodation',
-      amount: '-\$1,200.00',
-      amountColor: TripwiseColors.onSurface,
-      pillText: '+400 pts',
-      pillBg: TripwiseColors.primaryFixed,
-      pillFg: TripwiseColors.primary,
-    ),
-  ];
-
-  int _currentNavIndex = 3;
+  void _reload() {
+    setState(() {
+      _future = _api.fetchWallet();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,30 +58,20 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
       appBar: const PlannerAppBar(),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _HeaderSection(),
-              const SizedBox(height: 24),
-              const _PrimaryWalletCard(balance: _balance),
-              const SizedBox(height: 24),
-              const _LoyaltyPointsCard(
-                points: _points,
-                pointsValue: _pointsValue,
-                pointsToGold: _pointsToGold,
-                flexCurrent: _progressFlexCurrent,
-                flexRemaining: _progressFlexRemaining,
-              ),
-              const SizedBox(height: 24),
-              _TransactionsSection(transactions: _transactions),
-              const SizedBox(height: 24),
-              const _CardsSection(),
-              const SizedBox(height: 24),
-              const _LoyaltyPerkBanner(),
-            ],
-          ),
+        child: FutureBuilder<WalletOverview>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError || !snapshot.hasData) {
+              return _ErrorView(
+                error: snapshot.error,
+                onRetry: _reload,
+              );
+            }
+            return _WalletBody(data: snapshot.data!);
+          },
         ),
       ),
       bottomNavigationBar: const PlannerTaskbar(
@@ -129,26 +79,88 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
       ),
     );
   }
+}
 
-  void _handleBottomNavTap(int index) {
-    const routes = [
-      '/home',
-      '/my_trips',
-      '/trip_planner_dashboard',
-      '/wallet_loyalty',
-      '/profile_registration',
-    ];
+class _WalletBody extends StatelessWidget {
+  const _WalletBody({required this.data});
 
-    if (index == _currentNavIndex) {
-      return;
-    }
+  final WalletOverview data;
 
-    context.go(routes[index]);
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HeaderSection(userName: data.user?.name),
+          const SizedBox(height: 24),
+          _PrimaryWalletCard(balance: formatVnd(data.balance)),
+          const SizedBox(height: 24),
+          _LoyaltyPointsCard(
+            points: data.loyaltyPoints,
+            pointsValueVnd: data.pointsValueVnd,
+            tier: data.tier,
+          ),
+          const SizedBox(height: 24),
+          _TransactionsSection(transactions: data.transactions),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load your wallet",
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
 class _HeaderSection extends StatelessWidget {
-  const _HeaderSection();
+  const _HeaderSection({this.userName});
+
+  final String? userName;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +168,16 @@ class _HeaderSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (userName != null && userName!.isNotEmpty) ...[
+          Text(
+            'Hi, $userName 👋',
+            style: textTheme.labelLarge?.copyWith(
+              color: TripwiseColors.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
         Text(
           'Wallet & Loyalty',
           style: textTheme.displaySmall?.copyWith(
@@ -279,7 +301,8 @@ class _PrimaryWalletCard extends StatelessWidget {
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Withdrawal flow is not available yet.'),
+                            content:
+                                Text('Withdrawal flow is not available yet.'),
                           ),
                         );
                       },
@@ -313,21 +336,19 @@ class _PrimaryWalletCard extends StatelessWidget {
 class _LoyaltyPointsCard extends StatelessWidget {
   const _LoyaltyPointsCard({
     required this.points,
-    required this.pointsValue,
-    required this.pointsToGold,
-    required this.flexCurrent,
-    required this.flexRemaining,
+    required this.pointsValueVnd,
+    required this.tier,
   });
 
-  final String points;
-  final String pointsValue;
-  final String pointsToGold;
-  final int flexCurrent;
-  final int flexRemaining;
+  final int points;
+  final double pointsValueVnd;
+  final WalletTier tier;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final progress = tier.progress; // already clamped to 0..1 in the model
+    final hasNext = tier.next != null;
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
@@ -348,7 +369,7 @@ class _LoyaltyPointsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TRIP POINTS',
+                'TRIP POINTS · ${tier.current}',
                 style: textTheme.labelMedium?.copyWith(
                   color: TripwiseColors.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -364,14 +385,14 @@ class _LoyaltyPointsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            points,
+            formatInt(points),
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
           ),
           Text(
-            '≈ $pointsValue value',
+            '≈ ${formatVnd(pointsValueVnd)} value',
             style: textTheme.bodySmall?.copyWith(
               color: TripwiseColors.onSurfaceVariant,
             ),
@@ -381,40 +402,45 @@ class _LoyaltyPointsCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             child: SizedBox(
               height: 8,
-              child: Row(
+              child: Stack(
                 children: [
-                  Expanded(
-                    flex: flexCurrent,
+                  Container(color: TripwiseColors.surfaceContainerHigh),
+                  FractionallySizedBox(
+                    widthFactor: progress == 0 ? 0.001 : progress,
                     child: Container(color: TripwiseColors.secondary),
-                  ),
-                  Expanded(
-                    flex: flexRemaining,
-                    child: Container(
-                      color: TripwiseColors.surfaceContainerHigh,
-                    ),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
-          RichText(
-            text: TextSpan(
+          if (hasNext && tier.pointsToNext != null)
+            RichText(
+              text: TextSpan(
+                style: textTheme.bodySmall?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                ),
+                children: [
+                  TextSpan(
+                    text: '${formatInt(tier.pointsToNext!)} points away from ',
+                  ),
+                  TextSpan(
+                    text: '${_titleCase(tier.next!)} Tier',
+                    style: const TextStyle(
+                      color: TripwiseColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Text(
+              "You're at our top tier — enjoy the perks!",
               style: textTheme.bodySmall?.copyWith(
                 color: TripwiseColors.onSurfaceVariant,
               ),
-              children: [
-                TextSpan(text: '$pointsToGold points away from '),
-                const TextSpan(
-                  text: 'Gold Tier',
-                  style: TextStyle(
-                    color: TripwiseColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
             ),
-          ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -457,7 +483,7 @@ class _LoyaltyPointsCard extends StatelessWidget {
 class _TransactionsSection extends StatelessWidget {
   const _TransactionsSection({required this.transactions});
 
-  final List<_Transaction> transactions;
+  final List<WalletTransaction> transactions;
 
   @override
   Widget build(BuildContext context) {
@@ -470,13 +496,15 @@ class _TransactionsSection extends StatelessWidget {
           children: [
             Text(
               'Recent Transactions',
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style:
+                  textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             TextButton(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Detailed transaction history is not available yet.'),
+                    content: Text(
+                        'Detailed transaction history is not available yet.'),
                   ),
                 );
               },
@@ -498,14 +526,26 @@ class _TransactionsSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              for (int i = 0; i < transactions.length; i++) ...[
-                if (i > 0) const SizedBox(height: 4),
-                _TransactionRow(transaction: transactions[i]),
-              ],
-            ],
-          ),
+          child: transactions.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Center(
+                    child: Text(
+                      'No transactions yet.',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (int i = 0; i < transactions.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 4),
+                      _TransactionRow(transaction: transactions[i]),
+                    ],
+                  ],
+                ),
         ),
       ],
     );
@@ -515,11 +555,76 @@ class _TransactionsSection extends StatelessWidget {
 class _TransactionRow extends StatelessWidget {
   const _TransactionRow({required this.transaction});
 
-  final _Transaction transaction;
+  final WalletTransaction transaction;
+
+  ({IconData icon, Color bg, Color fg}) _methodVisual() {
+    switch (transaction.method) {
+      case 'VNPAY':
+      case 'CREDIT_CARD':
+        return (
+          icon: Icons.credit_card_rounded,
+          bg: TripwiseColors.primaryFixed,
+          fg: TripwiseColors.primary,
+        );
+      case 'MOMO':
+        return (
+          icon: Icons.account_balance_wallet_rounded,
+          bg: TripwiseColors.tertiaryFixed,
+          fg: TripwiseColors.tertiary,
+        );
+      case 'WALLET':
+        return (
+          icon: Icons.account_balance_wallet_rounded,
+          bg: TripwiseColors.secondaryFixed,
+          fg: TripwiseColors.secondary,
+        );
+      case 'PAYLATER':
+        return (
+          icon: Icons.schedule_rounded,
+          bg: TripwiseColors.secondaryFixed,
+          fg: TripwiseColors.secondary,
+        );
+      default:
+        return (
+          icon: Icons.receipt_long_rounded,
+          bg: TripwiseColors.surfaceContainerHigh,
+          fg: TripwiseColors.onSurfaceVariant,
+        );
+    }
+  }
+
+  ({String label, Color? bg, Color fg}) _statusVisual() {
+    switch (transaction.status) {
+      case 'SUCCESS':
+        return (label: 'Completed', bg: _creditGreenBg, fg: _creditGreenFg);
+      case 'PENDING':
+        return (
+          label: 'Pending',
+          bg: TripwiseColors.secondaryFixed,
+          fg: TripwiseColors.secondary,
+        );
+      case 'FAILED':
+        return (
+          label: 'Failed',
+          bg: TripwiseColors.errorContainer,
+          fg: TripwiseColors.error,
+        );
+      default:
+        return (
+          label: transaction.status,
+          bg: null,
+          fg: TripwiseColors.onSurfaceVariant,
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final visual = _methodVisual();
+    final status = _statusVisual();
+    final sign = transaction.amountVnd < 0 ? '-' : '+';
+    final amountText = '$sign${formatVnd(transaction.amountVnd.abs())}';
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
@@ -533,14 +638,10 @@ class _TransactionRow extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: transaction.iconBg,
+              color: visual.bg,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              transaction.icon,
-              color: transaction.iconFg,
-              size: 22,
-            ),
+            child: Icon(visual.icon, color: visual.fg, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -568,36 +669,36 @@ class _TransactionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                transaction.amount,
+                amountText,
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  color: transaction.amountColor,
+                  color: TripwiseColors.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
-              if (transaction.pillBg != null)
+              if (status.bg != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: transaction.pillBg,
+                    color: status.bg,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    transaction.pillText ?? '',
+                    status.label,
                     style: textTheme.labelSmall?.copyWith(
-                      color: transaction.pillFg,
+                      color: status.fg,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 )
               else
                 Text(
-                  transaction.pillText ?? '',
+                  status.label,
                   style: textTheme.labelSmall?.copyWith(
-                    color: transaction.pillFg,
+                    color: status.fg,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -607,214 +708,4 @@ class _TransactionRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CardsSection extends StatelessWidget {
-  const _CardsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Your Cards',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: TripwiseColors.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Icon(
-                    Icons.credit_card_rounded,
-                    color: TripwiseColors.primary,
-                    size: 24,
-                  ),
-                  Text(
-                    'VISA',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: TripwiseColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Primary Card',
-                style: textTheme.bodySmall?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '**** **** **** 4242',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        InkWell(
-          onTap: () => context.push('/add_payment'),
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: TripwiseColors.outlineVariant,
-                width: 2,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            width: double.infinity,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.add_card_rounded,
-                  size: 28,
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Add Payment Method',
-                  style: textTheme.labelLarge?.copyWith(
-                    color: TripwiseColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LoyaltyPerkBanner extends StatelessWidget {
-  const _LoyaltyPerkBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            TripwiseColors.secondary,
-            TripwiseColors.onSecondaryContainer,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: TripwiseColors.secondary.withOpacity(0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          Positioned(
-            right: -16,
-            bottom: -16,
-            child: Icon(
-              Icons.loyalty_rounded,
-              size: 140,
-              color: Colors.white.withOpacity(0.10),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Exclusive Upgrade!',
-                  style: textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Redeem 5,000 points for Premium Lounge access on your next trip.',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => _showWalletFlowNotice(
-                    context,
-                    'Reward redemption will be available in Wallet soon.',
-                  ),
-                  style: TripwiseButtonStyles.surfaceElevated(
-                    radius: 999,
-                    backgroundColor: Colors.white,
-                    foregroundColor: TripwiseColors.secondary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  child: const Text('CLAIM NOW'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Transaction {
-  const _Transaction({
-    required this.icon,
-    required this.iconBg,
-    required this.iconFg,
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.amountColor,
-    required this.pillText,
-    required this.pillBg,
-    required this.pillFg,
-  });
-
-  final IconData icon;
-  final Color iconBg;
-  final Color iconFg;
-  final String title;
-  final String subtitle;
-  final String amount;
-  final Color amountColor;
-  final String? pillText;
-  final Color? pillBg;
-  final Color? pillFg;
 }
