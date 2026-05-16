@@ -34,6 +34,7 @@ import 'screens/trip_planner_dashboard_screen.dart';
 import 'screens/trip_planner_timeline_screen.dart';
 import 'screens/vip_services_screen.dart';
 import 'screens/wallet_loyalty_screen.dart';
+import 'screens/wallet_transactions_screen.dart';
 import 'screens/provider_registration_form_screen.dart';
 
 final GoRouter _router = GoRouter(
@@ -107,6 +108,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/wallet_loyalty',
       builder: (context, state) => const WalletLoyaltyScreen(),
+    ),
+    GoRoute(
+      path: '/wallet_transactions',
+      builder: (context, state) => const WalletTransactionsScreen(),
     ),
     GoRoute(
       path: '/profile_registration',

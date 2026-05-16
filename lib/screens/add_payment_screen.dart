@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/wallet_api.dart';
 
 class AddPaymentScreen extends StatefulWidget {
   const AddPaymentScreen({super.key});
@@ -14,9 +15,37 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   // Brand PayPal blue — no Tripwise palette equivalent.
   static const Color _paypalBlue = Color(0xFF003087);
 
-  bool _saveCard = true;
+  final WalletApi _walletApi = WalletApi();
 
-  void _onAddCardTap() => context.push('/payment_success');
+  bool _saveCard = true;
+  bool _submitting = false;
+
+  // Mock card creation: every new card is minted server-side with a fixed
+  // ₫30,000,000 balance (the form fields are cosmetic for this slice).
+  Future<void> _onAddCardTap() async {
+    if (_submitting) return;
+    setState(() => _submitting = true);
+    try {
+      await _walletApi.addCard();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Card added · ₫30,000,000 available'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not add card: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   void _onMethodTap(String label) =>
       _showAddedSnackBarAndPop('$label selected');

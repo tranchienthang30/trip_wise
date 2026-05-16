@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
@@ -7,10 +8,7 @@ import '../services/wallet_api.dart';
 import '../utils/currency.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
-
-// Brand palette has no green; matches HTML mock for the success indicator.
-const Color _creditGreenBg = Color(0xFFD7F4DD);
-const Color _creditGreenFg = Color(0xFF1F8A3A);
+import '../widgets/wallet_transaction_tile.dart';
 
 void _showWalletFlowNotice(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -37,18 +35,85 @@ class WalletLoyaltyScreen extends StatefulWidget {
 
 class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
   final WalletApi _api = WalletApi();
-  late Future<WalletOverview> _future;
+
+  WalletOverview? _data;
+  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _future = _api.fetchWallet();
+    _load();
   }
 
-  void _reload() {
+  Future<void> _load() async {
     setState(() {
-      _future = _api.fetchWallet();
+      _error = null;
+      _data = null;
     });
+    try {
+      final data = await _api.fetchWallet();
+      if (!mounted) return;
+      setState(() => _data = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    }
+  }
+
+  Future<void> _openAddPayment() async {
+    await context.push('/add_payment');
+    if (!mounted) return;
+    await _load();
+  }
+
+  Future<void> _openMoneySheet({required bool isTopUp}) async {
+    final data = _data;
+    if (data == null) return;
+    final card = data.defaultCard;
+    if (card == null) {
+      _showWalletFlowNotice(context, 'Add a payment card first.');
+      return;
+    }
+    final available = isTopUp ? card.balance : data.balance;
+
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TripwiseColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _MoneySheet(
+        title: isTopUp ? 'Top up wallet' : 'Withdraw funds',
+        actionLabel: isTopUp ? 'Top up' : 'Withdraw',
+        cardLabel: '${card.brand} •• ${card.last4}',
+        availableLabel: isTopUp
+            ? '${formatVnd(card.balance)} on card'
+            : '${formatVnd(data.balance)} in wallet',
+        available: available,
+        onSubmit: (amount) async {
+          try {
+            final updated = isTopUp
+                ? await _api.topUp(amount: amount, cardId: card.id)
+                : await _api.withdraw(amount: amount, cardId: card.id);
+            if (!mounted) return null;
+            setState(() => _data = updated);
+            return null;
+          } on WalletApiException catch (e) {
+            return e.message;
+          } catch (_) {
+            return 'Something went wrong. Please try again.';
+          }
+        },
+      ),
+    );
+
+    if (ok == true && mounted) {
+      _showWalletFlowNotice(
+        context,
+        isTopUp ? 'Top-up successful.' : 'Withdrawal successful.',
+      );
+    }
   }
 
   @override
@@ -58,53 +123,55 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
       appBar: const PlannerAppBar(),
       body: SafeArea(
         top: false,
-        child: FutureBuilder<WalletOverview>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return _ErrorView(
-                error: snapshot.error,
-                onRetry: _reload,
-              );
-            }
-            return _WalletBody(data: snapshot.data!);
-          },
-        ),
+        child: _buildBody(),
       ),
       bottomNavigationBar: const PlannerTaskbar(
         currentTab: PlannerTaskbarTab.wallet,
       ),
     );
   }
-}
 
-class _WalletBody extends StatelessWidget {
-  const _WalletBody({required this.data});
-
-  final WalletOverview data;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _HeaderSection(userName: data.user?.name),
-          const SizedBox(height: 24),
-          _PrimaryWalletCard(balance: formatVnd(data.balance)),
-          const SizedBox(height: 24),
-          _LoyaltyPointsCard(
-            points: data.loyaltyPoints,
-            pointsValueVnd: data.pointsValueVnd,
-            tier: data.tier,
-          ),
-          const SizedBox(height: 24),
-          _TransactionsSection(transactions: data.transactions),
-        ],
+  Widget _buildBody() {
+    if (_data == null && _error == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_data == null) {
+      return _ErrorView(error: _error, onRetry: _load);
+    }
+    final data = _data!;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HeaderSection(userName: data.user?.name),
+            const SizedBox(height: 24),
+            _PrimaryWalletCard(
+              balance: formatVnd(data.balance),
+              onTopUp: () => _openMoneySheet(isTopUp: true),
+              onWithdraw: () => _openMoneySheet(isTopUp: false),
+            ),
+            const SizedBox(height: 12),
+            _FundingCardChip(
+              card: data.defaultCard,
+              onAddCard: _openAddPayment,
+            ),
+            const SizedBox(height: 24),
+            _LoyaltyPointsCard(
+              points: data.loyaltyPoints,
+              pointsValueVnd: data.pointsValueVnd,
+              tier: data.tier,
+            ),
+            const SizedBox(height: 24),
+            _TransactionsSection(
+              transactions: data.transactions,
+              onSeeAll: () => context.push('/wallet_transactions'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -199,9 +266,15 @@ class _HeaderSection extends StatelessWidget {
 }
 
 class _PrimaryWalletCard extends StatelessWidget {
-  const _PrimaryWalletCard({required this.balance});
+  const _PrimaryWalletCard({
+    required this.balance,
+    required this.onTopUp,
+    required this.onWithdraw,
+  });
 
   final String balance;
+  final VoidCallback onTopUp;
+  final VoidCallback onWithdraw;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +356,7 @@ class _PrimaryWalletCard extends StatelessWidget {
                   runSpacing: 12,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => context.push('/add_payment'),
+                      onPressed: onTopUp,
                       style: TripwiseButtonStyles.primaryElevated(
                         radius: 14,
                         padding: const EdgeInsets.symmetric(
@@ -298,14 +371,7 @@ class _PrimaryWalletCard extends StatelessWidget {
                       label: const Text('Top-up'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Withdrawal flow is not available yet.'),
-                          ),
-                        );
-                      },
+                      onPressed: onWithdraw,
                       style: TripwiseButtonStyles.outlined(
                         radius: 14,
                         foregroundColor: Colors.white,
@@ -325,6 +391,76 @@ class _PrimaryWalletCard extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FundingCardChip extends StatelessWidget {
+  const _FundingCardChip({required this.card, required this.onAddCard});
+
+  final WalletCard? card;
+  final VoidCallback onAddCard;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.credit_card_rounded,
+            size: 20,
+            color: TripwiseColors.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: card == null
+                ? Text(
+                    'No payment card yet',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: TripwiseColors.onSurfaceVariant,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${card!.brand} •• ${card!.last4}',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        '${formatVnd(card!.balance)} available on card',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: TripwiseColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          TextButton(
+            onPressed: onAddCard,
+            style: TripwiseButtonStyles.text(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              card == null ? 'Add card' : 'Add new',
+              style: textTheme.labelLarge?.copyWith(
+                color: TripwiseColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -481,9 +617,13 @@ class _LoyaltyPointsCard extends StatelessWidget {
 }
 
 class _TransactionsSection extends StatelessWidget {
-  const _TransactionsSection({required this.transactions});
+  const _TransactionsSection({
+    required this.transactions,
+    required this.onSeeAll,
+  });
 
   final List<WalletTransaction> transactions;
+  final VoidCallback onSeeAll;
 
   @override
   Widget build(BuildContext context) {
@@ -500,14 +640,7 @@ class _TransactionsSection extends StatelessWidget {
                   textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'Detailed transaction history is not available yet.'),
-                  ),
-                );
-              },
+              onPressed: onSeeAll,
               child: Text(
                 'SEE ALL',
                 style: textTheme.labelMedium?.copyWith(
@@ -542,7 +675,7 @@ class _TransactionsSection extends StatelessWidget {
                   children: [
                     for (int i = 0; i < transactions.length; i++) ...[
                       if (i > 0) const SizedBox(height: 4),
-                      _TransactionRow(transaction: transactions[i]),
+                      WalletTransactionTile(transaction: transactions[i]),
                     ],
                   ],
                 ),
@@ -552,157 +685,175 @@ class _TransactionsSection extends StatelessWidget {
   }
 }
 
-class _TransactionRow extends StatelessWidget {
-  const _TransactionRow({required this.transaction});
+/// Bottom sheet that collects an amount and runs [onSubmit]. [onSubmit]
+/// returns null on success (sheet pops with true) or an error string.
+class _MoneySheet extends StatefulWidget {
+  const _MoneySheet({
+    required this.title,
+    required this.actionLabel,
+    required this.cardLabel,
+    required this.availableLabel,
+    required this.available,
+    required this.onSubmit,
+  });
 
-  final WalletTransaction transaction;
+  final String title;
+  final String actionLabel;
+  final String cardLabel;
+  final String availableLabel;
+  final double available;
+  final Future<String?> Function(double amount) onSubmit;
 
-  ({IconData icon, Color bg, Color fg}) _methodVisual() {
-    switch (transaction.method) {
-      case 'VNPAY':
-      case 'CREDIT_CARD':
-        return (
-          icon: Icons.credit_card_rounded,
-          bg: TripwiseColors.primaryFixed,
-          fg: TripwiseColors.primary,
-        );
-      case 'MOMO':
-        return (
-          icon: Icons.account_balance_wallet_rounded,
-          bg: TripwiseColors.tertiaryFixed,
-          fg: TripwiseColors.tertiary,
-        );
-      case 'WALLET':
-        return (
-          icon: Icons.account_balance_wallet_rounded,
-          bg: TripwiseColors.secondaryFixed,
-          fg: TripwiseColors.secondary,
-        );
-      case 'PAYLATER':
-        return (
-          icon: Icons.schedule_rounded,
-          bg: TripwiseColors.secondaryFixed,
-          fg: TripwiseColors.secondary,
-        );
-      default:
-        return (
-          icon: Icons.receipt_long_rounded,
-          bg: TripwiseColors.surfaceContainerHigh,
-          fg: TripwiseColors.onSurfaceVariant,
-        );
-    }
+  @override
+  State<_MoneySheet> createState() => _MoneySheetState();
+}
+
+class _MoneySheetState extends State<_MoneySheet> {
+  final TextEditingController _controller = TextEditingController();
+  static const List<int> _presets = [100000, 200000, 500000, 1000000];
+
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
-  ({String label, Color? bg, Color fg}) _statusVisual() {
-    switch (transaction.status) {
-      case 'SUCCESS':
-        return (label: 'Completed', bg: _creditGreenBg, fg: _creditGreenFg);
-      case 'PENDING':
-        return (
-          label: 'Pending',
-          bg: TripwiseColors.secondaryFixed,
-          fg: TripwiseColors.secondary,
-        );
-      case 'FAILED':
-        return (
-          label: 'Failed',
-          bg: TripwiseColors.errorContainer,
-          fg: TripwiseColors.error,
-        );
-      default:
-        return (
-          label: transaction.status,
-          bg: null,
-          fg: TripwiseColors.onSurfaceVariant,
-        );
+  Future<void> _submit() async {
+    final raw = _controller.text.trim().replaceAll(',', '');
+    final amount = double.tryParse(raw);
+    if (amount == null || amount <= 0) {
+      setState(() => _error = 'Enter a valid amount.');
+      return;
     }
+    if (amount > widget.available) {
+      setState(() => _error = 'Amount exceeds ${widget.availableLabel}.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final err = await widget.onSubmit(amount);
+    if (!mounted) return;
+    if (err != null) {
+      setState(() {
+        _submitting = false;
+        _error = err;
+      });
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final visual = _methodVisual();
-    final status = _statusVisual();
-    final sign = transaction.amountVnd < 0 ? '-' : '+';
-    final amountText = '$sign${formatVnd(transaction.amountVnd.abs())}';
-    return Container(
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: visual.bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(visual.icon, color: visual.fg, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.title,
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  transaction.subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: TripwiseColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amountText,
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: TripwiseColors.onSurface,
-                ),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: TripwiseColors.outlineVariant,
+                borderRadius: BorderRadius.circular(999),
               ),
-              const SizedBox(height: 4),
-              if (status.bg != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: status.bg,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    status.label,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: status.fg,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  status.label,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: status.fg,
-                    fontWeight: FontWeight.w600,
-                  ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            widget.title,
+            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${widget.cardLabel} · ${widget.availableLabel}',
+            style: textTheme.bodySmall?.copyWith(
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+            decoration: InputDecoration(
+              prefixText: '₫ ',
+              hintText: '0',
+              filled: true,
+              fillColor: TripwiseColors.surfaceContainerLow,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final p in _presets)
+                ActionChip(
+                  label: Text(formatVnd(p.toDouble())),
+                  onPressed: _submitting
+                      ? null
+                      : () => setState(() {
+                            _controller.text = p.toString();
+                            _error = null;
+                          }),
                 ),
             ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _submitting ? null : _submit,
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 16,
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+              child: _submitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(widget.actionLabel),
+            ),
           ),
         ],
       ),
