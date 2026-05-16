@@ -7,6 +7,7 @@ import '../constants/colors.dart';
 import '../models/hotel_detail.dart';
 import '../services/hotels_api.dart';
 import '../utils/currency.dart';
+import '../widgets/review_card.dart';
 import 'image_gallery_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
@@ -252,7 +253,7 @@ class _DetailBody extends StatelessWidget {
           ],
           if (data.reviewCount > 0) ...[
             const SizedBox(height: 32),
-            const _ReviewsPlaceholder(),
+            _ReviewsSection(data: data),
           ],
         ],
       ),
@@ -806,14 +807,78 @@ class _HostCard extends StatelessWidget {
   }
 }
 
-// ---------- Reviews placeholder (real reviews collection not built yet) ----------
+// ---------- Reviews (preview + See All) ----------
 
-class _ReviewsPlaceholder extends StatelessWidget {
-  const _ReviewsPlaceholder();
+class _ReviewsSection extends StatelessWidget {
+  const _ReviewsSection({required this.data});
+
+  final HotelDetail data;
+
+  void _seeAll(BuildContext context) {
+    final qs = Uri(
+      queryParameters: {
+        'name': data.name,
+        'rating': data.rating.toString(),
+        'count': data.reviewCount.toString(),
+      },
+    ).query;
+    context.push('/reviews/${data.id}?$qs');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const _SectionHeader('Guest Reviews');
+    final textTheme = Theme.of(context).textTheme;
+    final preview = data.reviewsPreview;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _SectionHeader('Guest Reviews'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  size: 18,
+                  color: TripwiseColors.secondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  data.rating.toStringAsFixed(1),
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        for (int i = 0; i < preview.length; i++) ...[
+          ReviewCard(review: preview[i]),
+          if (i != preview.length - 1) const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            style: TripwiseButtonStyles.outlined(
+              radius: 12,
+              foregroundColor: TripwiseColors.onSurface,
+              borderColor: TripwiseColors.outlineVariant,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onPressed: () => _seeAll(context),
+            child: Text(
+              'See All ${data.reviewCount} Reviews',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

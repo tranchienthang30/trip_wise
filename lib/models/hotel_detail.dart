@@ -1,3 +1,5 @@
+import 'review.dart';
+
 class HotelDetail {
   HotelDetail({
     required this.id,
@@ -19,6 +21,7 @@ class HotelDetail {
     required this.policies,
     required this.isFavoritedByMe,
     required this.googleMapUrl,
+    required this.reviewsPreview,
   });
 
   final int id;
@@ -40,6 +43,7 @@ class HotelDetail {
   final HotelPolicies policies;
   final bool isFavoritedByMe;
   final String? googleMapUrl;
+  final List<Review> reviewsPreview;
 
   factory HotelDetail.fromJson(Map<String, dynamic> json) {
     return HotelDetail(
@@ -68,6 +72,9 @@ class HotelDetail {
       ),
       isFavoritedByMe: json['isFavoritedByMe'] as bool? ?? false,
       googleMapUrl: json['googleMapUrl'] as String?,
+      reviewsPreview: (json['reviewsPreview'] as List? ?? const [])
+          .map((e) => Review.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

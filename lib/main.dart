@@ -29,6 +29,7 @@ import 'screens/provider_analytics_screen.dart';
 import 'screens/payment_success_screen.dart';
 import 'screens/inventory_pricing_screen.dart';
 import 'screens/service_details_screen.dart';
+import 'screens/reviews_screen.dart';
 import 'screens/trip_planner_dashboard_screen.dart';
 import 'screens/trip_planner_timeline_screen.dart';
 import 'screens/vip_services_screen.dart';
@@ -82,6 +83,18 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => ServiceDetailsScreen(
         hotelId: int.parse(state.pathParameters['id']!),
       ),
+    ),
+    GoRoute(
+      path: '/reviews/:id',
+      builder: (context, state) {
+        final q = state.uri.queryParameters;
+        return ReviewsScreen(
+          hotelId: int.parse(state.pathParameters['id']!),
+          hotelName: q['name'] ?? 'this place',
+          averageRating: double.tryParse(q['rating'] ?? '') ?? 0,
+          reviewCount: int.tryParse(q['count'] ?? '') ?? 0,
+        );
+      },
     ),
     GoRoute(
       path: '/add_payment',
