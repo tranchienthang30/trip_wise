@@ -42,8 +42,7 @@ import 'screens/provider_registration_form_screen.dart';
 
 /// Root navigator key so push-notification taps can deep-link without a
 /// BuildContext (FCM handlers run outside the widget tree).
-final GlobalKey<NavigatorState> rootNavigatorKey =
-    GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // A deep link that arrived before the router was mounted (cold start from a
 // killed-state notification tap). Flushed on the first frame.
@@ -69,10 +68,7 @@ final GoRouter _router = GoRouter(
       path: '/register',
       builder: (context, state) => const InitialRegistrationScreen(),
     ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
-    ),
+    GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/search_filter',
       builder: (context, state) => const HotelSearchFilterScreen(),
@@ -90,9 +86,8 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/trip_planner_timeline',
-      builder: (context, state) => TripPlannerTimelineScreen(
-        tripId: state.uri.queryParameters['id'],
-      ),
+      builder: (context, state) =>
+          TripPlannerTimelineScreen(tripId: state.uri.queryParameters['id']),
     ),
     GoRoute(
       path: '/plan_new_trip_form',
@@ -104,13 +99,18 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/booking_checkout',
-      builder: (context, state) => const BookingCheckoutScreen(),
+      builder: (context, state) => BookingCheckoutScreen(
+        hotelId: state.uri.queryParameters['hotelId'],
+        roomId: state.uri.queryParameters['roomId'],
+        startDate: state.uri.queryParameters['startDate'],
+        endDate: state.uri.queryParameters['endDate'],
+        guests: state.uri.queryParameters['guests'],
+      ),
     ),
     GoRoute(
       path: '/service_details/:id',
-      builder: (context, state) => ServiceDetailsScreen(
-        hotelId: int.parse(state.pathParameters['id']!),
-      ),
+      builder: (context, state) =>
+          ServiceDetailsScreen(hotelId: int.parse(state.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/reviews/:id',
@@ -229,9 +229,7 @@ final GoRouter _router = GoRouter(
       path: '/add_activity',
       builder: (context, state) => AddActivityScreen(
         tripId: state.uri.queryParameters['tripId'],
-        dayIndex: int.tryParse(
-          state.uri.queryParameters['dayIndex'] ?? '',
-        ),
+        dayIndex: int.tryParse(state.uri.queryParameters['dayIndex'] ?? ''),
       ),
     ),
     GoRoute(
@@ -261,14 +259,16 @@ void main() async {
   // must never blank the app.
   runApp(const MyApp());
 
-  await PushMessagingService.initialize(onDeepLink: handleDeepLink);
-  final token = await PushMessagingService.getToken();
-  if (token != null) {
-    await DeviceApi().registerToken(token);
+  if (PushMessagingService.isSupported) {
+    await PushMessagingService.initialize(onDeepLink: handleDeepLink);
+    final token = await PushMessagingService.getToken();
+    if (token != null) {
+      await DeviceApi().registerToken(token);
+    }
+    PushMessagingService.onTokenRefresh.listen(
+      (t) => DeviceApi().registerToken(t),
+    );
   }
-  PushMessagingService.onTokenRefresh.listen(
-    (t) => DeviceApi().registerToken(t),
-  );
 }
 
 class MyApp extends StatelessWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/provider_listings_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -9,48 +10,274 @@ class AddNewListingFormScreen extends StatefulWidget {
   const AddNewListingFormScreen({super.key});
 
   @override
-  State<AddNewListingFormScreen> createState() => _AddNewListingFormScreenState();
+  State<AddNewListingFormScreen> createState() =>
+      _AddNewListingFormScreenState();
 }
 
 class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
+  final ProviderListingsApi _api = ProviderListingsApi();
+
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController(
+    text: '200',
+  );
+  final TextEditingController _bedroomsController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _bathroomsController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _maxGuestsController = TextEditingController(
+    text: '2',
+  );
+
+  bool _isSubmitting = false;
   int _roomsCount = 1;
+  String _category = 'Hotel';
+  final Set<String> _amenities = {'WiFi', 'Pool'};
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _bedroomsController.dispose();
+    _bathroomsController.dispose();
+    _maxGuestsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _publish() async {
+    if (_isSubmitting) return;
+
+    final title = _titleController.text.trim();
+    final location = _locationController.text.trim();
+    if (title.isEmpty || location.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Property name and location are required.'),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final listing = await _api.createListing(
+        title: title,
+        category: _category,
+        location: location,
+        description: _descriptionController.text.trim(),
+        roomsCount: _roomsCount,
+        maxGuests: _safeInt(_maxGuestsController.text, 2),
+        bedrooms: _safeInt(_bedroomsController.text, 1),
+        bathrooms: _safeInt(_bathroomsController.text, 1),
+        pricePerNight: _safeDouble(_priceController.text, 200),
+        amenities: _amenities.toList(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing published successfully.'),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+      context.go(
+        '/provider_listing_edit?id=${listing.id}&title=${Uri.encodeComponent(listing.title)}',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FF),
-      appBar: _buildAppBar(),
+      backgroundColor: TripwiseColors.surface,
+      appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 24, bottom: 120),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1024), // max-w-5xl
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth > 768) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 5, child: _buildLeftColumn()),
-                        const SizedBox(width: 24), // gap-grid-gutter
-                        Expanded(flex: 7, child: _buildRightColumn()),
-                      ],
-                    );
-                  } else {
-                    return Column(
-                      children: [
-                        _buildLeftColumn(),
-                        const SizedBox(height: 24),
-                        _buildRightColumn(),
-                      ],
-                    );
-                  }
-                },
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Create New Listing',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Publish a new property for travelers in a few steps.',
+              style: TextStyle(color: TripwiseColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTextField(
+                    controller: _titleController,
+                    label: 'Property Name',
+                    hint: 'e.g. Sunset Peak Luxury Villa',
+                  ),
+                  const SizedBox(height: 14),
+                  _buildDropdown(),
+                  const SizedBox(height: 14),
+                  _buildTextField(
+                    controller: _locationController,
+                    label: 'Location',
+                    hint: 'City, country or full address',
+                    icon: Icons.location_on,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildTextField(
+                    controller: _descriptionController,
+                    label: 'Description',
+                    hint: 'Tell travelers what makes your space unique...',
+                    maxLines: 4,
+                  ),
+                ],
               ),
             ),
-          ),
+            const SizedBox(height: 16),
+            _buildSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Rooms & Pricing',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(child: _buildRoomsCounter()),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _priceController,
+                          label: 'Price per night (USD)',
+                          hint: '200',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _bedroomsController,
+                          label: 'Bedrooms',
+                          hint: '1',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _bathroomsController,
+                          label: 'Bathrooms',
+                          hint: '1',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _maxGuestsController,
+                          label: 'Max guests',
+                          hint: '2',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Essential Amenities',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _amenityChip('WiFi', Icons.wifi),
+                      _amenityChip('Pool', Icons.pool),
+                      _amenityChip('Parking', Icons.local_parking),
+                      _amenityChip('A/C', Icons.ac_unit),
+                      _amenityChip('Breakfast', Icons.free_breakfast),
+                      _amenityChip('Gym', Icons.fitness_center),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _publish,
+                style: TripwiseButtonStyles.primaryElevated(
+                  radius: 14,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: TripwiseColors.onPrimary,
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Publish Listing',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Icon(Icons.rocket_launch, size: 20),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'By publishing, you agree to Tripwise Service Provider Terms.',
+              style: TextStyle(
+                fontSize: 12,
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: const ProviderTaskbar(
@@ -59,259 +286,47 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return const ProviderAppBar();
-  }
-
-  Widget _buildLeftColumn() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF005F9F).withOpacity(0.04),
-                blurRadius: 40,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Property Photos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF191C20))),
-              const SizedBox(height: 16),
-              const Text('High-quality photos increase your listing visibility by 60%.', style: TextStyle(fontSize: 14, color: Color(0xFF414750))),
-              const SizedBox(height: 24),
-              _buildPhotoUploadGrid(),
-              const SizedBox(height: 24),
-              Row(
-                children: const [
-                  Icon(Icons.info, color: Color(0xFF004779), size: 14),
-                  SizedBox(width: 8),
-                  Text('MIN. 5 PHOTOS RECOMMENDED', style: TextStyle(color: Color(0xFF004779), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: const Color(0xFF005F9F), // primary-container
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF005F9F).withOpacity(0.04),
-                blurRadius: 40,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('Pro Tip', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFB9D8FF))), // on-primary-container
-              SizedBox(height: 8),
-              Text(
-                "Listings with clear descriptions of local amenities often convert better. Don't forget to mention that nearby hidden cafe!",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xCCB9D8FF), // slightly opaque to match html
-                  height: 1.5, 
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPhotoUploadGrid() {
-    return Column(
-      children: [
-        Container(
-          height: 160,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F3F9), // surface-container-low
-            borderRadius: BorderRadius.circular(12),
-            // We use simple border as drawing dashed requires CustomPaint
-            border: Border.all(color: const Color(0xFFC1C7D2), width: 2), 
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.add_a_photo, color: Color(0xFF717781), size: 36),
-              SizedBox(height: 8),
-              Text('UPLOAD MAIN IMAGE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF717781), letterSpacing: 1.0)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F3F9),
-                    borderRadius: BorderRadius.circular(12),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBd_ldhuk0qs8dyrx9CRPuuAGY-Usi_sTl9xqExmLH1wXfxrYX0uiO-Sz9aE5zryErEIpt711zGNZaBEVNfPkkGGL0FwIRmKjHVqkkU3MXCxLug5S_60PKXYtEokpe3UJudqlh5w78QbLyR0OsPQ_VkRwUAWBI4ugtrghUyt1IDrDSm_WRuAjm3ACBWy4pLm6UvonzJhwSWI7Pxb4dtCeZ3XU_Sg5wMIjpGzXNm826hRyOy9YIn45Ha2jVx3MoXYNKJApqshDVUT2h7'),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(Color(0x33000000), BlendMode.darken),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F3F9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFC1C7D2), width: 2),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.add, color: Color(0xFF717781)),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightColumn() {
+  Widget _buildSectionCard({required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.04),
-            blurRadius: 40,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTextField('PROPERTY NAME', 'e.g. Sunset Peak Luxury Villa'),
-          const SizedBox(height: 32),
-          _buildAddressField(),
-          const SizedBox(height: 32),
-          _buildTextAreaField('DESCRIPTION', 'Tell travelers what makes your space unique...'),
-          const SizedBox(height: 32),
-          Row(
-            children: [
-              Expanded(child: _buildRoomsCounter()),
-              const SizedBox(width: 16),
-              Expanded(child: _buildPriceField()),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: Color(0xFFE1E2E8)),
-          const SizedBox(height: 16),
-          _buildAmenitiesSection(),
-          const SizedBox(height: 24),
-          _buildPublishAction(),
-        ],
-      ),
+      child: child,
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    IconData? icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFFC1C7D2)),
+            prefixIcon: icon == null ? null : Icon(icon),
             filled: true,
-            fillColor: const Color(0xFFF2F3F9),
+            fillColor: TripwiseColors.surfaceContainerLow,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddressField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('ADDRESS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'Enter street address, city, and zip',
-            hintStyle: const TextStyle(color: Color(0xFFC1C7D2)),
-            prefixIcon: const Icon(Icons.location_on, color: Color(0xFF717781)),
-            filled: true,
-            fillColor: const Color(0xFFF2F3F9),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          height: 192, // h-48
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE6E8EE),
-            borderRadius: BorderRadius.circular(12),
-            image: const DecorationImage(
-              image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuDu8TcBFOOaPCsJ51hAyCBUmFOzpvEgFco6-wsjDpP4eJLYMdPnnH-_SsvqTwXsAOsA91d8YKozf358nokFMQXur4CdEwKk7enDAlpr8wDLYSM3QyvStuaXEXcl0wXpy0uujdDY2-J3vd7Qs01W1Vjy_vaTIubyTWc9QGjF5gg-yFw6OACZ2oWVFN541i_pNMfOqINzPfGLN_r-v-NGxDRghd75bhXspS7Zk9Dqy-p6nh8HfsCft-6WImpXNw1pA69p9RxFPIylrNQ9'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                 color: Colors.white,
-                 borderRadius: BorderRadius.circular(24),
-                 boxShadow: [
-                   BoxShadow(
-                     color: Colors.black.withOpacity(0.1),
-                     blurRadius: 4,
-                     offset: const Offset(0, 2),
-                   ),
-                 ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.location_on, color: Color(0xFF004779), size: 16),
-                  SizedBox(width: 8),
-                  Text('Pin Location', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                ],
-              ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
             ),
           ),
         ),
@@ -319,25 +334,37 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     );
   }
 
-  Widget _buildTextAreaField(String label, String hint) {
+  Widget _buildDropdown() {
+    const categories = ['Hotel', 'Apartment', 'Villa', 'Resort', 'Hostel'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
+        const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
-        TextField(
-          maxLines: 4,
+        DropdownButtonFormField<String>(
+          value: categories.contains(_category) ? _category : categories.first,
           decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFFC1C7D2)),
             filled: true,
-            fillColor: const Color(0xFFF2F3F9),
+            fillColor: TripwiseColors.surfaceContainerLow,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
           ),
+          items: categories
+              .map(
+                (value) => DropdownMenuItem(value: value, child: Text(value)),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _category = value);
+            }
+          },
         ),
       ],
     );
@@ -347,12 +374,14 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('NUMBER OF ROOMS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
+        const Text(
+          'Number of Rooms',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F3F9),
+            color: TripwiseColors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -360,27 +389,24 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
               IconButton(
                 onPressed: () {
                   if (_roomsCount > 1) {
-                    setState(() {
-                      _roomsCount--;
-                    });
+                    setState(() => _roomsCount--);
                   }
                 },
-                icon: const Icon(Icons.remove, color: Color(0xFF191C20)),
+                icon: const Icon(Icons.remove),
               ),
               Expanded(
                 child: Text(
-                  _roomsCount.toString(),
+                  '$_roomsCount',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF191C20)),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  setState(() {
-                    _roomsCount++;
-                  });
-                },
-                icon: const Icon(Icons.add, color: Color(0xFF191C20)),
+                onPressed: () => setState(() => _roomsCount++),
+                icon: const Icon(Icons.add),
               ),
             ],
           ),
@@ -389,161 +415,49 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     );
   }
 
-  Widget _buildPriceField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('PRICE PER NIGHT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
-        const SizedBox(height: 8),
-        TextField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: '0.00',
-            hintStyle: const TextStyle(color: Color(0xFFC1C7D2)),
-            prefixIcon: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Text('\$', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF414750))),
-            ),
-            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-            filled: true,
-            fillColor: const Color(0xFFF2F3F9),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAmenitiesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('ESSENTIAL AMENITIES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF414750), letterSpacing: 0.5)),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildAmenityChip(Icons.wifi, 'WiFi'),
-            _buildAmenityChip(Icons.pool, 'Pool'),
-            _buildAmenityChip(Icons.ac_unit, 'A/C'),
-            _buildAmenityChip(Icons.local_parking, 'Parking'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAmenityChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE1E2E8)), // surface-container-highest
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF191C20)),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF191C20))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPublishAction() {
-    return Column(
-      children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => context.go('/provider_listings'),
-              style: TripwiseButtonStyles.primaryElevated(
-                radius: 32,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                elevation: 8,
-              ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text('Publish Listing', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(width: 12),
-                Icon(Icons.rocket_launch, size: 24),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text('By publishing, you agree to Tripwise Service Provider Terms.', style: TextStyle(fontSize: 12, color: Color(0xFF717781))),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.06),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          ),
-        ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)), // rounded-t-[2.5rem]
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: BottomNavigationBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: TripwiseColors.primary,
-        unselectedItemColor: const Color(0xFF94A3B8), // slate-400
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        currentIndex: 1, // Listings
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/provider_dashboard');
-              break;
-            case 1:
-              context.go('/provider_listings');
-              break;
-            case 2:
-              context.go('/order_manager');
-              break;
-            case 3:
-              context.go('/provider_finance');
-              break;
+  Widget _amenityChip(String label, IconData icon) {
+    final selected = _amenities.contains(label);
+    return FilterChip(
+      selected: selected,
+      onSelected: (on) {
+        setState(() {
+          if (on) {
+            _amenities.add(label);
+          } else {
+            _amenities.remove(label);
           }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'DASHBOARD',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.domain),
-            label: 'LISTINGS',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'ORDERS',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.payments),
-            label: 'FINANCE',
-          ),
-        ],
+        });
+      },
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: selected ? TripwiseColors.onPrimary : null,
+      ),
+      label: Text(label),
+      selectedColor: TripwiseColors.primary,
+      checkmarkColor: TripwiseColors.onPrimary,
+      labelStyle: TextStyle(
+        color: selected ? TripwiseColors.onPrimary : TripwiseColors.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
+      backgroundColor: TripwiseColors.surfaceContainerLow,
+      side: BorderSide(
+        color: selected
+            ? TripwiseColors.primary
+            : TripwiseColors.outlineVariant,
       ),
     );
+  }
+
+  int _safeInt(String raw, int fallback) {
+    final v = int.tryParse(raw.trim());
+    if (v == null || v <= 0) return fallback;
+    return v;
+  }
+
+  double _safeDouble(String raw, double fallback) {
+    final v = double.tryParse(raw.trim());
+    if (v == null || v <= 0) return fallback;
+    return v;
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../constants/colors.dart';
+import '../models/profile_data.dart';
+import '../services/profile_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -13,269 +16,82 @@ class ProfileRegistrationScreen extends StatefulWidget {
 }
 
 class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
+  final ProfileApi _api = ProfileApi();
+
+  ProfileData? _data;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await _api.fetchProfile();
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final data = _data;
+
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: const PlannerAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Header Section
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Avatar with Edit Button
-                  Stack(
+      body: RefreshIndicator(
+        onRefresh: _loadProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 28),
+            child: _isLoading && data == null
+                ? const Padding(
+                    padding: EdgeInsets.only(top: 140),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _error != null && data == null
+                ? _buildErrorState()
+                : Column(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              TripwiseColors.primary,
-                              TripwiseColors.secondaryContainer,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(3),
-                        child: CircleAvatar(
-                          radius: 64,
-                          backgroundColor: TripwiseColors.surface,
-                          backgroundImage: const NetworkImage(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuBhv0_R2Kft9YTmuR-C94GhNxNwkR6L9jdJSMcazVF-k8nE-UBRVPndsznphfjT0boM-9a0XYvnzeFhIl7PpRdl2JNxQJybYo8V6iiV2AyYVb_kG4RXxRanWRJPdiMLB0Uoex3F0UU13VYrolQL6kzHAOmqlUv8hb0ySWGYtYm77qGVPkssKoEcDq7u3D_qbPXTchOyc16h9dtxQFF30mABEJgmjO0aZXODrzdYa9MOXNMLzCnrENzNogoTP3nbOd53Vg5bjT8pxwg',
+                      const SizedBox(height: 20),
+                      _buildHeader(data!),
+                      const SizedBox(height: 24),
+                      _buildProviderCard(data.provider),
+                      const SizedBox(height: 24),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: _InlineError(
+                            message: _error!,
+                            onRetry: _loadProfile,
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: TripwiseColors.secondaryContainer,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.edit,
-                            color: TripwiseColors.onSecondary,
-                            size: 20,
-                          ),
-                        ),
-                      ),
+                      if (_error != null) const SizedBox(height: 16),
+                      _buildVerificationSection(data.verification),
+                      const SizedBox(height: 24),
+                      _buildMenuSection(),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Name and Status
-                  Text(
-                    'Alex Thompson',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Premium Voyager • 12 Countries',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: TripwiseColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Become a Provider Card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: TripwiseColors.primaryContainer,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: TripwiseColors.primaryContainer.withOpacity(0.3),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Become a Provider',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: TripwiseColors.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Share your local expertise and earn while you travel. Join our global network of elite trip planners.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: TripwiseColors.onPrimaryContainer.withOpacity(0.8),
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () =>
-                          context.push('/provider_registration_form'),
-                      style: TripwiseButtonStyles.primaryElevated(
-                        radius: 12,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      icon: const Icon(Icons.arrow_forward),
-                      label: const Text('Start Registration'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => context.go('/provider_dashboard'),
-                      style: TripwiseButtonStyles.outlined(
-                        radius: 12,
-                        foregroundColor: TripwiseColors.onPrimaryContainer,
-                        borderColor:
-                            TripwiseColors.onPrimaryContainer.withOpacity(0.2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      icon: const Icon(Icons.storefront_rounded),
-                      label: const Text('Temp Switch To Provider'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Identity Verification Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Header
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.description,
-                        color: TripwiseColors.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Identity Verification',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Upload Areas
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildUploadArea(
-                          icon: Icons.cloud_upload,
-                          title: 'Passport or ID',
-                          subtitle: 'JPG, PNG or PDF',
-                          onTap: () => _showUploadUnavailableMessage(context),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildUploadArea(
-                          icon: Icons.account_balance,
-                          title: 'Proof of Address',
-                          subtitle: 'Recent utility bill',
-                          onTap: () => _showUploadUnavailableMessage(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Menu Items Section
-            Container(
-              decoration: BoxDecoration(
-                color: TripwiseColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  _buildMenuItemButton(
-                    icon: Icons.security,
-                    label: 'Security & Privacy',
-                    onTap: () {
-                      context.push('/security_privacy');
-                    },
-                  ),
-                  Divider(
-                    height: 1,
-                    color: TripwiseColors.surfaceContainer,
-                  ),
-                  _buildMenuItemButton(
-                    icon: Icons.notifications_active,
-                    label: 'Notifications',
-                    onTap: () {
-                      context.push('/notifications');
-                    },
-                  ),
-                  Divider(
-                    height: 1,
-                    color: TripwiseColors.surfaceContainer,
-                  ),
-                  _buildMenuItemButton(
-                    icon: Icons.help,
-                    label: 'Help Center',
-                    onTap: () {
-                      context.push('/help_center');
-                    },
-                  ),
-                  Divider(
-                    height: 1,
-                    color: TripwiseColors.surfaceContainer,
-                  ),
-                  _buildMenuItemButton(
-                    icon: Icons.logout,
-                    label: 'Sign Out',
-                    isDestructive: true,
-                    onTap: () {
-                      context.go('/home');
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: const PlannerTaskbar(
@@ -284,67 +100,318 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     );
   }
 
-  Widget _buildUploadArea({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: TripwiseColors.outlineVariant,
-          width: 2,
-          strokeAlign: BorderSide.strokeAlignCenter,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Icon(
-                  icon,
-                  size: 40,
-                  color: TripwiseColors.outlineVariant,
+  Widget _buildHeader(ProfileData data) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      TripwiseColors.primary,
+                      TripwiseColors.secondaryContainer,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: TripwiseColors.onSurface,
+                padding: const EdgeInsets.all(3),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: TripwiseColors.surface,
+                  backgroundImage:
+                      data.user.image != null &&
+                          data.user.image!.trim().isNotEmpty
+                      ? NetworkImage(data.user.image!)
+                      : null,
+                  child:
+                      data.user.image == null || data.user.image!.trim().isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          size: 54,
+                          color: TripwiseColors.onSurfaceVariant,
+                        )
+                      : null,
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: TripwiseColors.secondaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: const Icon(
+                    Icons.edit,
+                    color: TripwiseColors.onSecondary,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: TripwiseColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            data.user.name,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${data.user.tierLabel} • ${data.user.countriesVisited} countries',
+            style: const TextStyle(
+              fontSize: 14,
+              color: TripwiseColors.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            data.user.email ?? data.user.phone ?? '',
+            style: const TextStyle(
+              fontSize: 12,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderCard(ProfileProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: TripwiseColors.primaryContainer,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: TripwiseColors.primaryContainer.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              provider.isRegistered ? 'Provider Access' : 'Become a Provider',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: TripwiseColors.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              provider.isRegistered
+                  ? 'Your provider account is active. Manage your listings and performance from the dashboard.'
+                  : 'Share your local expertise and earn while you travel. Join our global network of trip planners.',
+              style: TextStyle(
+                fontSize: 13,
+                color: TripwiseColors.onPrimaryContainer.withOpacity(0.85),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () => context.push(provider.ctaRoute),
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 12,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              icon: const Icon(Icons.arrow_forward),
+              label: Text(provider.ctaLabel),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => context.go(provider.dashboardRoute),
+              style: TripwiseButtonStyles.outlined(
+                radius: 12,
+                foregroundColor: TripwiseColors.onPrimaryContainer,
+                borderColor: TripwiseColors.onPrimaryContainer.withOpacity(
+                  0.25,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              icon: const Icon(Icons.storefront_rounded),
+              label: const Text('Open Dashboard'),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showUploadUnavailableMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Document upload is not available yet.'),
-        backgroundColor: TripwiseColors.primary,
+  Widget _buildVerificationSection(ProfileVerification verification) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.description, color: TripwiseColors.primary),
+                const SizedBox(width: 10),
+                Text(
+                  'Identity Verification',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _buildVerificationRow(
+              title: 'Passport or ID',
+              uploaded: verification.passportUploaded,
+              note: verification.passportNote,
+              onTap: () => _showUploadUnavailableMessage(context),
+            ),
+            const SizedBox(height: 10),
+            _buildVerificationRow(
+              title: 'Proof of Address',
+              uploaded: verification.addressUploaded,
+              note: verification.addressNote,
+              onTap: () => _showUploadUnavailableMessage(context),
+            ),
+            if (verification.updatedAt != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Updated: ${verification.updatedAt}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: TripwiseColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationRow({
+    required String title,
+    required bool uploaded,
+    required String note,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: TripwiseColors.surfaceContainerLow,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              uploaded ? Icons.verified : Icons.upload_file,
+              color: uploaded ? TripwiseColors.primary : TripwiseColors.outline,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    note,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TripwiseColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: uploaded
+                    ? TripwiseColors.primaryFixed
+                    : TripwiseColors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                uploaded ? 'Submitted' : 'Pending',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: uploaded
+                      ? TripwiseColors.onPrimaryFixedVariant
+                      : TripwiseColors.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          _buildMenuItemButton(
+            icon: Icons.security,
+            label: 'Security & Privacy',
+            onTap: () => context.push('/security_privacy'),
+          ),
+          Divider(height: 1, color: TripwiseColors.surfaceContainer),
+          _buildMenuItemButton(
+            icon: Icons.notifications_active,
+            label: 'Notifications',
+            onTap: () => context.push('/notifications'),
+          ),
+          Divider(height: 1, color: TripwiseColors.surfaceContainer),
+          _buildMenuItemButton(
+            icon: Icons.help,
+            label: 'Help Center',
+            onTap: () => context.push('/help_center'),
+          ),
+          Divider(height: 1, color: TripwiseColors.surfaceContainer),
+          _buildMenuItemButton(
+            icon: Icons.logout,
+            label: 'Sign Out',
+            isDestructive: true,
+            onTap: () => context.go('/home'),
+          ),
+        ],
       ),
     );
   }
@@ -374,7 +441,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                 child: Icon(
                   icon,
                   size: 20,
-                  color: isDestructive ? TripwiseColors.error : TripwiseColors.primary,
+                  color: isDestructive
+                      ? TripwiseColors.error
+                      : TripwiseColors.primary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -384,13 +453,17 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDestructive ? TripwiseColors.error : TripwiseColors.onSurface,
+                    color: isDestructive
+                        ? TripwiseColors.error
+                        : TripwiseColors.onSurface,
                   ),
                 ),
               ),
               Icon(
                 Icons.chevron_right,
-                color: isDestructive ? TripwiseColors.error : TripwiseColors.primary,
+                color: isDestructive
+                    ? TripwiseColors.error
+                    : TripwiseColors.primary,
               ),
             ],
           ),
@@ -399,48 +472,92 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: 4,
-      onTap: (index) => _handleBottomNavTap(context, index),
-      items: [
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.travel_explore),
-          label: 'My Trips',
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.event_note),
-          label: 'Planner',
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.account_balance_wallet),
-          label: 'Wallet',
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ],
+  void _showUploadUnavailableMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Document upload is not available yet.'),
+        backgroundColor: TripwiseColors.primary,
+      ),
     );
   }
 
-  void _handleBottomNavTap(BuildContext context, int index) {
-    const routes = [
-      '/home',
-      '/my_trips',
-      '/trip_planner_dashboard',
-      '/wallet_loyalty',
-      '/profile_registration',
-    ];
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 140, left: 24, right: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 44,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Couldn't load profile",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadProfile,
+              style: TripwiseButtonStyles.primaryElevated(radius: 12),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    if (index == 4) {
-      return;
-    }
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
 
-    context.go(routes[index]);
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.errorContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: TripwiseColors.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: TripwiseColors.onErrorContainer,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TripwiseButtonStyles.text(
+              foregroundColor: TripwiseColors.onErrorContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
   }
 }

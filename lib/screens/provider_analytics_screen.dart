@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../constants/colors.dart';
+import '../models/provider_listing.dart';
+import '../services/provider_listings_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
 class ProviderAnalyticsScreen extends StatefulWidget {
+  const ProviderAnalyticsScreen({super.key, this.listingId, this.listingTitle});
+
   final String? listingId;
   final String? listingTitle;
-
-  const ProviderAnalyticsScreen({
-    super.key,
-    this.listingId,
-    this.listingTitle,
-  });
 
   @override
   State<ProviderAnalyticsScreen> createState() =>
@@ -19,202 +18,79 @@ class ProviderAnalyticsScreen extends StatefulWidget {
 }
 
 class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
-  String _selectedPeriod = '30 days';
+  final ProviderListingsApi _api = ProviderListingsApi();
+
+  ProviderListingAnalytics? _data;
+  bool _isLoading = true;
+  String? _error;
+  String _period = '30d';
+
+  int? get _listingId => int.tryParse(widget.listingId ?? '');
+
+  static const List<_PeriodOption> _periodOptions = [
+    _PeriodOption(value: '7d', label: '7 days'),
+    _PeriodOption(value: '30d', label: '30 days'),
+    _PeriodOption(value: '90d', label: '90 days'),
+    _PeriodOption(value: '1y', label: '1 year'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final id = _listingId;
+    if (id == null) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Missing listing id.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await _api.fetchAnalytics(id: id, period: _period);
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final data = _data;
+
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Analytics',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  DropdownButton<String>(
-                    value: _selectedPeriod,
-                    underline: const SizedBox.shrink(),
-                    style: TextStyle(color: TripwiseColors.primary),
-                    items: ['7 days', '30 days', '90 days', '1 year']
-                        .map(
-                          (period) => DropdownMenuItem(
-                            value: period,
-                            child: Text(period),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedPeriod = value;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // KPI Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildKPICard(
-                      title: 'Total Views',
-                      value: '3,284',
-                      change: '+12.5%',
-                      icon: Icons.visibility,
-                      isPositive: true,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildKPICard(
-                      title: 'Bookings',
-                      value: '48',
-                      change: '+8.2%',
-                      icon: Icons.calendar_today,
-                      isPositive: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildKPICard(
-                      title: 'Revenue',
-                      value: '\$14,352',
-                      change: '+23.8%',
-                      icon: Icons.trending_up,
-                      isPositive: true,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildKPICard(
-                      title: 'Avg Rating',
-                      value: '4.8',
-                      change: '+0.3',
-                      icon: Icons.star,
-                      isPositive: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Views Trend Chart
-              Text(
-                'Performance Trend',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: TripwiseColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                child: _buildTrendChart(),
-              ),
-              const SizedBox(height: 32),
-
-              // Top Performing Days
-              Text(
-                'Top Performing Days',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              _buildPerformanceList(),
-              const SizedBox(height: 32),
-
-              // Booking Source
-              Text(
-                'Booking Source',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: TripwiseColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    _buildSourceItem(
-                      label: 'Direct Bookings',
-                      percentage: 45,
-                      count: 22,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSourceItem(
-                      label: 'Tripwise App',
-                      percentage: 35,
-                      count: 17,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSourceItem(
-                      label: 'Partners',
-                      percentage: 20,
-                      count: 9,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Guest Statistics
-              Text(
-                'Guest Statistics',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      title: 'Repeat Guests',
-                      value: '28%',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      title: 'Avg Stay',
-                      value: '3.2 nights',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+          child: _isLoading && data == null
+              ? const Padding(
+                  padding: EdgeInsets.only(top: 120),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _error != null && data == null
+              ? _buildErrorState()
+              : _buildAnalytics(data!),
         ),
       ),
       bottomNavigationBar: const ProviderTaskbar(
@@ -223,23 +99,288 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
     );
   }
 
-  Widget _buildKPICard({
+  Widget _buildAnalytics(ProviderListingAnalytics data) {
+    final trend = data.trend;
+    final maxViews = trend.isEmpty
+        ? 1
+        : trend
+              .map((e) => e.views)
+              .reduce((a, b) => a > b ? a : b)
+              .clamp(1, 1 << 30);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.listingTitle ?? 'Listing Analytics',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Performance by period',
+                    style: TextStyle(color: TripwiseColors.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            DropdownButton<String>(
+              value: _period,
+              underline: const SizedBox.shrink(),
+              items: _periodOptions
+                  .map(
+                    (option) => DropdownMenuItem(
+                      value: option.value,
+                      child: Text(option.label),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null && value != _period) {
+                  setState(() => _period = value);
+                  _load();
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        if (_error != null)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: TripwiseColors.errorContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              _error!,
+              style: const TextStyle(
+                color: TripwiseColors.onErrorContainer,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                title: 'Total Views',
+                value: '${data.kpis.totalViews}',
+                change: _delta(data.kpis.viewsDeltaPct),
+                icon: Icons.visibility,
+                positive: data.kpis.viewsDeltaPct >= 0,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                title: 'Bookings',
+                value: '${data.kpis.bookings}',
+                change: _delta(data.kpis.bookingsDeltaPct),
+                icon: Icons.calendar_today,
+                positive: data.kpis.bookingsDeltaPct >= 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                title: 'Revenue',
+                value: '\$${data.kpis.revenue.toStringAsFixed(0)}',
+                change: _delta(data.kpis.revenueDeltaPct),
+                icon: Icons.trending_up,
+                positive: data.kpis.revenueDeltaPct >= 0,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                title: 'Avg Rating',
+                value: data.kpis.averageRating.toStringAsFixed(1),
+                change: _delta(data.kpis.ratingDelta),
+                icon: Icons.star,
+                positive: data.kpis.ratingDelta >= 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Performance Trend',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: TripwiseColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: SizedBox(
+            height: 160,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: trend.map((point) {
+                final ratio = maxViews == 0 ? 0.0 : point.views / maxViews;
+                final barHeight = (ratio * 100).clamp(6, 100).toDouble();
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${point.bookings}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 22,
+                      height: barHeight,
+                      decoration: BoxDecoration(
+                        color: TripwiseColors.primary.withOpacity(0.75),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(point.label, style: const TextStyle(fontSize: 11)),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Top Performing Days',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        ...data.topDays.map((day) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      day.day,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${day.views} views • ${day.bookings} bookings',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '\$${day.revenue.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: TripwiseColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 18),
+        Text(
+          'Booking Source',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: TripwiseColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: data.bookingSources
+                .map(
+                  (source) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildSourceItem(source),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Guest Statistics',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                title: 'Repeat Guests',
+                value: '${data.guestStats.repeatGuestsPct}%',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                title: 'Avg Stay',
+                value:
+                    '${data.guestStats.averageStayNights.toStringAsFixed(1)} nights',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKpiCard({
     required String title,
     required String value,
     required String change,
     required IconData icon,
-    required bool isPositive,
+    required bool positive,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -250,48 +391,32 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
                   color: TripwiseColors.onSurfaceVariant,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: TripwiseColors.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  size: 16,
-                  color: TripwiseColors.onPrimaryContainer,
-                ),
-              ),
+              Icon(icon, size: 16, color: TripwiseColors.primary),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isPositive
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
+              color: (positive ? Colors.green : Colors.red).withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               change,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isPositive ? Colors.green : Colors.red,
+                fontWeight: FontWeight.w700,
+                color: positive ? Colors.green : Colors.red,
               ),
             ),
           ),
@@ -300,122 +425,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
     );
   }
 
-  Widget _buildTrendChart() {
-    List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    List<double> values = [250, 320, 280, 410, 350, 480, 420];
-    double maxValue = values.reduce((a, b) => a > b ? a : b);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Views & Bookings',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: TripwiseColors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 150,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(
-              days.length,
-              (index) => Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 24,
-                    height: (values[index] / maxValue) * 100,
-                    decoration: BoxDecoration(
-                      color: TripwiseColors.primary.withOpacity(0.7),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    days[index],
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: TripwiseColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPerformanceList() {
-    List<Map<String, dynamic>> performances = [
-      {'day': 'Saturday', 'views': 480, 'bookings': 12, 'revenue': '\$3,840'},
-      {'day': 'Friday', 'views': 410, 'bookings': 10, 'revenue': '\$3,200'},
-      {'day': 'Sunday', 'views': 420, 'bookings': 9, 'revenue': '\$2,880'},
-    ];
-
-    return Column(
-      children: performances
-          .map((perf) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: TripwiseColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            perf['day'],
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${perf['views']} views • ${perf['bookings']} bookings',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: TripwiseColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      perf['revenue'],
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ))
-          .toList(),
-    );
-  }
-
-  Widget _buildSourceItem({
-    required String label,
-    required int percentage,
-    required int count,
-  }) {
+  Widget _buildSourceItem(ProviderBookingSource source) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -423,31 +433,24 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              source.label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             Text(
-              '$percentage% ($count)',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: TripwiseColors.onSurfaceVariant,
-              ),
+              '${source.percentage}% (${source.count})',
+              style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: SizedBox(
             height: 8,
             child: LinearProgressIndicator(
-              value: percentage / 100,
+              value: source.percentage / 100,
               backgroundColor: TripwiseColors.surfaceContainerHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(
+              valueColor: const AlwaysStoppedAnimation<Color>(
                 TripwiseColors.primary,
               ),
             ),
@@ -457,39 +460,71 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-  }) {
+  String _delta(double value) {
+    final sign = value >= 0 ? '+' : '';
+    return '$sign${value.toStringAsFixed(1)}%';
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 120),
+        child: Column(
+          children: [
+            const Icon(Icons.analytics_outlined, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              _error ?? 'Unable to load analytics',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(
+              onPressed: _load,
+              style: TripwiseButtonStyles.primaryElevated(radius: 12),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PeriodOption {
+  const _PeriodOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.title, required this.value});
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+            style: const TextStyle(
               color: TripwiseColors.onSurfaceVariant,
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
           ),
         ],
       ),

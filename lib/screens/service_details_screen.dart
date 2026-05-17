@@ -32,10 +32,12 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
   void _load() {
     _future = _api.fetchHotelDetail(widget.hotelId);
-    _future.then((data) {
-      if (!mounted) return;
-      setState(() => _data = data);
-    }).catchError((_) {});
+    _future
+        .then((data) {
+          if (!mounted) return;
+          setState(() => _data = data);
+        })
+        .catchError((_) {});
   }
 
   void _retry() {
@@ -77,10 +79,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _ErrorView(
-              error: snapshot.error,
-              onRetry: _retry,
-            );
+            return _ErrorView(error: snapshot.error, onRetry: _retry);
           }
           final data = snapshot.data!;
           return _DetailBody(
@@ -97,7 +96,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           return _BookingBar(
             price: data == null ? '—' : formatVnd(data.priceFrom),
             freeCancellation: data?.policies.freeCancellation ?? false,
-            onBookNow: data == null ? null : () => context.push('/booking_checkout'),
+            onBookNow: data == null
+                ? null
+                : () => context.push('/booking_checkout?hotelId=${data.id}'),
           );
         },
       ),
@@ -176,10 +177,7 @@ class _ErrorView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Try again'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Try again')),
           ],
         ),
       ),
@@ -202,10 +200,7 @@ class _DetailBody extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => ImageGalleryScreen(
-          images: images,
-          initialIndex: index,
-        ),
+        builder: (_) => ImageGalleryScreen(images: images, initialIndex: index),
       ),
     );
   }
@@ -225,7 +220,9 @@ class _DetailBody extends StatelessWidget {
           _IdentityHeader(
             category: data.category,
             title: data.name,
-            location: data.locationPath.isEmpty ? data.address : data.locationPath,
+            location: data.locationPath.isEmpty
+                ? data.address
+                : data.locationPath,
             rating: data.rating,
             reviewCount: data.reviewCount,
           ),
@@ -233,7 +230,8 @@ class _DetailBody extends StatelessWidget {
           const _SectionHeader('About this place'),
           const SizedBox(height: 12),
           _AboutBlock(
-            description: data.description ?? 'No description yet for this place.',
+            description:
+                data.description ?? 'No description yet for this place.',
           ),
           if (data.amenities.isNotEmpty) ...[
             const SizedBox(height: 32),
@@ -249,7 +247,10 @@ class _DetailBody extends StatelessWidget {
           ),
           if (data.host != null) ...[
             const SizedBox(height: 24),
-            _HostCard(hostName: data.host!.name, onContactSupport: onContactSupport),
+            _HostCard(
+              hostName: data.host!.name,
+              onContactSupport: onContactSupport,
+            ),
           ],
           if (data.reviewCount > 0) ...[
             const SizedBox(height: 32),
@@ -306,11 +307,7 @@ class _HeroGrid extends StatelessWidget {
   final List<String> images;
   final ValueChanged<int> onTapImage;
 
-  Widget _tile({
-    required int index,
-    required double radius,
-    Widget? overlay,
-  }) {
+  Widget _tile({required int index, required double radius, Widget? overlay}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Material(
@@ -319,10 +316,7 @@ class _HeroGrid extends StatelessWidget {
           onTap: () => onTapImage(index),
           child: Stack(
             fit: StackFit.expand,
-            children: [
-              _NetImage(images[index]),
-              if (overlay != null) overlay,
-            ],
+            children: [_NetImage(images[index]), if (overlay != null) overlay],
           ),
         ),
       ),
@@ -358,10 +352,7 @@ class _HeroGrid extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 3,
-            child: _tile(index: 0, radius: 20),
-          ),
+          Expanded(flex: 3, child: _tile(index: 0, radius: 20)),
           const SizedBox(width: 10),
           Expanded(
             flex: 1,

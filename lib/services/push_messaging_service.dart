@@ -72,6 +72,7 @@ class PushMessagingService {
 
   static bool get _supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  static bool get isSupported => _supported;
 
   /// One-time setup. [onDeepLink] receives the tapped notification's
   /// `action_route` (a GoRouter path) and is responsible for navigating.
@@ -125,6 +126,8 @@ class PushMessagingService {
     }
   }
 
-  static Stream<String> get onTokenRefresh =>
-      FirebaseMessaging.instance.onTokenRefresh;
+  static Stream<String> get onTokenRefresh {
+    if (!_supported) return const Stream<String>.empty();
+    return FirebaseMessaging.instance.onTokenRefresh;
+  }
 }
