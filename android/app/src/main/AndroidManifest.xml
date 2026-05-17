@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ runtime permission to post notifications (FCM). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="trip_wise"
         android:name="${applicationName}"
@@ -30,6 +32,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Channel used for background/killed-state FCM notifications.
+             Must match the runtime channel id in push_messaging_service.dart. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="tripwise_default" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

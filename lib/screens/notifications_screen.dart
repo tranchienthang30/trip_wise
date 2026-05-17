@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../constants/colors.dart';
+import '../models/notification_feed.dart';
+import '../services/notifications_api.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -9,12 +13,69 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool pushNotifications = true;
-  bool emailNotifications = true;
-  bool tripReminders = true;
-  bool messages = true;
-  bool promotions = false;
-  bool bookingUpdates = true;
+  final NotificationApi _api = NotificationApi();
+
+  NotificationPreferences? _prefs;
+  Object? _error;
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final prefs = await _api.fetchPreferences();
+      if (!mounted) return;
+      setState(() {
+        _prefs = prefs;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final prefs = _prefs;
+    if (prefs == null || _saving) return;
+    setState(() => _saving = true);
+    try {
+      final saved = await _api.savePreferences(prefs);
+      if (!mounted) return;
+      setState(() {
+        _prefs = saved;
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Preferences saved successfully'),
+          backgroundColor: TripwiseColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +86,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           'Notifications',
@@ -34,92 +95,125 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null || _prefs == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Couldn't load notification settings",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: TripwiseColors.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _load,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final prefs = _prefs!;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Notification Channels
-            _buildSectionHeader('Notification Channels', Icons.notifications_active),
+            _buildSectionHeader(
+              'Notification Channels',
+              Icons.notifications_active,
+            ),
             const SizedBox(height: 16),
             _buildSimpleToggle(
               title: 'Push Notifications',
               subtitle: 'Receive notifications on your device',
-              value: pushNotifications,
-              onChanged: (value) {
-                setState(() => pushNotifications = value);
-              },
+              value: prefs.push,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(push: v)),
             ),
             const SizedBox(height: 12),
             _buildSimpleToggle(
               title: 'Email Notifications',
               subtitle: 'Receive updates via email',
-              value: emailNotifications,
-              onChanged: (value) {
-                setState(() => emailNotifications = value);
-              },
+              value: prefs.email,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(email: v)),
             ),
             const SizedBox(height: 32),
 
-            // Trip & Travel
             _buildSectionHeader('Trip & Travel', Icons.travel_explore),
             const SizedBox(height: 16),
             _buildSimpleToggle(
               title: 'Trip Reminders',
               subtitle: 'Reminders for upcoming trips',
-              value: tripReminders,
-              onChanged: (value) {
-                setState(() => tripReminders = value);
-              },
+              value: prefs.tripReminders,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(tripReminders: v)),
             ),
             const SizedBox(height: 12),
             _buildSimpleToggle(
               title: 'Booking Updates',
               subtitle: 'Updates about your bookings',
-              value: bookingUpdates,
-              onChanged: (value) {
-                setState(() => bookingUpdates = value);
-              },
+              value: prefs.bookingUpdates,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(bookingUpdates: v)),
             ),
             const SizedBox(height: 32),
 
-            // Social & Messages
             _buildSectionHeader('Social & Messages', Icons.message),
             const SizedBox(height: 16),
             _buildSimpleToggle(
               title: 'Messages',
               subtitle: 'Notifications for new messages',
-              value: messages,
-              onChanged: (value) {
-                setState(() => messages = value);
-              },
+              value: prefs.messages,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(messages: v)),
             ),
             const SizedBox(height: 12),
             _buildSimpleToggle(
               title: 'Promotions & Offers',
               subtitle: 'Special deals and promotions',
-              value: promotions,
-              onChanged: (value) {
-                setState(() => promotions = value);
-              },
+              value: prefs.promotions,
+              onChanged: (v) =>
+                  setState(() => _prefs = prefs.copyWith(promotions: v)),
             ),
             const SizedBox(height: 48),
 
-            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  _saveNotificationPreferences();
-                },
+                onPressed: _saving ? null : _save,
                 style: TripwiseButtonStyles.primaryElevated(
                   radius: 12,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                icon: const Icon(Icons.save),
-                label: const Text(
-                  'Save Preferences',
-                  style: TextStyle(
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: TripwiseColors.onPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(
+                  _saving ? 'Saving...' : 'Save Preferences',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -163,7 +257,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required Function(bool) onChanged,
+    required ValueChanged<bool> onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -201,28 +295,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             onChanged: onChanged,
           ),
         ],
-      ),
-    );
-  }
-
-  void _saveNotificationPreferences() {
-    // TODO: Implement API call to save preferences
-    // Example API structure:
-    // POST /api/notifications/preferences
-    // {
-    //   "pushNotifications": pushNotifications,
-    //   "emailNotifications": emailNotifications,
-    //   "tripReminders": tripReminders,
-    //   "messages": messages,
-    //   "promotions": promotions,
-    //   "bookingUpdates": bookingUpdates,
-    // }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Preferences saved successfully'),
-        backgroundColor: TripwiseColors.primary,
-        duration: const Duration(seconds: 2),
       ),
     );
   }

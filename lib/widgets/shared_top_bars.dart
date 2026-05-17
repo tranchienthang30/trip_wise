@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/notifications_api.dart';
 import 'planner_assistant_chat.dart';
 
 const String _sharedAvatarUrl =
@@ -31,13 +32,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         const PlannerAssistantHeaderButton(),
-        IconButton(
-          onPressed: () => context.push('/notifications'),
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: TripwiseColors.primary,
-          ),
-        ),
+        const NotificationBellButton(),
         Padding(
           padding: const EdgeInsets.only(right: 20),
           child: GestureDetector(
@@ -95,13 +90,7 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
             color: TripwiseColors.primary,
           ),
         ),
-        IconButton(
-          onPressed: () => context.push('/notifications'),
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: TripwiseColors.primary,
-          ),
-        ),
+        const NotificationBellButton(),
         Padding(
           padding: const EdgeInsets.only(right: 20),
           child: GestureDetector(
@@ -123,6 +112,62 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Bell icon with an unread-count badge. Self-contained (no app-wide state
+/// store, per the project's StatefulWidget+setState convention): it loads
+/// the unread summary on mount and again whenever the inbox is popped, so
+/// the badge reflects reads made there.
+class NotificationBellButton extends StatefulWidget {
+  const NotificationBellButton({super.key});
+
+  @override
+  State<NotificationBellButton> createState() => _NotificationBellButtonState();
+}
+
+class _NotificationBellButtonState extends State<NotificationBellButton> {
+  final NotificationApi _api = NotificationApi();
+  int _unread = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnread();
+  }
+
+  Future<void> _loadUnread() async {
+    try {
+      final summary = await _api.fetchSummary();
+      if (!mounted) return;
+      setState(() => _unread = summary.unreadCount);
+    } catch (_) {
+      // Badge just stays hidden if the count can't be fetched.
+    }
+  }
+
+  Future<void> _openInbox() async {
+    await context.push('/notification_inbox');
+    await _loadUnread();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const icon = Icon(
+      Icons.notifications_none_rounded,
+      color: TripwiseColors.primary,
+    );
+    return IconButton(
+      onPressed: _openInbox,
+      tooltip: 'Notifications',
+      icon: _unread > 0
+          ? Badge(
+              label: Text(_unread > 99 ? '99+' : '$_unread'),
+              backgroundColor: TripwiseColors.secondaryContainer,
+              child: icon,
+            )
+          : icon,
     );
   }
 }
