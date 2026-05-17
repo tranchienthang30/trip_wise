@@ -105,7 +105,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/payment_success',
-      builder: (context, state) => const PaymentSuccessScreen(),
+      builder: (context, state) => PaymentSuccessScreen(
+        bookingId: state.uri.queryParameters['bookingId'],
+        paymentId: state.uri.queryParameters['paymentId'],
+      ),
     ),
     GoRoute(
       path: '/wallet_loyalty',
