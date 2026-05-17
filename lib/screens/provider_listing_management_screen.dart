@@ -289,6 +289,21 @@ class _ProviderListingManagementScreenState
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/inventory_pricing'),
+                    style: TripwiseButtonStyles.outlined(
+                      radius: 12,
+                      foregroundColor: TripwiseColors.primary,
+                      borderColor: TripwiseColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                    label: const Text('Manage Inventory & Pricing'),
+                  ),
+                ),
               ],
             ),
           ),

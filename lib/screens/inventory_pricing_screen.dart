@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../models/inventory_overview.dart';
+import '../services/inventory_api.dart';
+import '../utils/currency.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -8,6 +11,17 @@ import '../widgets/shared_top_bars.dart';
 const Color _availableGreen = Color(0xFF22C55E);
 
 enum _DayStatus { available, highPrice, closed }
+
+_DayStatus _statusFromString(String s) {
+  switch (s) {
+    case 'highPrice':
+      return _DayStatus.highPrice;
+    case 'closed':
+      return _DayStatus.closed;
+    default:
+      return _DayStatus.available;
+  }
+}
 
 class InventoryPricingScreen extends StatefulWidget {
   const InventoryPricingScreen({super.key});
@@ -27,59 +41,74 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
     'SUN',
   ];
 
-  static final List<_CalendarCellData?> _dayCells = [
-    null,
-    null,
-    null,
-    const _CalendarCellData(day: 1, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 2, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 3, price: '\$145', status: _DayStatus.highPrice),
-    const _CalendarCellData(day: 4, price: '\$145', status: _DayStatus.highPrice),
-    const _CalendarCellData(day: 5, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 6, price: 'Closed', status: _DayStatus.closed),
-    const _CalendarCellData(day: 7, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 8, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 9, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 10, price: '\$120', status: _DayStatus.available),
-    const _CalendarCellData(day: 11, price: '\$120', status: _DayStatus.available),
-  ];
+  final InventoryApi _api = InventoryApi();
+  late Future<InventoryOverview> _future;
+  InventoryOverview? _data;
 
-  static final List<_PricingRule> _pricingRules = [
-    const _PricingRule(
-      label: 'Weekend Surge',
-      value: '+20%',
-      valueColor: TripwiseColors.secondary,
-    ),
-    const _PricingRule(
-      label: 'Holiday Peak',
-      value: '+35%',
-      valueColor: TripwiseColors.secondary,
-    ),
-    const _PricingRule(
-      label: 'Last Minute Disc.',
-      value: '-10%',
-      valueColor: TripwiseColors.primary,
-    ),
-  ];
-
-  int _selectedDay = 5;
-  bool _isAvailable = true;
-  late final TextEditingController _priceController;
+  // null = let the server pick the current month; otherwise "YYYY-MM".
+  String? _month;
+  int? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    _priceController = TextEditingController(text: '120.00');
+    _load();
   }
 
-  @override
-  void dispose() {
-    _priceController.dispose();
-    super.dispose();
+  void _load() {
+    _future = _api.fetchInventory(month: _month);
+    _future.then((data) {
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _selectedDay = _firstSelectableDay(data);
+      });
+    }).catchError((_) {});
   }
 
-  void _onDayTap(int day) {
-    setState(() => _selectedDay = day);
+  int? _firstSelectableDay(InventoryOverview data) {
+    for (final d in data.days) {
+      if (d.status != 'closed') return d.day;
+    }
+    return data.days.isNotEmpty ? data.days.first.day : null;
+  }
+
+  void _retry() {
+    setState(() {
+      _data = null;
+      _load();
+    });
+  }
+
+  void _changeMonth(int delta) {
+    final base = _data?.month ?? _month;
+    if (base == null || !base.contains('-')) return;
+    final parts = base.split('-');
+    int y = int.parse(parts[0]);
+    int m = int.parse(parts[1]) + delta;
+    if (m == 0) {
+      m = 12;
+      y--;
+    } else if (m == 13) {
+      m = 1;
+      y++;
+    }
+    setState(() {
+      _month = '$y-${m.toString().padLeft(2, '0')}';
+      _data = null;
+      _selectedDay = null;
+      _load();
+    });
+  }
+
+  void _selectDay(int day) => setState(() => _selectedDay = day);
+
+  void _comingSoon() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Editing inventory is coming soon')),
+      );
   }
 
   @override
@@ -89,36 +118,108 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
       appBar: const ProviderAppBar(),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _EditorialHeader(),
-              const SizedBox(height: 24),
-              _CalendarCard(
-                dayCells: _dayCells,
-                weekdayLabels: _weekdayLabels,
-                selectedDay: _selectedDay,
-                onDayTap: _onDayTap,
+        child: FutureBuilder<InventoryOverview>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return _ErrorView(error: snapshot.error, onRetry: _retry);
+            }
+            final data = snapshot.data!;
+            final selected = _selectedFor(data);
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _EditorialHeader(),
+                  const SizedBox(height: 24),
+                  _CalendarCard(
+                    data: data,
+                    weekdayLabels: _weekdayLabels,
+                    selectedDay: _selectedDay,
+                    onDayTap: _selectDay,
+                    onPrevMonth: () => _changeMonth(-1),
+                    onNextMonth: () => _changeMonth(1),
+                  ),
+                  const SizedBox(height: 24),
+                  _DaySettingsCard(
+                    monthLabel: data.monthLabel,
+                    selected: selected,
+                    onComingSoon: _comingSoon,
+                  ),
+                  const SizedBox(height: 24),
+                  _DynamicPricingCard(
+                    rules: data.pricingRules,
+                    onComingSoon: _comingSoon,
+                  ),
+                  const SizedBox(height: 24),
+                  _AnalyticsCard(analytics: data.analytics),
+                ],
               ),
-              const SizedBox(height: 24),
-              _DaySettingsCard(
-                isAvailable: _isAvailable,
-                onAvailabilityChanged: (v) =>
-                    setState(() => _isAvailable = v),
-                priceController: _priceController,
-              ),
-              const SizedBox(height: 24),
-              _DynamicPricingCard(rules: _pricingRules),
-              const SizedBox(height: 24),
-              const _AnalyticsCard(),
-            ],
-          ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: const ProviderTaskbar(
         currentTab: ProviderTaskbarTab.listings,
+      ),
+    );
+  }
+
+  InventoryDay? _selectedFor(InventoryOverview data) {
+    final day = _selectedDay ?? _firstSelectableDay(data);
+    for (final d in data.days) {
+      if (d.day == day) return d;
+    }
+    return data.days.isNotEmpty ? data.days.first : null;
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load inventory",
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -158,27 +259,32 @@ class _EditorialHeader extends StatelessWidget {
 
 class _CalendarCard extends StatelessWidget {
   const _CalendarCard({
-    required this.dayCells,
+    required this.data,
     required this.weekdayLabels,
     required this.selectedDay,
     required this.onDayTap,
+    required this.onPrevMonth,
+    required this.onNextMonth,
   });
 
-  final List<_CalendarCellData?> dayCells;
+  final InventoryOverview data;
   final List<String> weekdayLabels;
-  final int selectedDay;
+  final int? selectedDay;
   final ValueChanged<int> onDayTap;
+  final VoidCallback onPrevMonth;
+  final VoidCallback onNextMonth;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final cellCount = data.leadingBlanks + data.days.length;
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: TripwiseColors.primary.withOpacity(0.06),
+            color: TripwiseColors.primary.withValues(alpha: 0.06),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -192,7 +298,7 @@ class _CalendarCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'September 2024',
+                data.monthLabel,
                 style: textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -201,14 +307,14 @@ class _CalendarCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onPrevMonth,
                     icon: const Icon(
                       Icons.chevron_left_rounded,
                       color: TripwiseColors.primary,
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onNextMonth,
                     icon: const Icon(
                       Icons.chevron_right_rounded,
                       color: TripwiseColors.primary,
@@ -246,14 +352,19 @@ class _CalendarCard extends StatelessWidget {
               crossAxisSpacing: 6,
               childAspectRatio: 0.85,
             ),
-            itemCount: dayCells.length,
+            itemCount: cellCount,
             itemBuilder: (context, i) {
-              final cell = dayCells[i];
-              if (cell == null) return const SizedBox.shrink();
+              if (i < data.leadingBlanks) return const SizedBox.shrink();
+              final cell = data.days[i - data.leadingBlanks];
+              final status = _statusFromString(cell.status);
               return _CalendarCell(
-                data: cell,
+                day: cell.day,
+                priceLabel: status == _DayStatus.closed
+                    ? 'Closed'
+                    : formatVndCompact(cell.price),
+                status: status,
                 isSelected: cell.day == selectedDay,
-                onTap: cell.status == _DayStatus.closed
+                onTap: status == _DayStatus.closed
                     ? null
                     : () => onDayTap(cell.day),
               );
@@ -267,12 +378,16 @@ class _CalendarCard extends StatelessWidget {
 
 class _CalendarCell extends StatelessWidget {
   const _CalendarCell({
-    required this.data,
+    required this.day,
+    required this.priceLabel,
+    required this.status,
     required this.isSelected,
     required this.onTap,
   });
 
-  final _CalendarCellData data;
+  final int day;
+  final String priceLabel;
+  final _DayStatus status;
   final bool isSelected;
   final VoidCallback? onTap;
 
@@ -293,13 +408,13 @@ class _CalendarCell extends StatelessWidget {
       dateOpacity = 1.0;
       shadow = [
         BoxShadow(
-          color: TripwiseColors.primary.withOpacity(0.20),
+          color: TripwiseColors.primary.withValues(alpha: 0.20),
           blurRadius: 12,
           offset: const Offset(0, 6),
         ),
       ];
     } else {
-      switch (data.status) {
+      switch (status) {
         case _DayStatus.highPrice:
           bgColor = TripwiseColors.secondaryFixed;
           dateColor = TripwiseColors.secondary;
@@ -342,7 +457,7 @@ class _CalendarCell extends StatelessWidget {
             child: Opacity(
               opacity: dateOpacity,
               child: Text(
-                '${data.day}',
+                '$day',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -358,7 +473,7 @@ class _CalendarCell extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  data.price,
+                  priceLabel,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -383,7 +498,7 @@ class _CalendarCell extends StatelessWidget {
 
     final tappable = GestureDetector(onTap: onTap, child: cell);
 
-    if (data.status == _DayStatus.closed && !isSelected) {
+    if (status == _DayStatus.closed && !isSelected) {
       return Opacity(opacity: 0.5, child: tappable);
     }
     return tappable;
@@ -392,25 +507,32 @@ class _CalendarCell extends StatelessWidget {
 
 class _DaySettingsCard extends StatelessWidget {
   const _DaySettingsCard({
-    required this.isAvailable,
-    required this.onAvailabilityChanged,
-    required this.priceController,
+    required this.monthLabel,
+    required this.selected,
+    required this.onComingSoon,
   });
 
-  final bool isAvailable;
-  final ValueChanged<bool> onAvailabilityChanged;
-  final TextEditingController priceController;
+  final String monthLabel;
+  final InventoryDay? selected;
+  final VoidCallback onComingSoon;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final sel = selected;
+    final isOpen = sel != null && sel.status != 'closed';
+    final dayLabel = sel == null ? '' : '${sel.day} $monthLabel';
+    final availabilitySub = sel == null
+        ? 'Open for bookings'
+        : (isOpen ? '${sel.availableQty} rooms open' : 'Closed for bookings');
+
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: TripwiseColors.primary.withOpacity(0.06),
+            color: TripwiseColors.primary.withValues(alpha: 0.06),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -420,13 +542,26 @@ class _DaySettingsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'DAY SETTINGS',
-            style: textTheme.labelMedium?.copyWith(
-              color: TripwiseColors.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'DAY SETTINGS',
+                style: textTheme.labelMedium?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              if (dayLabel.isNotEmpty)
+                Text(
+                  dayLabel,
+                  style: textTheme.labelMedium?.copyWith(
+                    color: TripwiseColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -444,7 +579,7 @@ class _DaySettingsCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Open for bookings',
+                    availabilitySub,
                     style: textTheme.bodySmall?.copyWith(
                       color: TripwiseColors.onSurfaceVariant,
                     ),
@@ -452,15 +587,15 @@ class _DaySettingsCard extends StatelessWidget {
                 ],
               ),
               Switch(
-                value: isAvailable,
-                onChanged: onAvailabilityChanged,
+                value: isOpen,
+                onChanged: (_) => onComingSoon(),
                 activeThumbColor: TripwiseColors.primary,
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            'BASE PRICE',
+            'PRICE',
             style: textTheme.labelSmall?.copyWith(
               color: TripwiseColors.onSurfaceVariant,
               fontWeight: FontWeight.w800,
@@ -468,39 +603,19 @@ class _DaySettingsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          TextField(
-            controller: priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
             ),
-            decoration: InputDecoration(
-              prefixText: '\$ ',
-              prefixStyle: const TextStyle(
+            child: Text(
+              sel == null ? '—' : formatVnd(sel.price),
+              style: textTheme.titleMedium?.copyWith(
                 color: TripwiseColors.primary,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
-              ),
-              filled: true,
-              fillColor: TripwiseColors.surfaceContainerLow,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: TripwiseColors.primary,
-                  width: 2,
-                ),
               ),
             ),
           ),
@@ -508,7 +623,7 @@ class _DaySettingsCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: onComingSoon,
               style: TripwiseButtonStyles.primaryElevated(
                 radius: 14,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -527,16 +642,24 @@ class _DaySettingsCard extends StatelessWidget {
 }
 
 class _DynamicPricingCard extends StatelessWidget {
-  const _DynamicPricingCard({required this.rules});
+  const _DynamicPricingCard({
+    required this.rules,
+    required this.onComingSoon,
+  });
 
-  final List<_PricingRule> rules;
+  final List<PricingRule> rules;
+  final VoidCallback onComingSoon;
+
+  Color _toneColor(String tone) => tone == 'primary'
+      ? TripwiseColors.primary
+      : TripwiseColors.secondary;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
-        color: TripwiseColors.primary.withOpacity(0.05),
+        color: TripwiseColors.primary.withValues(alpha: 0.05),
         borderRadius: const BorderRadius.only(
           topRight: Radius.circular(20),
           bottomRight: Radius.circular(20),
@@ -584,7 +707,7 @@ class _DynamicPricingCard extends StatelessWidget {
                   Text(
                     rule.value,
                     style: textTheme.bodyMedium?.copyWith(
-                      color: rule.valueColor,
+                      color: _toneColor(rule.tone),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -594,7 +717,7 @@ class _DynamicPricingCard extends StatelessWidget {
           const SizedBox(height: 12),
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: onComingSoon,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -622,11 +745,14 @@ class _DynamicPricingCard extends StatelessWidget {
 }
 
 class _AnalyticsCard extends StatelessWidget {
-  const _AnalyticsCard();
+  const _AnalyticsCard({required this.analytics});
+
+  final InventoryAnalytics analytics;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final occ = analytics.occupancyPct.clamp(0, 100);
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLow,
@@ -638,7 +764,7 @@ class _AnalyticsCard extends StatelessWidget {
         children: [
           _StatBlock(
             label: 'OCCUPANCY',
-            value: '84%',
+            value: '$occ%',
             valueColor: TripwiseColors.primary,
             extra: ClipRRect(
               borderRadius: BorderRadius.circular(999),
@@ -647,11 +773,11 @@ class _AnalyticsCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 84,
+                      flex: occ == 0 ? 1 : occ,
                       child: Container(color: TripwiseColors.primary),
                     ),
                     Expanded(
-                      flex: 16,
+                      flex: (100 - occ) == 0 ? 1 : (100 - occ),
                       child:
                           Container(color: TripwiseColors.surfaceContainerHigh),
                     ),
@@ -661,12 +787,12 @@ class _AnalyticsCard extends StatelessWidget {
             ),
           ),
           Divider(
-            color: TripwiseColors.outlineVariant.withOpacity(0.5),
+            color: TripwiseColors.outlineVariant.withValues(alpha: 0.5),
             height: 28,
           ),
           _StatBlock(
             label: 'REVENUE FORECAST',
-            value: '\$12,450',
+            value: formatVnd(analytics.revenueForecast),
             valueColor: TripwiseColors.primary,
             extra: Row(
               mainAxisSize: MainAxisSize.min,
@@ -678,7 +804,7 @@ class _AnalyticsCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '12% from last month',
+                  analytics.revenueDeltaLabel,
                   style: textTheme.labelSmall?.copyWith(
                     color: TripwiseColors.secondary,
                     fontWeight: FontWeight.w800,
@@ -688,15 +814,15 @@ class _AnalyticsCard extends StatelessWidget {
             ),
           ),
           Divider(
-            color: TripwiseColors.outlineVariant.withOpacity(0.5),
+            color: TripwiseColors.outlineVariant.withValues(alpha: 0.5),
             height: 28,
           ),
           _StatBlock(
             label: 'MARKET DEMAND',
-            value: 'High',
+            value: analytics.demandLevel,
             valueColor: TripwiseColors.secondary,
             extra: Text(
-              'Demand for rentals in your area is trending high for the upcoming holiday season.',
+              analytics.demandNote,
               style: textTheme.bodySmall?.copyWith(
                 color: TripwiseColors.onSurfaceVariant,
                 height: 1.4,
@@ -749,28 +875,4 @@ class _StatBlock extends StatelessWidget {
       ],
     );
   }
-}
-
-class _CalendarCellData {
-  const _CalendarCellData({
-    required this.day,
-    required this.price,
-    required this.status,
-  });
-
-  final int day;
-  final String price;
-  final _DayStatus status;
-}
-
-class _PricingRule {
-  const _PricingRule({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
 }

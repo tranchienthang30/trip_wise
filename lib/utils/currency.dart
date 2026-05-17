@@ -13,3 +13,15 @@ String formatInt(num value) {
   }
   return buf.toString();
 }
+
+/// Short VND for tight spots (calendar cells), e.g. `₫4.8M`, `₫950k`, `₫800`.
+String formatVndCompact(double? amount) {
+  if (amount == null) return '—';
+  final n = amount.abs();
+  String trim(double v) =>
+      v.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+  if (n >= 1e9) return '₫${trim(n / 1e9)}B';
+  if (n >= 1e6) return '₫${trim(n / 1e6)}M';
+  if (n >= 1e3) return '₫${(n / 1e3).round()}k';
+  return '₫${n.round()}';
+}
