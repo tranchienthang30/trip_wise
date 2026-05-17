@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../constants/colors.dart';
 import '../models/inventory_overview.dart';
@@ -42,12 +43,17 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
   ];
 
   final InventoryApi _api = InventoryApi();
-  late Future<InventoryOverview> _future;
+  final TextEditingController _priceController = TextEditingController();
+
   InventoryOverview? _data;
+  Object? _error;
+  bool _loading = false;
+  bool _submitting = false;
 
   // null = let the server pick the current month; otherwise "YYYY-MM".
   String? _month;
   int? _selectedDay;
+  bool _pendingAvailable = true;
 
   @override
   void initState() {
@@ -55,15 +61,33 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
     _load();
   }
 
-  void _load() {
-    _future = _api.fetchInventory(month: _month);
-    _future.then((data) {
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await _api.fetchInventory(month: _month);
       if (!mounted) return;
       setState(() {
         _data = data;
         _selectedDay = _firstSelectableDay(data);
+        _loading = false;
       });
-    }).catchError((_) {});
+      _syncEditors();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
+    }
   }
 
   int? _firstSelectableDay(InventoryOverview data) {
@@ -73,11 +97,26 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
     return data.days.isNotEmpty ? data.days.first.day : null;
   }
 
-  void _retry() {
-    setState(() {
-      _data = null;
-      _load();
-    });
+  InventoryDay? _selectedFor(InventoryOverview data) {
+    final day = _selectedDay ?? _firstSelectableDay(data);
+    for (final d in data.days) {
+      if (d.day == day) return d;
+    }
+    return data.days.isNotEmpty ? data.days.first : null;
+  }
+
+  /// Push the selected day's persisted values into the editable controls.
+  void _syncEditors() {
+    final data = _data;
+    if (data == null) return;
+    final sel = _selectedFor(data);
+    _priceController.text = sel == null ? '' : sel.price.round().toString();
+    _pendingAvailable = sel != null && sel.status != 'closed';
+  }
+
+  void _selectDay(int day) {
+    setState(() => _selectedDay = day);
+    _syncEditors();
   }
 
   void _changeMonth(int delta) {
@@ -95,20 +134,87 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
     }
     setState(() {
       _month = '$y-${m.toString().padLeft(2, '0')}';
-      _data = null;
       _selectedDay = null;
-      _load();
     });
+    _load();
   }
 
-  void _selectDay(int day) => setState(() => _selectedDay = day);
-
-  void _comingSoon() {
+  void _snack(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Editing inventory is coming soon')),
+      ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _submitDay() async {
+    final data = _data;
+    final sel = data == null ? null : _selectedFor(data);
+    if (sel == null) return;
+    final price = double.tryParse(_priceController.text.trim());
+    if (price == null || price <= 0) {
+      _snack('Enter a valid price');
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      final res = await _api.updateDay(
+        date: sel.date,
+        available: _pendingAvailable,
+        price: price,
       );
+      if (!mounted) return;
+      setState(() {
+        _data = res;
+        _submitting = false;
+      });
+      _syncEditors();
+      _snack('Day ${sel.day} updated');
+    } on InventoryApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack('Something went wrong. Please try again.');
+    }
+  }
+
+  Future<void> _saveRules({
+    required double weekendSurgePct,
+    required double holidayPeakPct,
+    required double lastMinuteDiscPct,
+    required bool weekendEnabled,
+    required bool holidayEnabled,
+    required bool lastMinuteEnabled,
+  }) async {
+    final res = await _api.updateRules(
+      weekendSurgePct: weekendSurgePct,
+      holidayPeakPct: holidayPeakPct,
+      lastMinuteDiscPct: lastMinuteDiscPct,
+      weekendEnabled: weekendEnabled,
+      holidayEnabled: holidayEnabled,
+      lastMinuteEnabled: lastMinuteEnabled,
+      month: _data?.month ?? _month,
+    );
+    if (!mounted) return;
+    setState(() => _data = res);
+    _syncEditors();
+    _snack('Pricing rules updated');
+  }
+
+  void _openRulesSheet() {
+    final data = _data;
+    if (data == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _RulesSheet(
+        rules: data.pricingRules,
+        onSubmit: _saveRules,
+      ),
+    );
   }
 
   @override
@@ -116,65 +222,62 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
-      body: SafeArea(
-        top: false,
-        child: FutureBuilder<InventoryOverview>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _ErrorView(error: snapshot.error, onRetry: _retry);
-            }
-            final data = snapshot.data!;
-            final selected = _selectedFor(data);
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _EditorialHeader(),
-                  const SizedBox(height: 24),
-                  _CalendarCard(
-                    data: data,
-                    weekdayLabels: _weekdayLabels,
-                    selectedDay: _selectedDay,
-                    onDayTap: _selectDay,
-                    onPrevMonth: () => _changeMonth(-1),
-                    onNextMonth: () => _changeMonth(1),
-                  ),
-                  const SizedBox(height: 24),
-                  _DaySettingsCard(
-                    monthLabel: data.monthLabel,
-                    selected: selected,
-                    onComingSoon: _comingSoon,
-                  ),
-                  const SizedBox(height: 24),
-                  _DynamicPricingCard(
-                    rules: data.pricingRules,
-                    onComingSoon: _comingSoon,
-                  ),
-                  const SizedBox(height: 24),
-                  _AnalyticsCard(analytics: data.analytics),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+      body: SafeArea(top: false, child: _buildBody()),
       bottomNavigationBar: const ProviderTaskbar(
         currentTab: ProviderTaskbarTab.listings,
       ),
     );
   }
 
-  InventoryDay? _selectedFor(InventoryOverview data) {
-    final day = _selectedDay ?? _firstSelectableDay(data);
-    for (final d in data.days) {
-      if (d.day == day) return d;
+  Widget _buildBody() {
+    final data = _data;
+    if (data == null && _loading) {
+      return const Center(child: CircularProgressIndicator());
     }
-    return data.days.isNotEmpty ? data.days.first : null;
+    if (data == null) {
+      return _ErrorView(error: _error, onRetry: _load);
+    }
+    final selected = _selectedFor(data);
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _EditorialHeader(),
+            const SizedBox(height: 24),
+            _CalendarCard(
+              data: data,
+              weekdayLabels: _weekdayLabels,
+              selectedDay: _selectedDay,
+              onDayTap: _selectDay,
+              onPrevMonth: () => _changeMonth(-1),
+              onNextMonth: () => _changeMonth(1),
+            ),
+            const SizedBox(height: 24),
+            _DaySettingsCard(
+              monthLabel: data.monthLabel,
+              selected: selected,
+              priceController: _priceController,
+              available: _pendingAvailable,
+              submitting: _submitting,
+              onAvailabilityChanged: (v) =>
+                  setState(() => _pendingAvailable = v),
+              onSubmit: _submitDay,
+            ),
+            const SizedBox(height: 24),
+            _DynamicPricingCard(
+              rules: data.pricingRules,
+              onAdjust: _openRulesSheet,
+            ),
+            const SizedBox(height: 24),
+            _AnalyticsCard(analytics: data.analytics),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -364,9 +467,8 @@ class _CalendarCard extends StatelessWidget {
                     : formatVndCompact(cell.price),
                 status: status,
                 isSelected: cell.day == selectedDay,
-                onTap: status == _DayStatus.closed
-                    ? null
-                    : () => onDayTap(cell.day),
+                // Closed days are selectable too, so a provider can re-open one.
+                onTap: () => onDayTap(cell.day),
               );
             },
           ),
@@ -509,22 +611,32 @@ class _DaySettingsCard extends StatelessWidget {
   const _DaySettingsCard({
     required this.monthLabel,
     required this.selected,
-    required this.onComingSoon,
+    required this.priceController,
+    required this.available,
+    required this.submitting,
+    required this.onAvailabilityChanged,
+    required this.onSubmit,
   });
 
   final String monthLabel;
   final InventoryDay? selected;
-  final VoidCallback onComingSoon;
+  final TextEditingController priceController;
+  final bool available;
+  final bool submitting;
+  final ValueChanged<bool> onAvailabilityChanged;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final sel = selected;
-    final isOpen = sel != null && sel.status != 'closed';
     final dayLabel = sel == null ? '' : '${sel.day} $monthLabel';
     final availabilitySub = sel == null
         ? 'Open for bookings'
-        : (isOpen ? '${sel.availableQty} rooms open' : 'Closed for bookings');
+        : (available
+            ? '${sel.availableQty > 0 ? sel.availableQty : ''} open for bookings'
+                .trim()
+            : 'Closed for bookings');
 
     return Container(
       decoration: BoxDecoration(
@@ -587,15 +699,15 @@ class _DaySettingsCard extends StatelessWidget {
                 ],
               ),
               Switch(
-                value: isOpen,
-                onChanged: (_) => onComingSoon(),
+                value: available,
+                onChanged: sel == null ? null : onAvailabilityChanged,
                 activeThumbColor: TripwiseColors.primary,
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            'PRICE',
+            'PRICE (₫)',
             style: textTheme.labelSmall?.copyWith(
               color: TripwiseColors.onSurfaceVariant,
               fontWeight: FontWeight.w800,
@@ -603,19 +715,41 @@ class _DaySettingsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: TripwiseColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(14),
+          TextField(
+            controller: priceController,
+            enabled: sel != null,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: textTheme.titleMedium?.copyWith(
+              color: TripwiseColors.primary,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
             ),
-            child: Text(
-              sel == null ? '—' : formatVnd(sel.price),
-              style: textTheme.titleMedium?.copyWith(
+            decoration: InputDecoration(
+              prefixText: '₫ ',
+              prefixStyle: const TextStyle(
                 color: TripwiseColors.primary,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
+              ),
+              filled: true,
+              fillColor: TripwiseColors.surfaceContainerLow,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: TripwiseColors.primary,
+                  width: 2,
+                ),
               ),
             ),
           ),
@@ -623,7 +757,7 @@ class _DaySettingsCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: onComingSoon,
+              onPressed: (sel == null || submitting) ? null : onSubmit,
               style: TripwiseButtonStyles.primaryElevated(
                 radius: 14,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -632,7 +766,16 @@ class _DaySettingsCard extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-              child: const Text('Update Listing'),
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Update Listing'),
             ),
           ),
         ],
@@ -644,15 +787,14 @@ class _DaySettingsCard extends StatelessWidget {
 class _DynamicPricingCard extends StatelessWidget {
   const _DynamicPricingCard({
     required this.rules,
-    required this.onComingSoon,
+    required this.onAdjust,
   });
 
   final List<PricingRule> rules;
-  final VoidCallback onComingSoon;
+  final VoidCallback onAdjust;
 
-  Color _toneColor(String tone) => tone == 'primary'
-      ? TripwiseColors.primary
-      : TripwiseColors.secondary;
+  Color _toneColor(String tone) =>
+      tone == 'primary' ? TripwiseColors.primary : TripwiseColors.secondary;
 
   @override
   Widget build(BuildContext context) {
@@ -697,18 +839,36 @@ class _DynamicPricingCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    rule.label,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: TripwiseColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        rule.label,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: TripwiseColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (!rule.enabled) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '(off)',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: TripwiseColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     rule.value,
                     style: textTheme.bodyMedium?.copyWith(
-                      color: _toneColor(rule.tone),
+                      color: rule.enabled
+                          ? _toneColor(rule.tone)
+                          : TripwiseColors.onSurfaceVariant,
                       fontWeight: FontWeight.w800,
+                      decoration:
+                          rule.enabled ? null : TextDecoration.lineThrough,
                     ),
                   ),
                 ],
@@ -717,7 +877,7 @@ class _DynamicPricingCard extends StatelessWidget {
           const SizedBox(height: 12),
           Center(
             child: TextButton(
-              onPressed: onComingSoon,
+              onPressed: onAdjust,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -737,6 +897,224 @@ class _DynamicPricingCard extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RulesSheet extends StatefulWidget {
+  const _RulesSheet({required this.rules, required this.onSubmit});
+
+  final List<PricingRule> rules;
+  final Future<void> Function({
+    required double weekendSurgePct,
+    required double holidayPeakPct,
+    required double lastMinuteDiscPct,
+    required bool weekendEnabled,
+    required bool holidayEnabled,
+    required bool lastMinuteEnabled,
+  }) onSubmit;
+
+  @override
+  State<_RulesSheet> createState() => _RulesSheetState();
+}
+
+class _RulesSheetState extends State<_RulesSheet> {
+  late final Map<String, TextEditingController> _ctrl;
+  late final Map<String, bool> _enabled;
+  bool _saving = false;
+
+  PricingRule _rule(String key) => widget.rules.firstWhere(
+        (r) => r.key == key,
+        orElse: () => PricingRule(
+          key: key,
+          label: key,
+          value: '',
+          tone: 'secondary',
+          percent: 0,
+          enabled: true,
+        ),
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = {
+      for (final k in ['weekend', 'holiday', 'lastMinute'])
+        k: TextEditingController(text: _rule(k).percent.round().toString()),
+    };
+    _enabled = {
+      for (final k in ['weekend', 'holiday', 'lastMinute'])
+        k: _rule(k).enabled,
+    };
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrl.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final w = double.tryParse(_ctrl['weekend']!.text.trim());
+    final h = double.tryParse(_ctrl['holiday']!.text.trim());
+    final l = double.tryParse(_ctrl['lastMinute']!.text.trim());
+    if (w == null || h == null || l == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter valid percentages')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.onSubmit(
+        weekendSurgePct: w,
+        holidayPeakPct: h,
+        lastMinuteDiscPct: l,
+        weekendEnabled: _enabled['weekend']!,
+        holidayEnabled: _enabled['holiday']!,
+        lastMinuteEnabled: _enabled['lastMinute']!,
+      );
+      if (mounted) Navigator.of(context).pop();
+    } on InventoryApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save rules')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: TripwiseColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TripwiseColors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Dynamic Pricing Rules',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Surges add %, discounts use a negative %. Applied to days '
+              'without a manually-set price.',
+              style: textTheme.bodySmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ruleRow('weekend', 'Weekend Surge'),
+            _ruleRow('holiday', 'Holiday Peak'),
+            _ruleRow('lastMinute', 'Last Minute Disc.'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: TripwiseButtonStyles.primaryElevated(
+                  radius: 14,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Save Rules'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _ruleRow(String key, String label) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 90,
+            child: TextField(
+              controller: _ctrl[key],
+              enabled: _enabled[key],
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+              ],
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+              decoration: InputDecoration(
+                suffixText: '%',
+                isDense: true,
+                filled: true,
+                fillColor: TripwiseColors.surfaceContainerLow,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Switch(
+            value: _enabled[key]!,
+            onChanged: (v) => setState(() => _enabled[key] = v),
+            activeThumbColor: TripwiseColors.primary,
           ),
         ],
       ),

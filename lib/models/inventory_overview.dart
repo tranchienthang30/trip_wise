@@ -93,21 +93,31 @@ class InventoryDay {
 
 class PricingRule {
   PricingRule({
+    required this.key,
     required this.label,
     required this.value,
     required this.tone,
+    required this.percent,
+    required this.enabled,
   });
 
+  /// One of `weekend`, `holiday`, `lastMinute`.
+  final String key;
   final String label;
   final String value;
 
   /// One of `primary`, `secondary` — maps to a brand color on screen.
   final String tone;
+  final double percent;
+  final bool enabled;
 
   factory PricingRule.fromJson(Map<String, dynamic> json) => PricingRule(
+        key: json['key'] as String? ?? '',
         label: json['label'] as String? ?? '',
         value: json['value'] as String? ?? '',
         tone: json['tone'] as String? ?? 'secondary',
+        percent: (json['percent'] as num?)?.toDouble() ?? 0,
+        enabled: json['enabled'] as bool? ?? true,
       );
 }
 
