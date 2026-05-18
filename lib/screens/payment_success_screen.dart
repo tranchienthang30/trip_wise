@@ -85,7 +85,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         leading: IconButton(
           icon: const Icon(Icons.close),
           color: TripwiseColors.onSurface,
-          onPressed: () => context.go('/my_trips'),
+          onPressed: () {
+            final bookingId = widget.bookingId;
+            if (bookingId == null || bookingId.isEmpty) {
+              context.go('/my_trips');
+              return;
+            }
+            context.go('/my_trips?bookingId=${Uri.encodeQueryComponent(bookingId)}');
+          },
         ),
         title: Text(
           'Tripwise',
@@ -209,7 +216,9 @@ class _PaymentSuccessContent extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton(
                   style: TripwiseButtonStyles.primaryElevated(radius: 28),
-                  onPressed: () => context.go('/my_trips'),
+                  onPressed: () => context.go(
+                    '/my_trips?bookingId=${Uri.encodeQueryComponent(data.bookingId)}',
+                  ),
                   child: const Text(
                     'View My Trips',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),

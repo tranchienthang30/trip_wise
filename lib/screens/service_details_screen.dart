@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/colors.dart';
 import '../models/hotel_detail.dart';
 import '../services/hotels_api.dart';
+import '../services/my_trips_api.dart';
 import '../utils/currency.dart';
 import '../widgets/review_card.dart';
 import 'image_gallery_screen.dart';
@@ -21,8 +22,10 @@ class ServiceDetailsScreen extends StatefulWidget {
 
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final HotelsApi _api = HotelsApi();
+  final MyTripsApi _myTripsApi = MyTripsApi();
   late Future<HotelDetail> _future;
   HotelDetail? _data;
+  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -67,6 +70,41 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
   void _onContactSupport() => context.push('/direct_messaging');
 
+  Future<void> _cancelExistingBooking() async {
+    final existingBooking = _data?.existingBooking;
+    if (existingBooking == null ||
+        !existingBooking.canCancel ||
+        existingBooking.bookingItemId.isEmpty ||
+        _isCancelling) {
+      return;
+    }
+
+    setState(() => _isCancelling = true);
+    try {
+      await _myTripsApi.cancelTrip(existingBooking.bookingItemId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Booking cancelled successfully.'),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+      _retry();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCancelling = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,12 +131,21 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         future: _future,
         builder: (context, snapshot) {
           final data = snapshot.data;
+          final existingBooking = data?.existingBooking;
+          final canCancel = existingBooking != null &&
+              existingBooking.canCancel &&
+              existingBooking.bookingItemId.isNotEmpty;
           return _BookingBar(
             price: data == null ? '—' : formatVnd(data.priceFrom),
             freeCancellation: data?.policies.freeCancellation ?? false,
-            onBookNow: data == null
+            ctaLabel: canCancel ? 'Cancel' : 'Book Now',
+            isCancelAction: canCancel,
+            isBusy: _isCancelling,
+            onTap: data == null || _isCancelling
                 ? null
-                : () => context.push('/booking_checkout?hotelId=${data.id}'),
+                : canCancel
+                    ? _cancelExistingBooking
+                    : () => context.push('/booking_checkout?hotelId=${data.id}'),
           );
         },
       ),
@@ -879,12 +926,18 @@ class _BookingBar extends StatelessWidget {
   const _BookingBar({
     required this.price,
     required this.freeCancellation,
-    required this.onBookNow,
+    required this.ctaLabel,
+    required this.onTap,
+    this.isCancelAction = false,
+    this.isBusy = false,
   });
 
   final String price;
   final bool freeCancellation;
-  final VoidCallback? onBookNow;
+  final String ctaLabel;
+  final VoidCallback? onTap;
+  final bool isCancelAction;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -950,26 +1003,54 @@ class _BookingBar extends StatelessWidget {
                   ],
                 ],
               ),
-              ElevatedButton(
-                style: TripwiseButtonStyles.primaryElevated(
-                  radius: 14,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 16,
-                  ),
-                  elevation: 10,
-                  shadowColor: TripwiseColors.primary.withOpacity(0.4),
-                ),
-                onPressed: onBookNow,
-                child: const Text(
-                  'Book Now',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
+              isCancelAction
+                  ? OutlinedButton(
+                      style: TripwiseButtonStyles.destructiveOutlined(
+                        radius: 14,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 16,
+                        ),
+                      ),
+                      onPressed: onTap,
+                      child: isBusy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: TripwiseColors.error,
+                              ),
+                            )
+                          : Text(
+                              ctaLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                    )
+                  : ElevatedButton(
+                      style: TripwiseButtonStyles.primaryElevated(
+                        radius: 14,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 16,
+                        ),
+                        elevation: 10,
+                        shadowColor: TripwiseColors.primary.withOpacity(0.4),
+                      ),
+                      onPressed: onTap,
+                      child: Text(
+                        ctaLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
             ],
           ),
         ),

@@ -22,6 +22,7 @@ class HotelDetail {
     required this.isFavoritedByMe,
     required this.googleMapUrl,
     required this.reviewsPreview,
+    required this.existingBooking,
   });
 
   final int id;
@@ -44,6 +45,7 @@ class HotelDetail {
   final bool isFavoritedByMe;
   final String? googleMapUrl;
   final List<Review> reviewsPreview;
+  final HotelExistingBooking? existingBooking;
 
   factory HotelDetail.fromJson(Map<String, dynamic> json) {
     return HotelDetail(
@@ -75,6 +77,11 @@ class HotelDetail {
       reviewsPreview: (json['reviewsPreview'] as List? ?? const [])
           .map((e) => Review.fromJson(e as Map<String, dynamic>))
           .toList(),
+      existingBooking: json['existingBooking'] is Map<String, dynamic>
+          ? HotelExistingBooking.fromJson(
+              json['existingBooking'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }
@@ -101,6 +108,29 @@ class HotelPolicies {
   factory HotelPolicies.fromJson(Map<String, dynamic> json) {
     return HotelPolicies(
       freeCancellation: json['freeCancellation'] as bool? ?? false,
+    );
+  }
+}
+
+class HotelExistingBooking {
+  HotelExistingBooking({
+    required this.bookingId,
+    required this.bookingItemId,
+    required this.status,
+    required this.canCancel,
+  });
+
+  final String bookingId;
+  final String bookingItemId;
+  final String status;
+  final bool canCancel;
+
+  factory HotelExistingBooking.fromJson(Map<String, dynamic> json) {
+    return HotelExistingBooking(
+      bookingId: json['bookingId'] as String? ?? '',
+      bookingItemId: json['bookingItemId'] as String? ?? '',
+      status: json['status'] as String? ?? 'CONFIRMED',
+      canCancel: json['canCancel'] as bool? ?? false,
     );
   }
 }

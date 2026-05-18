@@ -125,7 +125,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/my_trips',
-      builder: (context, state) => const MyTripsScreen(),
+      builder: (context, state) => MyTripsScreen(
+        initialStatus: state.uri.queryParameters['status'],
+        focusBookingId: state.uri.queryParameters['bookingId'],
+      ),
     ),
     GoRoute(
       path: '/booking_checkout',

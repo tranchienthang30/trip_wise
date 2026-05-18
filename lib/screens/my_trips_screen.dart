@@ -8,7 +8,14 @@ import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
 class MyTripsScreen extends StatefulWidget {
-  const MyTripsScreen({super.key});
+  const MyTripsScreen({
+    super.key,
+    this.initialStatus,
+    this.focusBookingId,
+  });
+
+  final String? initialStatus;
+  final String? focusBookingId;
 
   @override
   State<MyTripsScreen> createState() => _MyTripsScreenState();
@@ -18,6 +25,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   final MyTripsApi _api = MyTripsApi();
 
   String _selectedTab = 'upcoming';
+  String? _focusBookingId;
   MyTripsResponse? _data;
   bool _isLoading = true;
   String? _error;
@@ -31,7 +39,37 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedTab = _normalizeTab(widget.initialStatus);
+    _focusBookingId = _normalizeBookingId(widget.focusBookingId);
     _loadTrips(status: _selectedTab);
+  }
+
+  @override
+  void didUpdateWidget(covariant MyTripsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialStatus != widget.initialStatus ||
+        oldWidget.focusBookingId != widget.focusBookingId) {
+      _selectedTab = _normalizeTab(widget.initialStatus);
+      _focusBookingId = _normalizeBookingId(widget.focusBookingId);
+      _loadTrips(status: _selectedTab);
+    }
+  }
+
+  String _normalizeTab(String? value) {
+    switch (value) {
+      case 'completed':
+      case 'cancelled':
+      case 'upcoming':
+        return value!;
+      default:
+        return 'upcoming';
+    }
+  }
+
+  String? _normalizeBookingId(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   Future<void> _loadTrips({String? status}) async {
@@ -43,11 +81,15 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     });
 
     try {
-      final data = await _api.fetchTrips(status: nextStatus);
+      final data = await _api.fetchTrips(
+        status: nextStatus,
+        bookingId: _focusBookingId,
+      );
       if (!mounted) return;
       setState(() {
         _data = data;
         _selectedTab = data.selectedTab;
+        _focusBookingId = null;
         _isLoading = false;
       });
     } catch (error) {
@@ -59,9 +101,16 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     }
   }
 
+  Future<void> _openTripDetails(String route) async {
+    await context.push(route);
+    if (!mounted) return;
+    await _loadTrips(status: _selectedTab);
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
+    final visibleItems = data?.items ?? const <MyTripCard>[];
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
@@ -94,16 +143,13 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 else if (_error != null && data == null)
                   _buildErrorState()
                 else ...[
-                  if (data?.featured != null)
-                    _buildFeaturedCard(data!.featured!),
-                  if (data?.featured != null) const SizedBox(height: 20),
                   if (_error != null)
                     _InlineError(
                       message: _error!,
                       onRetry: () => _loadTrips(status: _selectedTab),
                     ),
                   if (_error != null) const SizedBox(height: 16),
-                  _buildTripList(data?.items ?? const []),
+                  _buildTripList(visibleItems),
                 ],
               ],
             ),
@@ -285,7 +331,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       children: items.map((item) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _TripListCard(item: item),
+          child: _TripListCard(
+            item: item,
+            onOpen: () => _openTripDetails(item.route),
+          ),
         );
       }).toList(),
     );
@@ -340,9 +389,13 @@ class _TripTab {
 }
 
 class _TripListCard extends StatelessWidget {
-  const _TripListCard({required this.item});
+  const _TripListCard({
+    required this.item,
+    required this.onOpen,
+  });
 
   final MyTripCard item;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +467,7 @@ class _TripListCard extends StatelessWidget {
                       ),
                     ),
                     OutlinedButton(
-                      onPressed: () => context.push(item.route),
+                      onPressed: onOpen,
                       style: TripwiseButtonStyles.outlined(
                         radius: 10,
                         padding: const EdgeInsets.symmetric(
