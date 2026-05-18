@@ -81,7 +81,7 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
           backgroundColor: TripwiseColors.primary,
         ),
       );
-      context.go('/home');
+      context.go(AuthSessionStore.instance.landingRoute);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -113,7 +113,7 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
           backgroundColor: TripwiseColors.primary,
         ),
       );
-      context.go('/home');
+      context.go(AuthSessionStore.instance.landingRoute);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -180,10 +180,10 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final title = _isSignUp ? 'Create your account' : 'Welcome back';
+    final title = _isSignUp ? 'Create your planner account' : 'Welcome back';
     final subtitle = _isSignUp
-        ? 'Register once, then stay signed in for up to 14 days.'
-        : 'Sign in to continue your trips, bookings, and saved plans.';
+        ? 'New accounts start as planners. You can request provider access later inside Tripwise.'
+        : 'Sign in to continue your trips, bookings, saved plans, or provider workspace based on your account.';
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
@@ -194,8 +194,6 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHero(textTheme),
-              const SizedBox(height: 24),
-              _buildModeToggle(),
               const SizedBox(height: 24),
               Text(
                 title,
@@ -386,8 +384,10 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
                     children: [
                       const _GoogleBadge(),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Google',
+                      Text(
+                        _isSignUp
+                            ? 'Continue with Google to create account'
+                            : 'Continue with Google',
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ],
@@ -487,71 +487,6 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildModeToggle() {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ModeButton(
-              label: 'Sign In',
-              isActive: _mode == _AuthMode.signIn,
-              onTap: () => _switchMode(_AuthMode.signIn),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ModeButton(
-              label: 'Create Account',
-              isActive: _mode == _AuthMode.signUp,
-              onTap: () => _switchMode(_AuthMode.signUp),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeButton extends StatelessWidget {
-  const _ModeButton({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: isActive
-          ? TripwiseButtonStyles.primaryElevated(
-              radius: 14,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            )
-          : TripwiseButtonStyles.outlined(
-              radius: 14,
-              foregroundColor: TripwiseColors.primary,
-              borderColor: Colors.transparent,
-              backgroundColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.w800),
       ),
     );
   }

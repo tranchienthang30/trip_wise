@@ -1,3 +1,16 @@
+enum AuthAccessRole { planner, provider }
+
+AuthAccessRole authAccessRoleFromString(String? value) {
+  if ((value ?? '').trim().toUpperCase() == 'PROVIDER') {
+    return AuthAccessRole.provider;
+  }
+  return AuthAccessRole.planner;
+}
+
+String authAccessRoleToApiValue(AuthAccessRole role) {
+  return role == AuthAccessRole.provider ? 'PROVIDER' : 'PLANNER';
+}
+
 class AuthUser {
   const AuthUser({
     required this.id,
@@ -16,6 +29,11 @@ class AuthUser {
   final String? image;
   final String role;
   final String status;
+
+  bool get isProvider => authAccessRole == AuthAccessRole.provider;
+  bool get isPlanner => !isProvider;
+  AuthAccessRole get authAccessRole => authAccessRoleFromString(role);
+  String get landingRoute => isProvider ? '/provider_dashboard' : '/home';
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
@@ -56,6 +74,9 @@ class AuthSessionData {
   final int ttlDays;
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
+  String get landingRoute => user.landingRoute;
+  bool get isProvider => user.isProvider;
+  bool get isPlanner => user.isPlanner;
 
   factory AuthSessionData.fromAuthResponse(Map<String, dynamic> json) {
     final session = (json['session'] as Map<String, dynamic>?) ?? const {};

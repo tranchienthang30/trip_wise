@@ -33,6 +33,8 @@ class AuthSessionStore extends ChangeNotifier {
   bool get isReady => _isReady;
   bool get isAuthenticated => _session != null && !_session!.isExpired;
   AuthSessionData? get session => _session;
+  bool get isProvider => _session?.isProvider ?? false;
+  String get landingRoute => _session?.landingRoute ?? '/home';
 
   Future<void> initialize() async {
     if (_isReady) return;
@@ -81,7 +83,10 @@ class AuthSessionStore extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    final session = await _authApi.login(email: email, password: password);
+    final session = await _authApi.login(
+      email: email,
+      password: password,
+    );
     await _persistSession(session);
     await syncPushToken();
     return session;
@@ -118,7 +123,9 @@ class AuthSessionStore extends ChangeNotifier {
         throw AuthApiError('Unable to complete Google sign-in');
       }
 
-      final session = await _authApi.signInWithGoogle(idToken: firebaseIdToken);
+      final session = await _authApi.signInWithGoogle(
+        idToken: firebaseIdToken,
+      );
       await _persistSession(session);
       await syncPushToken();
       return session;
@@ -207,7 +214,9 @@ class AuthSessionStore extends ChangeNotifier {
           final status = error.response?.statusCode;
           final path = error.requestOptions.path;
           final isAuthMutation =
-              path.endsWith('/auth/login') || path.endsWith('/auth/register');
+              path.endsWith('/auth/login') ||
+              path.endsWith('/auth/register') ||
+              path.endsWith('/auth/google');
 
           if (status == 401 && _session != null && !isAuthMutation) {
             await _clearLocal();
