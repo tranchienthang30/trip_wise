@@ -78,7 +78,7 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: TripwiseColors.primary,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
-              fontSize: 24,
+              fontSize: 16,
             ),
       ),
       actions: [

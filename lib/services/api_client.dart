@@ -27,4 +27,13 @@ class ApiClient {
   static final ApiClient instance = ApiClient._();
 
   late final Dio dio;
+
+  void setAuthToken(String? token) {
+    final normalized = token?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      dio.options.headers.remove('Authorization');
+      return;
+    }
+    dio.options.headers['Authorization'] = 'Bearer $normalized';
+  }
 }

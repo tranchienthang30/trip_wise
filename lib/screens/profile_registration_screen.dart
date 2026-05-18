@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../models/profile_data.dart';
+import '../services/auth_session_store.dart';
 import '../services/profile_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
@@ -409,7 +410,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             icon: Icons.logout,
             label: 'Sign Out',
             isDestructive: true,
-            onTap: () => context.go('/home'),
+            onTap: _handleSignOut,
           ),
         ],
       ),
@@ -514,6 +515,37 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleSignOut() async {
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Sign out'),
+          content: const Text(
+            'You will need to sign in again to access your trips and wallet.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TripwiseButtonStyles.primaryElevated(radius: 12),
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSignOut != true || !mounted) return;
+
+    await AuthSessionStore.instance.logout();
+    if (!mounted) return;
+    context.go('/register');
   }
 }
 

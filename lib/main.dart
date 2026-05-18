@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'constants/theme.dart';
+import 'services/auth_session_store.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
 import 'screens/home_screen.dart';
@@ -43,6 +44,7 @@ import 'screens/provider_registration_form_screen.dart';
 /// Root navigator key so push-notification taps can deep-link without a
 /// BuildContext (FCM handlers run outside the widget tree).
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+final AuthSessionStore _authSessionStore = AuthSessionStore.instance;
 
 // A deep link that arrived before the router was mounted (cold start from a
 // killed-state notification tap). Flushed on the first frame.
@@ -61,8 +63,21 @@ void handleDeepLink(String? route) {
 }
 
 final GoRouter _router = GoRouter(
-  initialLocation: '/register',
+  initialLocation: '/home',
   navigatorKey: rootNavigatorKey,
+  refreshListenable: _authSessionStore,
+  redirect: (context, state) {
+    final isLoggedIn = _authSessionStore.isAuthenticated;
+    final onAuthScreen = state.matchedLocation == '/register';
+
+    if (!isLoggedIn && !onAuthScreen) {
+      return '/register';
+    }
+    if (isLoggedIn && onAuthScreen) {
+      return '/home';
+    }
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/register',
@@ -245,6 +260,7 @@ final GoRouter _router = GoRouter(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _authSessionStore.initialize();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -261,12 +277,13 @@ void main() async {
 
   if (PushMessagingService.isSupported) {
     await PushMessagingService.initialize(onDeepLink: handleDeepLink);
-    final token = await PushMessagingService.getToken();
-    if (token != null) {
-      await DeviceApi().registerToken(token);
-    }
+    await _authSessionStore.syncPushToken();
     PushMessagingService.onTokenRefresh.listen(
-      (t) => DeviceApi().registerToken(t),
+      (t) {
+        if (_authSessionStore.isAuthenticated) {
+          DeviceApi().registerToken(t);
+        }
+      },
     );
   }
 }
