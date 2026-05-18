@@ -1,19 +1,66 @@
 import 'package:flutter/material.dart';
+
 import '../constants/colors.dart';
 
-class SecurityPrivacyScreen extends StatefulWidget {
+class SecurityPrivacyScreen extends StatelessWidget {
   const SecurityPrivacyScreen({super.key});
 
-  @override
-  State<SecurityPrivacyScreen> createState() => _SecurityPrivacyScreenState();
-}
+  static const List<_PolicyItem> _securityItems = [
+    _PolicyItem(
+      title: 'Two-Factor Authentication',
+      description: 'Bật xác thực 2 lớp để tăng bảo mật đăng nhập.',
+      status: 'Enabled',
+      enabled: true,
+    ),
+    _PolicyItem(
+      title: 'Login Alerts',
+      description: 'Gửi cảnh báo khi tài khoản đăng nhập từ thiết bị mới.',
+      status: 'Enabled',
+      enabled: true,
+    ),
+    _PolicyItem(
+      title: 'Session Timeout',
+      description: 'Tự động đăng xuất sau 30 phút không hoạt động.',
+      status: 'Enabled',
+      enabled: true,
+    ),
+  ];
 
-class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
-  bool twoFactorEnabled = true;
-  bool shareActivity = true;
-  bool profileVisible = true;
-  bool allowMessages = true;
-  bool allowRecommendations = false;
+  static const List<_PolicyItem> _privacyItems = [
+    _PolicyItem(
+      title: 'Profile Visibility',
+      description: 'Thông tin profile chỉ hiển thị cho người dùng đã đăng nhập.',
+      status: 'Private',
+      enabled: true,
+    ),
+    _PolicyItem(
+      title: 'Activity Status',
+      description: 'Không hiển thị trạng thái online với người dùng khác.',
+      status: 'Hidden',
+      enabled: false,
+    ),
+    _PolicyItem(
+      title: 'Direct Messages',
+      description: 'Chỉ nhận tin nhắn từ người đã kết nối hoặc đã đặt dịch vụ.',
+      status: 'Limited',
+      enabled: true,
+    ),
+  ];
+
+  static const List<_PolicyItem> _dataItems = [
+    _PolicyItem(
+      title: 'Data Retention',
+      description: 'Dữ liệu booking được lưu để hỗ trợ lịch sử chuyến đi và đối soát.',
+      status: 'Standard',
+      enabled: true,
+    ),
+    _PolicyItem(
+      title: 'Marketing Personalization',
+      description: 'Tắt cá nhân hóa quảng cáo và ưu tiên gợi ý mặc định.',
+      status: 'Disabled',
+      enabled: false,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -33,186 +80,170 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Security Section
-            _buildSectionHeader('Security', Icons.lock),
-            const SizedBox(height: 16),
-            _buildSimpleToggle(
-              title: 'Two-Factor Authentication',
-              subtitle: 'Add an extra layer of security to your account',
-              value: twoFactorEnabled,
-              onChanged: (value) {
-                setState(() => twoFactorEnabled = value);
-              },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        children: [
+          const _SectionTitle(
+            icon: Icons.lock_outline,
+            title: 'Security Settings',
+          ),
+          const SizedBox(height: 12),
+          ..._securityItems.map((item) => _PolicyTile(item: item)),
+          const SizedBox(height: 24),
+          const _SectionTitle(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Privacy Settings',
+          ),
+          const SizedBox(height: 12),
+          ..._privacyItems.map((item) => _PolicyTile(item: item)),
+          const SizedBox(height: 24),
+          const _SectionTitle(
+            icon: Icons.storage_outlined,
+            title: 'Data & Permissions',
+          ),
+          const SizedBox(height: 12),
+          ..._dataItems.map((item) => _PolicyTile(item: item)),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 32),
-
-            // Privacy Section
-            _buildSectionHeader('Privacy', Icons.privacy_tip),
-            const SizedBox(height: 16),
-            _buildSimpleToggle(
-              title: 'Share Activity Status',
-              subtitle: 'Let others see when you\'re active',
-              value: shareActivity,
-              onChanged: (value) {
-                setState(() => shareActivity = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildSimpleToggle(
-              title: 'Profile Visibility',
-              subtitle: 'Make your profile visible to others',
-              value: profileVisible,
-              onChanged: (value) {
-                setState(() => profileVisible = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildSimpleToggle(
-              title: 'Allow Direct Messages',
-              subtitle: 'Allow other users to send you messages',
-              value: allowMessages,
-              onChanged: (value) {
-                setState(() => allowMessages = value);
-              },
-            ),
-            const SizedBox(height: 32),
-
-            // Preferences Section
-            _buildSectionHeader('Preferences', Icons.tune),
-            const SizedBox(height: 16),
-            _buildSimpleToggle(
-              title: 'Trip Recommendations',
-              subtitle: 'Receive personalized travel recommendations',
-              value: allowRecommendations,
-              onChanged: (value) {
-                setState(() => allowRecommendations = value);
-              },
-            ),
-            const SizedBox(height: 48),
-
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _saveSecurityPreferences();
-                },
-                style: TripwiseButtonStyles.primaryElevated(
-                  radius: 12,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                icon: const Icon(Icons.save),
-                label: const Text(
-                  'Save Preferences',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            child: const Text(
+              'Demo Mobile 2526II_INT3306_1',
+              style: TextStyle(
+                fontSize: 12,
+                color: TripwiseColors.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: TripwiseColors.primary.withOpacity(0.1),
+            color: TripwiseColors.primaryFixed,
             shape: BoxShape.circle,
           ),
           padding: const EdgeInsets.all(8),
-          child: Icon(
-            icon,
-            color: TripwiseColors.primary,
-            size: 20,
-          ),
+          child: Icon(icon, color: TripwiseColors.primary, size: 18),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildSimpleToggle({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
+class _PolicyTile extends StatelessWidget {
+  const _PolicyTile({required this.item});
+
+  final _PolicyItem item;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: TripwiseColors.outlineVariant),
+        color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TripwiseColors.outlineVariant),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: TextStyle(
+                  item.title,
+                  style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: TripwiseColors.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
-                  style: TextStyle(
+                  item.description,
+                  style: const TextStyle(
                     fontSize: 12,
+                    height: 1.4,
                     color: TripwiseColors.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          const SizedBox(width: 10),
+          _StatusChip(label: item.status, enabled: item.enabled),
         ],
       ),
     );
   }
+}
 
-  void _saveSecurityPreferences() {
-    // TODO: Implement API call to save preferences
-    // Example API structure:
-    // POST /api/security/preferences
-    // {
-    //   "twoFactorEnabled": twoFactorEnabled,
-    //   "shareActivity": shareActivity,
-    //   "profileVisible": profileVisible,
-    //   "allowMessages": allowMessages,
-    //   "allowRecommendations": allowRecommendations,
-    // }
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.enabled});
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Preferences saved successfully'),
-        backgroundColor: TripwiseColors.primary,
-        duration: const Duration(seconds: 2),
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: enabled
+            ? TripwiseColors.primaryFixed
+            : TripwiseColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: enabled
+              ? TripwiseColors.onPrimaryFixedVariant
+              : TripwiseColors.onSurfaceVariant,
+        ),
       ),
     );
   }
+}
+
+class _PolicyItem {
+  const _PolicyItem({
+    required this.title,
+    required this.description,
+    required this.status,
+    required this.enabled,
+  });
+
+  final String title;
+  final String description;
+  final String status;
+  final bool enabled;
 }

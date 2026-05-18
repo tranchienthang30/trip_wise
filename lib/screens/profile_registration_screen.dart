@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
 import '../models/profile_data.dart';
@@ -18,9 +20,11 @@ class ProfileRegistrationScreen extends StatefulWidget {
 
 class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   final ProfileApi _api = ProfileApi();
+  final ImagePicker _imagePicker = ImagePicker();
 
   ProfileData? _data;
   bool _isLoading = true;
+  bool _isUploadingAvatar = false;
   String? _error;
 
   @override
@@ -48,6 +52,42 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         _error = error.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _onUploadAvatar() async {
+    if (_isUploadingAvatar) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final file = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+      if (file == null) return;
+      setState(() => _isUploadingAvatar = true);
+      await _api.uploadAvatar(file);
+      if (!mounted) return;
+      await _loadProfile();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Avatar updated successfully.'),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is MissingPluginException
+          ? 'Image picker is not ready yet. Please fully restart the app.'
+          : error.toString();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
     }
   }
 
@@ -142,16 +182,29 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               Positioned(
                 bottom: 0,
                 right: 0,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: TripwiseColors.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: const Icon(
-                    Icons.edit,
-                    color: TripwiseColors.onSecondary,
-                    size: 18,
+                child: InkWell(
+                  onTap: _isUploadingAvatar ? null : _onUploadAvatar,
+                  borderRadius: BorderRadius.circular(99),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: TripwiseColors.secondaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: _isUploadingAvatar
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: TripwiseColors.onSecondary,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.edit,
+                            color: TripwiseColors.onSecondary,
+                            size: 18,
+                          ),
                   ),
                 ),
               ),

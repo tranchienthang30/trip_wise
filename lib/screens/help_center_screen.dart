@@ -1,52 +1,40 @@
 import 'package:flutter/material.dart';
+
 import '../constants/colors.dart';
 
-class HelpCenterScreen extends StatefulWidget {
+class HelpCenterScreen extends StatelessWidget {
   const HelpCenterScreen({super.key});
 
-  @override
-  State<HelpCenterScreen> createState() => _HelpCenterScreenState();
-}
-
-class _HelpCenterScreenState extends State<HelpCenterScreen> {
-  String searchQuery = '';
-
-  final List<FAQItem> faqs = [
-    FAQItem(
-      category: 'Account & Profile',
-      questions: [
-        'How do I reset my password?',
-        'How to update my profile information?',
-        'Can I delete my account?',
-        'How to link social media accounts?',
-      ],
+  static const List<FaqItem> _faqs = [
+    FaqItem(
+      question: 'Làm sao để đặt chuyến đi?',
+      answer:
+          'Vào Home, chọn dịch vụ bạn muốn, bấm Book Now, kiểm tra thông tin ở Checkout rồi bấm Complete Booking.',
     ),
-    FAQItem(
-      category: 'Booking & Payments',
-      questions: [
-        'How do I book a trip?',
-        'What payment methods do you accept?',
-        'Can I modify my booking?',
-        'What is your cancellation policy?',
-      ],
+    FaqItem(
+      question: 'Tôi có thể hủy booking ở đâu?',
+      answer:
+          'Bạn mở My Trips, chọn booking cần hủy hoặc vào Service Detail của dịch vụ đã đặt rồi bấm Cancel. Trạng thái sẽ chuyển sang Cancelled.',
     ),
-    FAQItem(
-      category: 'Trips & Travel',
-      questions: [
-        'How do I add items to my trip?',
-        'Can I share my trip with others?',
-        'How to plan a multi-city trip?',
-        'What documents do I need to travel?',
-      ],
+    FaqItem(
+      question: 'Vì sao booking không thấy trong Upcoming?',
+      answer:
+          'Hãy kéo xuống để refresh My Trips. Nếu booking đã hủy thì sẽ nằm ở tab Cancelled, nếu hoàn tất thì ở tab Completed.',
     ),
-    FAQItem(
-      category: 'Become a Provider',
-      questions: [
-        'How do I become a provider?',
-        'What are the requirements?',
-        'How much can I earn?',
-        'How do I receive payments?',
-      ],
+    FaqItem(
+      question: 'Trip Wise hỗ trợ phương thức thanh toán nào?',
+      answer:
+          'Hiện tại ứng dụng hỗ trợ Card, Wallet và PayPal (tùy theo dữ liệu khả dụng ở màn Checkout).',
+    ),
+    FaqItem(
+      question: 'Làm sao cập nhật thông tin profile?',
+      answer:
+          'Trong màn Profile, bạn bấm vào avatar hoặc các mục thông tin để chỉnh sửa rồi lưu lại.',
+    ),
+    FaqItem(
+      question: 'Làm sao liên hệ hỗ trợ?',
+      answer:
+          'Bạn vào Profile > Help Center và gửi thông tin qua kênh hỗ trợ nội bộ hoặc email hỗ trợ của hệ thống.',
     ),
   ];
 
@@ -68,284 +56,86 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        children: [
+          Text(
+            'Câu hỏi thường gặp',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Các câu trả lời được chuẩn bị sẵn để bạn tra cứu nhanh.',
+            style: TextStyle(
+              color: TripwiseColors.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._faqs.map(
+            (faq) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _FaqTile(item: faq),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FaqTile extends StatelessWidget {
+  const _FaqTile({required this.item});
+
+  final FaqItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          iconColor: TripwiseColors.primary,
+          collapsedIconColor: TripwiseColors.onSurfaceVariant,
+          title: Text(
+            item.question,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: TripwiseColors.onSurface,
+            ),
+          ),
           children: [
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: TripwiseColors.outlineVariant),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: TextField(
-                onChanged: (value) {
-                  setState(() => searchQuery = value);
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search help articles...',
-                  border: InputBorder.none,
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: TripwiseColors.onSurfaceVariant,
-                  ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                item.answer,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: TripwiseColors.onSurfaceVariant,
                 ),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Popular Topics
-            Text(
-              'Popular Topics',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: [
-                _buildTopicCard('Getting Started', Icons.play_arrow),
-                _buildTopicCard('Booking Help', Icons.calendar_today),
-                _buildTopicCard('Payment Issues', Icons.credit_card),
-                _buildTopicCard('Account Settings', Icons.settings),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // FAQs by Category
-            Text(
-              'Frequently Asked Questions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            ListView.builder(
-              itemCount: faqs.length,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                return _buildFAQCategory(faqs[index]);
-              },
-            ),
-            const SizedBox(height: 32),
-
-            // Contact Support
-            Container(
-              decoration: BoxDecoration(
-                color: TripwiseColors.primaryContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.support_agent,
-                    size: 40,
-                    color: TripwiseColors.onPrimaryContainer,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Still Need Help?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: TripwiseColors.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Contact our support team and we\'ll help you within 24 hours',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: TripwiseColors.onPrimaryContainer.withOpacity(0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.mail),
-                    label: const Text('Contact Support'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Additional Resources
-            Text(
-              'Additional Resources',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            _buildResourceItem('Privacy Policy', Icons.privacy_tip),
-            const SizedBox(height: 12),
-            _buildResourceItem('Terms of Service', Icons.description),
-            const SizedBox(height: 12),
-            _buildResourceItem('Community Guidelines', Icons.groups),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopicCard(String title, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: TripwiseColors.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 32,
-                  color: TripwiseColors.primary,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: TripwiseColors.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFAQCategory(FAQItem item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          item.category,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: TripwiseColors.primary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...item.questions.map(
-          (question) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _buildFAQItem(question),
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Widget _buildFAQItem(String question) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: TripwiseColors.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    question,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: TripwiseColors.onSurface,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: TripwiseColors.outlineVariant,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResourceItem(String title, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: TripwiseColors.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: TripwiseColors.primary,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: TripwiseColors.onSurface,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: TripwiseColors.outlineVariant,
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 }
 
-class FAQItem {
-  final String category;
-  final List<String> questions;
+class FaqItem {
+  const FaqItem({required this.question, required this.answer});
 
-  FAQItem({
-    required this.category,
-    required this.questions,
-  });
+  final String question;
+  final String answer;
 }
