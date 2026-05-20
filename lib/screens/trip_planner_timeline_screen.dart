@@ -106,7 +106,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const PlannerAppBar(),
+      appBar: const PlannerAppBar(backRoute: '/trip_planner_dashboard'),
       body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddActivity,

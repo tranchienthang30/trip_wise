@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/trips_api.dart';
 
 class PlanNewTripFormScreen extends StatefulWidget {
   const PlanNewTripFormScreen({super.key});
@@ -11,7 +12,81 @@ class PlanNewTripFormScreen extends StatefulWidget {
 }
 
 class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
+  final TripsApi _api = TripsApi();
+  final _tripNameController = TextEditingController();
+  final _destinationController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
+
   bool _inviteFriends = false;
+  bool _isSubmitting = false;
+
+  DateTime? _parseDate(String value) {
+    final trimmed = value.trim();
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(trimmed)) return null;
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed == null) return null;
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  @override
+  void dispose() {
+    _tripNameController.dispose();
+    _destinationController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createTrip() async {
+    if (_isSubmitting) return;
+    final startDate = _parseDate(_startDateController.text);
+    final endDate = _parseDate(_endDateController.text);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (startDate == null || endDate == null) {
+      _showError('Start date and end date must be YYYY-MM-DD');
+      return;
+    }
+    if (startDate.isBefore(today) || endDate.isBefore(today)) {
+      _showError('Trip dates cannot be before today.');
+      return;
+    }
+    if (endDate.isBefore(startDate)) {
+      _showError('End date must be after start date.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final trip = await _api.createTrip(
+        title: _tripNameController.text.trim(),
+        destination: _destinationController.text.trim(),
+        startDate: _startDateController.text.trim(),
+        endDate: _endDateController.text.trim(),
+      );
+      if (!mounted) return;
+      context.go('/trip_planner_timeline?id=${Uri.encodeQueryComponent(trip.id)}');
+    } catch (error) {
+      if (!mounted) return;
+      _showError(error.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +131,14 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                       label: 'Trip Name',
                       hint: 'e.g., Adventure in Tokyo',
                       icon: Icons.edit_square,
+                      controller: _tripNameController,
                     ),
                     const SizedBox(height: 24),
                     _buildTextField(
                       label: 'Destination',
                       hint: 'Search a city, country...',
                       icon: Icons.location_on,
+                      controller: _destinationController,
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -71,6 +148,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                             label: 'Start Date',
                             hint: 'YYYY-MM-DD',
                             icon: Icons.calendar_today,
+                            controller: _startDateController,
                           ),
                         ),
                         const SizedBox(width: 24),
@@ -79,6 +157,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                             label: 'End Date',
                             hint: 'YYYY-MM-DD',
                             icon: Icons.event,
+                            controller: _endDateController,
                           ),
                         ),
                       ],
@@ -135,7 +214,12 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
     );
   }
 
-  Widget _buildTextField({required String label, required String hint, required IconData icon}) {
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -156,6 +240,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: TextField(
+            controller: controller,
             style: const TextStyle(fontSize: 18, color: Color(0xFF181C22)),
             decoration: InputDecoration(
               hintText: hint,
@@ -274,12 +359,21 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: () => context.go('/trip_planner_dashboard'),
+                        onPressed: _isSubmitting ? null : _createTrip,
                         style: TripwiseButtonStyles.primaryElevated(
                           radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 20),
                         ),
-                        child: Row(
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
                             Text('Create Trip', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

@@ -22,6 +22,36 @@ class TripsApi {
     return TripsResponse.fromJson(data);
   }
 
+  Future<Trip> createTrip({
+    required String title,
+    required String destination,
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/trips',
+        data: {
+          'title': title,
+          'destination': destination,
+          'startDate': startDate,
+          'endDate': endDate,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /trips');
+      }
+      return Trip.fromJson(data);
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      if (resp is Map && resp['message'] is String) {
+        throw TripsApiException(resp['message'] as String);
+      }
+      throw TripsApiException('Something went wrong. Please try again.');
+    }
+  }
+
   /// Append a real activity onto a given day of a trip. Returns the updated
   /// trip; callers may also just re-fetch the list.
   Future<Trip> addItem({

@@ -9,7 +9,9 @@ const String _sharedAvatarUrl =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A';
 
 class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const PlannerAppBar({super.key});
+  const PlannerAppBar({super.key, this.backRoute});
+
+  final String? backRoute;
 
   @override
   Size get preferredSize => const Size.fromHeight(68);
@@ -21,6 +23,16 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
+      leading: backRoute == null
+          ? null
+          : IconButton(
+              onPressed: () => context.go(backRoute!),
+              tooltip: 'Back',
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: TripwiseColors.primary,
+              ),
+            ),
       titleSpacing: 20,
       title: Text(
         'TRIP WISE',
