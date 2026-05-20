@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/direct_message.dart';
 import '../services/direct_messages_api.dart';
+import '../services/rule_based_chatbot_service.dart';
 import '../widgets/shared_top_bars.dart';
 
 class DirectMessagingScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class DirectMessagingScreen extends StatefulWidget {
 
 class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   final DirectMessagesApi _api = DirectMessagesApi();
+  final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -33,6 +35,10 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   String? _error;
 
   bool get _isProviderMode => widget.mode?.trim().toLowerCase() != 'user';
+  bool get _hasRemoteTarget =>
+      (widget.conversationId?.trim().isNotEmpty ?? false) ||
+      (widget.orderId?.trim().isNotEmpty ?? false);
+  bool get _isLocalAssistantMode => !_isProviderMode && !_hasRemoteTarget;
 
   @override
   void initState() {
@@ -52,6 +58,18 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       _isLoading = true;
       _error = null;
     });
+
+    if (_isLocalAssistantMode) {
+      setState(() {
+        _conversation = _assistantConversation();
+        _messages = [
+          _localMessage(body: RuleBasedChatbotService.greeting, isMine: false),
+        ];
+        _isLoading = false;
+      });
+      _scrollToBottom();
+      return;
+    }
 
     try {
       final detail = await _initialConversationDetail();
@@ -104,6 +122,11 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     final text = _messageController.text.trim();
     if (conversation == null || text.isEmpty || _isSending) return;
 
+    if (_isLocalAssistantMode) {
+      _sendAssistantMessage(conversation.id, text);
+      return;
+    }
+
     setState(() => _isSending = true);
     try {
       final message = await _api.sendMessage(conversation.id, text);
@@ -121,6 +144,73 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Could not send message: $error')));
     }
+  }
+
+  void _sendAssistantMessage(String conversationId, String text) {
+    _messageController.clear();
+    setState(() {
+      _messages = [
+        ..._messages,
+        _localMessage(conversationId: conversationId, body: text, isMine: true),
+      ];
+      _isSending = true;
+    });
+    _scrollToBottom();
+
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      setState(() {
+        _messages = [
+          ..._messages,
+          _localMessage(
+            conversationId: conversationId,
+            body: _chatbot.respondTo(text),
+            isMine: false,
+          ),
+        ];
+        _isSending = false;
+      });
+      _scrollToBottom();
+    });
+  }
+
+  DirectConversation _assistantConversation() {
+    final now = DateTime.now().toIso8601String();
+    return DirectConversation(
+      id: 'local-rule-based-assistant',
+      title: 'TripWise Assistant',
+      subtitle: 'Rule-based chatbot',
+      avatarUrl: null,
+      providerId: null,
+      bookingId: null,
+      listingId: null,
+      lastMessage: RuleBasedChatbotService.greeting,
+      lastMessageAt: now,
+      unread: false,
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+
+  DirectMessage _localMessage({
+    String conversationId = 'local-rule-based-assistant',
+    required String body,
+    required bool isMine,
+  }) {
+    final now = DateTime.now();
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    return DirectMessage(
+      id: 'local-${now.microsecondsSinceEpoch}-${isMine ? 'user' : 'bot'}',
+      conversationId: conversationId,
+      senderUserId: isMine ? 'current-user' : 'tripwise-assistant',
+      body: body,
+      isMine: isMine,
+      read: true,
+      createdAt: now.toIso8601String(),
+      timeLabel: '$hour:$minute',
+      dateLabel: 'TODAY',
+    );
   }
 
   void _scrollToBottom() {
@@ -327,6 +417,11 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       const SizedBox(height: 24),
     ];
 
+    if (_isLocalAssistantMode) {
+      children.add(_buildAssistantQuickPrompts());
+      children.add(const SizedBox(height: 24));
+    }
+
     String? currentDateLabel;
     for (final message in _messages) {
       if (message.dateLabel != currentDateLabel) {
@@ -358,6 +453,35 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     );
   }
 
+  Widget _buildAssistantQuickPrompts() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: RuleBasedChatbotService.quickPrompts.map((prompt) {
+        return ActionChip(
+          avatar: const Icon(
+            Icons.auto_awesome_rounded,
+            size: 16,
+            color: Color(0xFF004779),
+          ),
+          label: Text(prompt),
+          labelStyle: const TextStyle(
+            color: Color(0xFF004779),
+            fontWeight: FontWeight.w700,
+          ),
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFFE0ECF8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+          onPressed: _isSending
+              ? null
+              : () => _sendAssistantMessage(_conversation!.id, prompt),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildConversationHeader(DirectConversation conversation) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -381,7 +505,12 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                 ? null
                 : NetworkImage(conversation.avatarUrl!),
             child: conversation.avatarUrl == null
-                ? const Icon(Icons.person, color: Color(0xFF64748B))
+                ? Icon(
+                    _isLocalAssistantMode
+                        ? Icons.smart_toy_rounded
+                        : Icons.person,
+                    color: const Color(0xFF64748B),
+                  )
                 : null,
           ),
           const SizedBox(width: 14),
@@ -412,14 +541,16 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.call, color: Color(0xFF64748B)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
-            onPressed: () {},
-          ),
+          if (!_isLocalAssistantMode) ...[
+            IconButton(
+              icon: const Icon(Icons.call, color: Color(0xFF64748B)),
+              onPressed: () {},
+            ),
+            IconButton(
+              icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+              onPressed: () {},
+            ),
+          ],
         ],
       ),
     );
@@ -615,14 +746,16 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                     enabled: enabled,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type your message...',
-                      hintStyle: TextStyle(
+                    decoration: InputDecoration(
+                      hintText: _isLocalAssistantMode
+                          ? 'Ask about tours, prices, or cancellation...'
+                          : 'Type your message...',
+                      hintStyle: const TextStyle(
                         fontSize: 16,
                         color: Color(0xFF94A3B8),
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
                       ),

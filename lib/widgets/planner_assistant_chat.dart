@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../services/rule_based_chatbot_service.dart';
 
 void showPlannerAssistantSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -31,10 +32,7 @@ class PlannerAssistantHeaderButton extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFFBEE1FF),
-                  TripwiseColors.primary,
-                ],
+                colors: [Color(0xFFBEE1FF), TripwiseColors.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -108,10 +106,7 @@ class PlannerAssistantHeaderButton extends StatelessWidget {
 }
 
 class _MascotEye extends StatelessWidget {
-  const _MascotEye({
-    this.width = 6,
-    this.height = 8,
-  });
+  const _MascotEye({this.width = 6, this.height = 8});
 
   final double width;
   final double height;
@@ -137,33 +132,15 @@ class _PlannerAssistantSheet extends StatefulWidget {
 }
 
 class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
+  final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   late final List<_PlannerAssistantMessage> _messages = [
     const _PlannerAssistantMessage(
-      text:
-          'Hi, I am Lumi. I can help sketch itineraries, suggest stays, and turn ideas into a day-by-day plan.',
+      text: RuleBasedChatbotService.greeting,
       isUser: false,
     ),
-    const _PlannerAssistantMessage(
-      text: 'I want a 4-day Bali plan with beach clubs and one quiet day.',
-      isUser: true,
-    ),
-    const _PlannerAssistantMessage(
-      text:
-          'Lovely choice. I would balance Seminyak, Uluwatu, and one slower Ubud day. Want me to break it into morning, afternoon, and evening?',
-      isUser: false,
-    ),
-  ];
-
-  int _replyIndex = 0;
-
-  static const List<String> _quickPrompts = [
-    'Create a 3-day itinerary',
-    'Suggest hotels near the beach',
-    'Estimate my travel budget',
-    'Find family-friendly activities',
   ];
 
   @override
@@ -200,39 +177,11 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
     setState(() {
       _messages.add(_PlannerAssistantMessage(text: text, isUser: true));
       _messages.add(
-        _PlannerAssistantMessage(
-          text: _buildAssistantReply(text),
-          isUser: false,
-        ),
+        _PlannerAssistantMessage(text: _chatbot.respondTo(text), isUser: false),
       );
     });
     _controller.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-  }
-
-  String _buildAssistantReply(String text) {
-    final normalized = text.toLowerCase();
-    if (normalized.contains('budget')) {
-      return 'I can split the budget into hotel, transport, food, and activities so your trip stays easier to control.';
-    }
-    if (normalized.contains('hotel')) {
-      return 'I can shortlist stays by vibe, area, and nightly budget, then slot the best options directly into your plan.';
-    }
-    if (normalized.contains('family')) {
-      return 'I will keep the pacing light, add kid-friendly stops, and avoid long transfer blocks where possible.';
-    }
-    if (normalized.contains('itinerary') || normalized.contains('day')) {
-      return 'I can turn that into a clear day-by-day schedule with travel time, meal ideas, and backup options.';
-    }
-
-    const replies = [
-      'I can organize that into a cleaner planner flow with destinations, timing, and booking ideas.',
-      'That works. I would next group the trip by area so each day feels smoother and less rushed.',
-      'I can help shape that into a realistic route with stays, activities, and spacing between each stop.',
-    ];
-    final reply = replies[_replyIndex % replies.length];
-    _replyIndex++;
-    return reply;
   }
 
   @override
@@ -285,10 +234,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
       padding: const EdgeInsets.fromLTRB(18, 18, 12, 16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0E6AAC),
-            TripwiseColors.primary,
-          ],
+          colors: [Color(0xFF0E6AAC), TripwiseColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -324,7 +270,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Travel ideas, schedules, and trip planning support',
+                  'Rule-based travel support and booking guidance',
                   style: TextStyle(
                     color: Color(0xFFD9EDFF),
                     fontSize: 13,
@@ -363,7 +309,10 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: TripwiseColors.primaryFixed,
                   borderRadius: BorderRadius.circular(999),
@@ -378,7 +327,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
               ),
               const Spacer(),
               const Text(
-                'Try a prompt',
+                'Try a message',
                 style: TextStyle(
                   color: Color(0xFF6A7381),
                   fontSize: 12,
@@ -389,7 +338,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Tap a suggestion below to preview how the planner assistant can start a conversation.',
+            'Tap a suggestion below to chat with the rule-based assistant.',
             style: TextStyle(
               color: TripwiseColors.onSurfaceVariant,
               fontSize: 14,
@@ -400,7 +349,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: _quickPrompts
+            children: RuleBasedChatbotService.quickPrompts
                 .map(
                   (prompt) => ActionChip(
                     label: Text(prompt),
@@ -471,10 +420,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
             height: 54,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  TripwiseColors.secondaryContainer,
-                  Color(0xFFFF814E),
-                ],
+                colors: [TripwiseColors.secondaryContainer, Color(0xFFFF814E)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -536,10 +482,7 @@ class _MessageBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: isUser
                     ? const LinearGradient(
-                        colors: [
-                          Color(0xFF0B6CAD),
-                          TripwiseColors.primary,
-                        ],
+                        colors: [Color(0xFF0B6CAD), TripwiseColors.primary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -576,10 +519,7 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _PlannerAssistantMessage {
-  const _PlannerAssistantMessage({
-    required this.text,
-    required this.isUser,
-  });
+  const _PlannerAssistantMessage({required this.text, required this.isUser});
 
   final String text;
   final bool isUser;
