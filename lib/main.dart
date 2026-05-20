@@ -45,17 +45,6 @@ import 'screens/provider_registration_form_screen.dart';
 /// BuildContext (FCM handlers run outside the widget tree).
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final AuthSessionStore _authSessionStore = AuthSessionStore.instance;
-const Set<String> _providerOnlyRoutes = {
-  '/provider_dashboard',
-  '/provider_finance',
-  '/provider_listings',
-  '/add_new_listing_form',
-  '/order_manager',
-  '/provider_listing_edit',
-  '/provider_listing_add',
-  '/provider_analytics',
-  '/inventory_pricing',
-};
 
 // A deep link that arrived before the router was mounted (cold start from a
 // killed-state notification tap). Flushed on the first frame.
@@ -80,16 +69,12 @@ final GoRouter _router = GoRouter(
   redirect: (context, state) {
     final isLoggedIn = _authSessionStore.isAuthenticated;
     final onAuthScreen = state.matchedLocation == '/register';
-    final isProviderRoute = _providerOnlyRoutes.contains(state.matchedLocation);
 
     if (!isLoggedIn && !onAuthScreen) {
       return '/register';
     }
     if (isLoggedIn && onAuthScreen) {
       return _authSessionStore.landingRoute;
-    }
-    if (isLoggedIn && isProviderRoute && !_authSessionStore.isProvider) {
-      return '/provider_registration';
     }
     return null;
   },
