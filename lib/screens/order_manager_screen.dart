@@ -17,6 +17,7 @@ class OrderManagerScreen extends StatefulWidget {
 class _OrderManagerScreenState extends State<OrderManagerScreen> {
   final OrdersApi _ordersApi = OrdersApi();
   String _selectedStatus = 'pending';
+  _OrderSortOption _selectedSort = _OrderSortOption.dateDesc;
   ProviderOrdersResponse? _data;
   bool _isLoading = true;
   String? _error;
@@ -42,7 +43,10 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     });
 
     try {
-      final data = await _ordersApi.fetchOrders(status: _selectedStatus);
+      final data = await _ordersApi.fetchOrders(
+        status: _selectedStatus,
+        sort: _selectedSort.value,
+      );
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -60,6 +64,12 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   Future<void> _selectStatus(String status) async {
     if (_selectedStatus == status) return;
     setState(() => _selectedStatus = status);
+    await _loadOrders();
+  }
+
+  Future<void> _selectSort(_OrderSortOption sort) async {
+    if (_selectedSort == sort) return;
+    setState(() => _selectedSort = sort);
     await _loadOrders();
   }
 
@@ -110,7 +120,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                     children: [
                       _buildHeader(),
                       const SizedBox(height: 40),
-                      _buildFilterTabs(),
+                      _buildToolbar(),
                       const SizedBox(height: 48),
                       _buildBody(),
                     ],
@@ -124,6 +134,15 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       bottomNavigationBar: const ProviderTaskbar(
         currentTab: ProviderTaskbarTab.orders,
       ),
+    );
+  }
+
+  Widget _buildToolbar() {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [_buildFilterTabs(), _buildSortMenu()],
     );
   }
 
@@ -147,6 +166,46 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
           style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
         ),
       ],
+    );
+  }
+
+  Widget _buildSortMenu() {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFDFE2EB)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<_OrderSortOption>(
+          value: _selectedSort,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          onChanged: (sort) {
+            if (sort != null) _selectSort(sort);
+          },
+          items: _OrderSortOption.values.map((sort) {
+            return DropdownMenuItem<_OrderSortOption>(
+              value: sort,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(sort.icon, size: 18, color: const Color(0xFF005F9F)),
+                  const SizedBox(width: 8),
+                  Text(
+                    sort.label,
+                    style: const TextStyle(
+                      color: Color(0xFF181C22),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
@@ -668,7 +727,9 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         ),
         const SizedBox(width: 12),
         ElevatedButton(
-          onPressed: () => context.push('/direct_messaging'),
+          onPressed: () => context.push(
+            '/direct_messaging?orderId=${Uri.encodeQueryComponent(order.id)}',
+          ),
           style: TripwiseButtonStyles.surfaceElevated(
             radius: 12,
             backgroundColor: TripwiseColors.surfaceContainerLow,
@@ -701,4 +762,17 @@ class _OrderTab {
 
   final String status;
   final String label;
+}
+
+enum _OrderSortOption {
+  dateDesc('date_desc', 'Date newest', Icons.calendar_month_rounded),
+  dateAsc('date_asc', 'Date oldest', Icons.event_available_rounded),
+  priceDesc('price_desc', 'Price high', Icons.trending_up_rounded),
+  priceAsc('price_asc', 'Price low', Icons.trending_down_rounded);
+
+  const _OrderSortOption(this.value, this.label, this.icon);
+
+  final String value;
+  final String label;
+  final IconData icon;
 }

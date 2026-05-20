@@ -191,7 +191,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/direct_messaging',
-      builder: (context, state) => const DirectMessagingScreen(),
+      builder: (context, state) => DirectMessagingScreen(
+        conversationId: state.uri.queryParameters['conversationId'],
+        orderId: state.uri.queryParameters['orderId'],
+      ),
     ),
     GoRoute(
       path: '/vip_services',
@@ -281,13 +284,11 @@ void main() async {
   if (PushMessagingService.isSupported) {
     await PushMessagingService.initialize(onDeepLink: handleDeepLink);
     await _authSessionStore.syncPushToken();
-    PushMessagingService.onTokenRefresh.listen(
-      (t) {
-        if (_authSessionStore.isAuthenticated) {
-          DeviceApi().registerToken(t);
-        }
-      },
-    );
+    PushMessagingService.onTokenRefresh.listen((t) {
+      if (_authSessionStore.isAuthenticated) {
+        DeviceApi().registerToken(t);
+      }
+    });
   }
 }
 
