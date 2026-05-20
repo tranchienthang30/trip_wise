@@ -2,11 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/provider_vip_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
-class EliteUpgradeConfirmationScreen extends StatelessWidget {
+class EliteUpgradeConfirmationScreen extends StatefulWidget {
   const EliteUpgradeConfirmationScreen({super.key});
+
+  @override
+  State<EliteUpgradeConfirmationScreen> createState() =>
+      _EliteUpgradeConfirmationScreenState();
+}
+
+class _EliteUpgradeConfirmationScreenState
+    extends State<EliteUpgradeConfirmationScreen> {
+  final ProviderVipApi _api = ProviderVipApi();
+  bool _isSubmitting = false;
+
+  Future<void> _confirmUpgrade() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _api.upgradeToElite();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Elite plan activated.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      context.go('/vip_services');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +80,7 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return const ProviderAppBar();
+    return const ProviderAppBar(backRoute: '/vip_services');
   }
 
   Widget _buildHeroSection() {
@@ -288,12 +329,21 @@ class EliteUpgradeConfirmationScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => context.go('/vip_services'),
+              onPressed: _isSubmitting ? null : _confirmUpgrade,
               style: TripwiseButtonStyles.primaryElevated(
                 radius: 32,
                 padding: const EdgeInsets.symmetric(vertical: 20),
               ),
-              child: const Text('Confirm Upgrade', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Confirm Upgrade', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 16),

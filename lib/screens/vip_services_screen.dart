@@ -2,39 +2,84 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/provider_vip.dart';
+import '../services/provider_vip_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
-class VipServicesScreen extends StatelessWidget {
+class VipServicesScreen extends StatefulWidget {
   const VipServicesScreen({super.key});
+
+  @override
+  State<VipServicesScreen> createState() => _VipServicesScreenState();
+}
+
+class _VipServicesScreenState extends State<VipServicesScreen> {
+  final ProviderVipApi _api = ProviderVipApi();
+
+  ProviderVipData? _data;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _error = null;
+      _data = null;
+    });
+    try {
+      final data = await _api.fetchVipServices();
+      if (!mounted) return;
+      setState(() => _data = data);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+    }
+  }
+
+  Future<void> _selectPromotion(String promotionId, String title) async {
+    try {
+      final data = await _api.selectPromotion(promotionId);
+      if (!mounted) return;
+      setState(() => _data = data);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('$title selected.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FF),
       appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: Column(
-          children: [
-            _buildHeroSection(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildUpgradePlanSection(context),
-                  const SizedBox(height: 48),
-                  _buildPromoteListingsSection(),
-                  const SizedBox(height: 48),
-                  _buildPromotionReachImpact(),
-                ],
-              ),
-            ),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 100),
+          child: _buildBody(context),
         ),
       ),
-      floatingActionButton: _buildFab(),
       bottomNavigationBar: const ProviderTaskbar(
         currentTab: ProviderTaskbarTab.vip,
       ),
@@ -45,15 +90,76 @@ class VipServicesScreen extends StatelessWidget {
     return const ProviderAppBar();
   }
 
-  Widget _buildHeroSection() {
+  ProviderVipPlan? _findPlan(List<ProviderVipPlan> plans, String id) {
+    for (final plan in plans) {
+      if (plan.id == id) return plan;
+    }
+    return null;
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final data = _data;
+    if (data == null && _error == null) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 180),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (data == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 180, 24, 24),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 48),
+              const SizedBox(height: 12),
+              const Text(
+                "Couldn't load VIP services",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF3F4752)),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _buildHeroSection(data.hero),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildUpgradePlanSection(context, data.plans),
+              const SizedBox(height: 48),
+              _buildPromoteListingsSection(data.promotions),
+              const SizedBox(height: 48),
+              _buildPromotionReachImpact(data.impact),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroSection(ProviderVipHero hero) {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 40, 24, 0),
       height: 400,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
+        image: DecorationImage(
           image: NetworkImage(
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuC3kP04RDK6hlaAT2SauvpVLGlvFVNBjlTJszwmJmKLC9KvFj9x_FC6DKuSbi2vxkJTolgfn-NAWw10R4CT369wb6m84nRL3aQnf-H_1DoKB_bgFj5HOlWijdTDdv5n0lNsyLR0rNzC8KArQ6A7pb-i7mGeVF_-brei9iE_p837xWPYcqCIeAUdllOwVQnQpU_7HvshogninfM3BpIs6kQQ11ltWABJ1mpft-P_YbbF0Vo_eGoP0foKhQq4yMzfEfcbG2ylKK3sBIU',
+            hero.imageUrl,
           ),
           fit: BoxFit.cover,
         ),
@@ -83,8 +189,8 @@ class VipServicesScreen extends StatelessWidget {
                 color: const Color(0xFF0078C7),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Text(
-                'VIP SERVICES',
+              child: Text(
+                hero.badge,
                 style: TextStyle(
                   color: Color(0xFFD1E4FF),
                   fontSize: 12,
@@ -94,8 +200,8 @@ class VipServicesScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Elevate Your Presence.',
+            Text(
+              hero.title,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 48,
@@ -106,7 +212,7 @@ class VipServicesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Unlock premium tools, lower your commission rates, and feature your services to millions of global travelers.',
+              hero.description,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.8),
                 fontSize: 16,
@@ -120,7 +226,10 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUpgradePlanSection(BuildContext context) {
+  Widget _buildUpgradePlanSection(BuildContext context, List<ProviderVipPlan> plans) {
+    final standard = _findPlan(plans, 'standard');
+    final elite = _findPlan(plans, 'elite');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -142,14 +251,14 @@ class VipServicesScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 32),
-        _buildStandardPlan(),
-        const SizedBox(height: 24),
-        _buildElitePlan(context),
+        if (standard != null) _buildStandardPlan(standard),
+        if (standard != null && elite != null) const SizedBox(height: 24),
+        if (elite != null) _buildElitePlan(context, elite),
       ],
     );
   }
 
-  Widget _buildStandardPlan() {
+  Widget _buildStandardPlan(ProviderVipPlan plan) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -160,21 +269,20 @@ class VipServicesScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Standard Provider',
+          Text(
+            plan.name,
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Your current operational baseline.',
+          Text(
+            plan.description,
             style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
           ),
           const SizedBox(height: 24),
-          _checkItem('15% Platform Commission'),
-          const SizedBox(height: 16),
-          _checkItem('Standard Support (24h)'),
-          const SizedBox(height: 16),
-          _checkItem('Basic Analytics'),
+          for (final feature in plan.features) ...[
+            _checkItem(feature),
+            const SizedBox(height: 16),
+          ],
           const SizedBox(height: 40),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
@@ -182,8 +290,8 @@ class VipServicesScreen extends StatelessWidget {
               border: Border.all(color: const Color(0xFFBFC7D4)),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text(
-              'Current Active Plan',
+            child: Text(
+              plan.ctaLabel,
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
             ),
           ),
@@ -205,7 +313,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildElitePlan(BuildContext context) {
+  Widget _buildElitePlan(BuildContext context, ProviderVipPlan plan) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -224,32 +332,32 @@ class VipServicesScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: const [
-                  Icon(Icons.star, color: Color(0xFFAB3500)),
-                  SizedBox(width: 12),
+                children: [
+                  const Icon(Icons.star, color: Color(0xFFAB3500)),
+                  const SizedBox(width: 12),
                   Text(
-                    'ELITE PROVIDER',
+                    plan.name,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFAB3500), letterSpacing: 1.5),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
-                'The gold standard for high-volume agencies and luxury boutiques.',
+                plan.description,
                 style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)),
               ),
               const SizedBox(height: 32),
               Row(
                 children: [
-                  Expanded(child: _eliteStat('8%', 'Reduced Commission')),
-                  Expanded(child: _eliteStat('24/7', 'Dedicated Concierge')),
+                  for (final stat in plan.stats.take(2))
+                    Expanded(child: _eliteStat(stat.value, stat.label)),
                 ],
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _eliteStat('Verified', 'Premium Badge')),
-                  Expanded(child: _eliteStat('Priority', 'Search Placement')),
+                  for (final stat in plan.stats.skip(2).take(2))
+                    Expanded(child: _eliteStat(stat.value, stat.label)),
                 ],
               ),
               const SizedBox(height: 32),
@@ -269,22 +377,23 @@ class VipServicesScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        const Text('\$', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
+                        Text(plan.priceLabel, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
                         const SizedBox(width: 4),
-                        Text('/mo', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6))),
+                        Text(plan.priceUnit, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6))),
                       ],
                     ),
                     const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () =>
-                              context.push('/elite_upgrade_confirmation'),
+                          onPressed: plan.ctaRoute == null
+                              ? null
+                              : () => context.push(plan.ctaRoute!),
                           style: TripwiseButtonStyles.primaryElevated(
                             radius: 12,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                        child: const Text('UPGRADE NOW', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        child: Text(plan.ctaLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                       ),
                     ),
                   ],
@@ -311,7 +420,13 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPromoteListingsSection() {
+  IconData _promotionIcon(String icon) {
+    if (icon == 'rocket') return Icons.rocket_launch;
+    if (icon == 'featured') return Icons.featured_play_list;
+    return Icons.campaign;
+  }
+
+  Widget _buildPromoteListingsSection(List<ProviderVipPromotion> promotions) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -333,37 +448,33 @@ class VipServicesScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 32),
-        _adSpotCard(
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPzFbfkT0XP3cpi4TM9bp9ntpnMwFLK0lrCUIwONZrhlblvVwn3O6Y6ztjBsZlIiFNKO1hNCsOU4I4xxfGlptp2Y1JrS1wQc0JGP2tTBlBFdUuUErYsKRBgC7jW0LhUi-xsCOw4K_moOb1Fy1kOzqvTkT125Pd1hfEy4RTM6bAUBXAR9RTgZNfN9emUUNKsTia_6208TvjUI9N2bBPFZ-KMDd53MaNH89GgU3gxKui7qLOJl8jKiq7yfWvSwLgXY3SJniux9F8Ca4',
-          icon: Icons.rocket_launch,
-          title: 'Top of Search',
-          description: 'Guarantee your listing appears in the first 3 results for your destination city.',
-          price: '\$',
-          priceUnit: '/ Day',
-        ),
-        const SizedBox(height: 24),
-        _adSpotCard(
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDydowfdEAt6ARDm16dBoFbn1jnF2sBkvVr-kAIakXzL1nvQr3nUP6ZzrzFICYHtwSa1X3w0KPewTYiFCAF5-VMnWeMfNof2SqyDliGihPY-1TO8P1QOBRFRMLoeYUVeLF7xVn_K3uLAhbtwWpmWYKoei7Mi1EaQjpWdSI8fn1c2DFjTYVzvvvyrGeptccEMNz-Jq1mwZ84JOR7UOYq0zG5N5Ay72HYO1fL0yKyj5hv1gQQqAKfww8G-bYYnU46XiAt4fmqNbLBEiM',
-          icon: Icons.featured_play_list,
-          title: 'Featured Slots',
-          description: "Get showcased in our 'Weekly Inspirations' email sent to 1.2M active users.",
-          price: '\$',
-          priceUnit: '/ Week',
-        ),
-        const SizedBox(height: 24),
-        _adSpotCard(
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDJva_rKhWPoXH5qLx9opzkuvk8essRrZa9IfmVRNl-qaTRrYGEGEZKjZxx3OPb6sA7VebFL6vVbJ2ZYfU-GUGlCRBHNju8IsN041gsHturlDA1D3_clJqd728EsSXv1Ugb845_buh9bn3jqK0mNW4J5FyQDd1lGoBnrbcclNjMff7LX2tKC2nti3GrNkvpBbRVX_bnkdTRl2EFkT8EirQlGCQwUHBU-wHUGX-APcyXRKkvYlGRStfcNlxJFXBn50RcEz8qfxDUf4Y',
-          icon: Icons.campaign,
-          title: 'Social Push',
-          description: 'Exclusive feature on Tripwise Instagram and TikTok partner networks.',
-          price: '\$',
-          priceUnit: '/ Post',
-        ),
+        for (final promotion in promotions) ...[
+          _adSpotCard(
+            id: promotion.id,
+            imageUrl: promotion.imageUrl,
+            icon: _promotionIcon(promotion.icon),
+            title: promotion.title,
+            description: promotion.description,
+            price: promotion.priceLabel,
+            priceUnit: promotion.priceUnit,
+            isSelected: promotion.isSelected,
+          ),
+          const SizedBox(height: 24),
+        ],
       ],
     );
   }
 
-  Widget _adSpotCard({required String imageUrl, required IconData icon, required String title, required String description, required String price, required String priceUnit}) {
+  Widget _adSpotCard({
+    required String id,
+    required String imageUrl,
+    required IconData icon,
+    required String title,
+    required String description,
+    required String price,
+    required String priceUnit,
+    required bool isSelected,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -416,7 +527,7 @@ class VipServicesScreen extends StatelessWidget {
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: isSelected ? null : () => _selectPromotion(id, title),
                       style: TripwiseButtonStyles.surfaceElevated(
                         radius: 24,
                         backgroundColor: TripwiseColors.surfaceContainerHigh,
@@ -426,7 +537,7 @@ class VipServicesScreen extends StatelessWidget {
                           vertical: 12,
                         ),
                       ),
-                      child: const Text('SELECT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                      child: Text(isSelected ? 'SELECTED' : 'SELECT', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                     ),
                   ],
                 ),
@@ -438,7 +549,7 @@ class VipServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPromotionReachImpact() {
+  Widget _buildPromotionReachImpact(ProviderVipImpact impact) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(40),
@@ -461,7 +572,7 @@ class VipServicesScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: FractionallySizedBox(
-              widthFactor: 0.72,
+              widthFactor: (impact.reachIncreasePct / 100).clamp(0.0, 1.0).toDouble(),
               alignment: Alignment.centerLeft,
               child: Container(
                 decoration: BoxDecoration(
@@ -476,33 +587,23 @@ class VipServicesScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Column(
-                children: const [
-                  Text('72%', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
-                  SizedBox(height: 4),
-                  Text('REACH INCREASE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
+                children: [
+                  Text('${impact.reachIncreasePct}%', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
+                  const SizedBox(height: 4),
+                  const Text('REACH INCREASE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
                 ],
               ),
               const SizedBox(width: 48),
               Column(
-                children: const [
-                  Text('3.5x', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
-                  SizedBox(height: 4),
-                  Text('BOOKING VELOCITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
+                children: [
+                  Text(impact.bookingVelocityLabel, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
+                  const SizedBox(height: 4),
+                  const Text('BOOKING VELOCITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
                 ],
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFab() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0, right: 8.0),
-      child: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add_chart, size: 28),
       ),
     );
   }

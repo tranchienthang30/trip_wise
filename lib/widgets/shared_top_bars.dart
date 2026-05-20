@@ -71,7 +71,9 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const ProviderAppBar({super.key});
+  const ProviderAppBar({super.key, this.backRoute});
+
+  final String? backRoute;
 
   @override
   Size get preferredSize => const Size.fromHeight(68);
@@ -83,6 +85,16 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
+      leading: backRoute == null
+          ? null
+          : IconButton(
+              onPressed: () => context.go(backRoute!),
+              tooltip: 'Back',
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: TripwiseColors.primary,
+              ),
+            ),
       titleSpacing: 20,
       title: Text(
         'TRIP WISE  BUSINESS',
