@@ -728,7 +728,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         const SizedBox(width: 12),
         ElevatedButton(
           onPressed: () => context.push(
-            '/direct_messaging?orderId=${Uri.encodeQueryComponent(order.id)}',
+            '/direct_messaging?mode=provider&orderId=${Uri.encodeQueryComponent(order.id)}',
           ),
           style: TripwiseButtonStyles.surfaceElevated(
             radius: 12,

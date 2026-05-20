@@ -68,7 +68,13 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
-  void _onContactSupport() => context.push('/direct_messaging');
+  void _onContactSupport() {
+    final orderId = _data?.existingBooking?.bookingItemId.trim();
+    final query = orderId == null || orderId.isEmpty
+        ? 'mode=user'
+        : 'mode=user&orderId=${Uri.encodeQueryComponent(orderId)}';
+    context.push('/direct_messaging?$query');
+  }
 
   Future<void> _cancelExistingBooking() async {
     final existingBooking = _data?.existingBooking;
@@ -132,7 +138,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         builder: (context, snapshot) {
           final data = snapshot.data;
           final existingBooking = data?.existingBooking;
-          final canCancel = existingBooking != null &&
+          final canCancel =
+              existingBooking != null &&
               existingBooking.canCancel &&
               existingBooking.bookingItemId.isNotEmpty;
           return _BookingBar(
@@ -144,8 +151,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             onTap: data == null || _isCancelling
                 ? null
                 : canCancel
-                    ? _cancelExistingBooking
-                    : () => context.push('/booking_checkout?hotelId=${data.id}'),
+                ? _cancelExistingBooking
+                : () => context.push('/booking_checkout?hotelId=${data.id}'),
           );
         },
       ),

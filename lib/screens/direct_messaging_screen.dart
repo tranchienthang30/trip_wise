@@ -6,10 +6,16 @@ import '../services/direct_messages_api.dart';
 import '../widgets/shared_top_bars.dart';
 
 class DirectMessagingScreen extends StatefulWidget {
-  const DirectMessagingScreen({super.key, this.conversationId, this.orderId});
+  const DirectMessagingScreen({
+    super.key,
+    this.conversationId,
+    this.orderId,
+    this.mode,
+  });
 
   final String? conversationId;
   final String? orderId;
+  final String? mode;
 
   @override
   State<DirectMessagingScreen> createState() => _DirectMessagingScreenState();
@@ -25,6 +31,8 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   bool _isLoading = true;
   bool _isSending = false;
   String? _error;
+
+  bool get _isProviderMode => widget.mode?.trim().toLowerCase() != 'user';
 
   @override
   void initState() {
@@ -133,10 +141,12 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
         final isDesktop = constraints.maxWidth > 768;
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FF),
-          appBar: const ProviderAppBar(),
+          appBar: _isProviderMode
+              ? const ProviderAppBar()
+              : const PlannerAppBar(backRoute: '/my_trips'),
           body: Row(
             children: [
-              if (isDesktop) _buildSideNav(),
+              if (isDesktop && _isProviderMode) _buildSideNav(),
               Expanded(
                 child: Column(
                   children: [
@@ -228,7 +238,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go('/order_manager');
+              context.go(_isProviderMode ? '/order_manager' : '/my_trips');
             }
           },
           icon: const Icon(Icons.arrow_back_rounded),

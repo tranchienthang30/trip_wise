@@ -194,6 +194,7 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => DirectMessagingScreen(
         conversationId: state.uri.queryParameters['conversationId'],
         orderId: state.uri.queryParameters['orderId'],
+        mode: state.uri.queryParameters['mode'],
       ),
     ),
     GoRoute(
