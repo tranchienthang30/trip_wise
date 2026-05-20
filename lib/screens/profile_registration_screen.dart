@@ -337,120 +337,111 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   }
 
   Widget _buildVerificationSection(ProfileVerification verification) {
+    final uploadedCount = verification.uploadedCount;
+    final complete = verification.isComplete;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: TripwiseColors.surfaceContainerLowest,
+      child: Material(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => context.push('/profile_verification'),
           borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.description, color: TripwiseColors.primary),
-                const SizedBox(width: 10),
-                Text(
-                  'Identity Verification',
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: TripwiseColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.description,
+                        color: TripwiseColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Identity Verification',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            complete
+                                ? 'All required documents submitted'
+                                : '$uploadedCount of 2 documents submitted',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: TripwiseColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: complete
+                            ? TripwiseColors.primaryFixed
+                            : TripwiseColors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        complete ? 'Done' : 'Pending',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: complete
+                              ? TripwiseColors.onPrimaryFixedVariant
+                              : TripwiseColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: TripwiseColors.primary,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _buildVerificationRow(
-              title: 'Passport or ID',
-              uploaded: verification.passportUploaded,
-              note: verification.passportNote,
-              onTap: () => _showUploadUnavailableMessage(context),
-            ),
-            const SizedBox(height: 10),
-            _buildVerificationRow(
-              title: 'Proof of Address',
-              uploaded: verification.addressUploaded,
-              note: verification.addressNote,
-              onTap: () => _showUploadUnavailableMessage(context),
-            ),
-            if (verification.updatedAt != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                'Updated: ${verification.updatedAt}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVerificationRow({
-    required String title,
-    required bool uploaded,
-    required String note,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: TripwiseColors.surfaceContainerLow,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              uploaded ? Icons.verified : Icons.upload_file,
-              color: uploaded ? TripwiseColors.primary : TripwiseColors.outline,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: uploadedCount / 2,
+                    minHeight: 7,
+                    backgroundColor: TripwiseColors.surfaceContainerHigh,
+                    color: complete
+                        ? TripwiseColors.secondaryContainer
+                        : TripwiseColors.primary,
                   ),
-                  const SizedBox(height: 2),
+                ),
+                if (verification.updatedAt != null) ...[
+                  const SizedBox(height: 10),
                   Text(
-                    note,
+                    'Updated: ${verification.updatedAt}',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: TripwiseColors.onSurfaceVariant,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: uploaded
-                    ? TripwiseColors.primaryFixed
-                    : TripwiseColors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                uploaded ? 'Submitted' : 'Pending',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: uploaded
-                      ? TripwiseColors.onPrimaryFixedVariant
-                      : TripwiseColors.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -546,15 +537,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showUploadUnavailableMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Document upload is not available yet.'),
-        backgroundColor: TripwiseColors.primary,
       ),
     );
   }

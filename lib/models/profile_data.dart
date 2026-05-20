@@ -84,23 +84,34 @@ class ProfileVerification {
   ProfileVerification({
     required this.passportUploaded,
     required this.passportNote,
+    required this.passportImageUrl,
     required this.addressUploaded,
     required this.addressNote,
+    required this.addressImageUrl,
     required this.updatedAt,
   });
 
   final bool passportUploaded;
   final String passportNote;
+  final String? passportImageUrl;
   final bool addressUploaded;
   final String addressNote;
+  final String? addressImageUrl;
   final String? updatedAt;
+
+  int get uploadedCount =>
+      (passportUploaded ? 1 : 0) + (addressUploaded ? 1 : 0);
+
+  bool get isComplete => uploadedCount == 2;
 
   factory ProfileVerification.fromJson(Map<String, dynamic> json) {
     return ProfileVerification(
       passportUploaded: json['passportUploaded'] as bool? ?? false,
       passportNote: json['passportNote'] as String? ?? 'Not submitted',
+      passportImageUrl: json['passportImageUrl'] as String?,
       addressUploaded: json['addressUploaded'] as bool? ?? false,
       addressNote: json['addressNote'] as String? ?? 'Not submitted',
+      addressImageUrl: json['addressImageUrl'] as String?,
       updatedAt: json['updatedAt'] as String?,
     );
   }

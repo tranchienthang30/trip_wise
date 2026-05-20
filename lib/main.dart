@@ -22,6 +22,7 @@ import 'screens/provider_dashboard_screen.dart';
 import 'screens/provider_finance_payout_screen.dart';
 import 'screens/provider_registration_screen.dart';
 import 'screens/profile_registration_screen.dart';
+import 'screens/profile_verification_screen.dart';
 import 'screens/provider_listing_management_screen.dart';
 import 'screens/security_privacy_screen.dart';
 import 'screens/notifications_screen.dart';
@@ -164,6 +165,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/profile_registration',
       builder: (context, state) => const ProfileRegistrationScreen(),
+    ),
+    GoRoute(
+      path: '/profile_verification',
+      builder: (context, state) => const ProfileVerificationScreen(),
     ),
     GoRoute(
       path: '/provider_finance',
