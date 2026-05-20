@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/direct_message.dart';
+import '../services/chat_api.dart';
 import '../services/direct_messages_api.dart';
 import '../services/rule_based_chatbot_service.dart';
 import '../widgets/shared_top_bars.dart';
@@ -24,6 +25,7 @@ class DirectMessagingScreen extends StatefulWidget {
 
 class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   final DirectMessagesApi _api = DirectMessagesApi();
+  final ChatApi _chatApi = ChatApi();
   final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -157,14 +159,16 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     });
     _scrollToBottom();
 
-    Future.delayed(const Duration(milliseconds: 450), () {
+    Future.delayed(const Duration(milliseconds: 450), () async {
+      if (!mounted) return;
+      final reply = await _assistantReply(text);
       if (!mounted) return;
       setState(() {
         _messages = [
           ..._messages,
           _localMessage(
             conversationId: conversationId,
-            body: _chatbot.respondTo(text),
+            body: reply,
             isMine: false,
           ),
         ];
@@ -172,6 +176,18 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       });
       _scrollToBottom();
     });
+  }
+
+  Future<String> _assistantReply(String text) async {
+    try {
+      final response = await _chatApi.sendMessage(text);
+      if (response.reply.trim().isNotEmpty) {
+        return response.reply.trim();
+      }
+    } catch (_) {
+      // Keep the assistant usable when the backend or LLM provider is offline.
+    }
+    return _chatbot.respondTo(text);
   }
 
   DirectConversation _assistantConversation() {

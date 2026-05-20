@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../services/chat_api.dart';
 import '../services/rule_based_chatbot_service.dart';
 
 void showPlannerAssistantSheet(BuildContext context) {
@@ -132,9 +133,11 @@ class _PlannerAssistantSheet extends StatefulWidget {
 }
 
 class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
+  final ChatApi _chatApi = ChatApi();
   final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isSending = false;
 
   late final List<_PlannerAssistantMessage> _messages = [
     const _PlannerAssistantMessage(
@@ -168,20 +171,38 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
     );
   }
 
-  void _sendMessage([String? presetText]) {
+  Future<void> _sendMessage([String? presetText]) async {
     final text = (presetText ?? _controller.text).trim();
-    if (text.isEmpty) {
+    if (text.isEmpty || _isSending) {
       return;
     }
 
     setState(() {
       _messages.add(_PlannerAssistantMessage(text: text, isUser: true));
-      _messages.add(
-        _PlannerAssistantMessage(text: _chatbot.respondTo(text), isUser: false),
-      );
+      _isSending = true;
     });
     _controller.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    final reply = await _assistantReply(text);
+    if (!mounted) return;
+    setState(() {
+      _messages.add(_PlannerAssistantMessage(text: reply, isUser: false));
+      _isSending = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  Future<String> _assistantReply(String text) async {
+    try {
+      final response = await _chatApi.sendMessage(text);
+      if (response.reply.trim().isNotEmpty) {
+        return response.reply.trim();
+      }
+    } catch (_) {
+      // Local rules keep the sheet responsive if the backend is unavailable.
+    }
+    return _chatbot.respondTo(text);
   }
 
   @override
@@ -338,7 +359,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Tap a suggestion below to chat with the rule-based assistant.',
+            'Tap a suggestion below to chat with the hybrid assistant.',
             style: TextStyle(
               color: TripwiseColors.onSurfaceVariant,
               fontSize: 14,
@@ -362,7 +383,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    onPressed: () => _sendMessage(prompt),
+                    onPressed: _isSending ? null : () => _sendMessage(prompt),
                   ),
                 )
                 .toList(),
@@ -434,8 +455,17 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
               ],
             ),
             child: IconButton(
-              onPressed: _sendMessage,
-              icon: const Icon(Icons.send_rounded, color: Colors.white),
+              onPressed: _isSending ? null : _sendMessage,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded, color: Colors.white),
             ),
           ),
         ],
