@@ -1,27 +1,156 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../models/direct_message.dart';
+import '../services/direct_messages_api.dart';
 import '../widgets/shared_top_bars.dart';
 
-class DirectMessagingScreen extends StatelessWidget {
-  const DirectMessagingScreen({super.key});
+class DirectMessagingScreen extends StatefulWidget {
+  const DirectMessagingScreen({
+    super.key,
+    this.conversationId,
+    this.orderId,
+    this.mode,
+  });
+
+  final String? conversationId;
+  final String? orderId;
+  final String? mode;
+
+  @override
+  State<DirectMessagingScreen> createState() => _DirectMessagingScreenState();
+}
+
+class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
+  final DirectMessagesApi _api = DirectMessagesApi();
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  DirectConversation? _conversation;
+  List<DirectMessage> _messages = const [];
+  bool _isLoading = true;
+  bool _isSending = false;
+  String? _error;
+
+  bool get _isProviderMode => widget.mode?.trim().toLowerCase() != 'user';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversation();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadConversation() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final detail = await _initialConversationDetail();
+      await _api.markRead(detail.conversation.id);
+      if (!mounted) return;
+      setState(() {
+        _conversation = detail.conversation;
+        _messages = detail.messages;
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (error) {
+      if (!mounted) return;
+      if (error is _NoConversationsException) {
+        setState(() {
+          _conversation = null;
+          _messages = const [];
+          _isLoading = false;
+          _error = null;
+        });
+        return;
+      }
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<DirectConversationDetail> _initialConversationDetail() async {
+    final orderId = widget.orderId?.trim();
+    if (orderId != null && orderId.isNotEmpty) {
+      return _api.openOrderConversation(orderId);
+    }
+
+    final conversationId = widget.conversationId?.trim();
+    if (conversationId != null && conversationId.isNotEmpty) {
+      return _api.fetchConversation(conversationId);
+    }
+
+    final page = await _api.fetchConversations();
+    if (page.items.isEmpty) {
+      throw const _NoConversationsException();
+    }
+    return _api.fetchConversation(page.items.first.id);
+  }
+
+  Future<void> _sendMessage() async {
+    final conversation = _conversation;
+    final text = _messageController.text.trim();
+    if (conversation == null || text.isEmpty || _isSending) return;
+
+    setState(() => _isSending = true);
+    try {
+      final message = await _api.sendMessage(conversation.id, text);
+      if (!mounted) return;
+      _messageController.clear();
+      setState(() {
+        _messages = [..._messages, message];
+        _isSending = false;
+      });
+      _scrollToBottom();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSending = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not send message: $error')));
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        bool isDesktop = constraints.maxWidth > 768;
+        final isDesktop = constraints.maxWidth > 768;
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FF),
-          appBar: const ProviderAppBar(),
+          appBar: _isProviderMode
+              ? const ProviderAppBar()
+              : const PlannerAppBar(backRoute: '/my_trips'),
           body: Row(
             children: [
-              if (isDesktop) _buildSideNav(),
+              if (isDesktop && _isProviderMode) _buildSideNav(),
               Expanded(
                 child: Column(
                   children: [
-                    Expanded(
-                      child: _buildChatList(),
-                    ),
+                    Expanded(child: _buildContent()),
                     _buildMessageInput(),
                   ],
                 ),
@@ -33,6 +162,96 @@ class DirectMessagingScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                size: 44,
+                color: Color(0xFF64748B),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Unable to load messages',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadConversation,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_conversation == null) {
+      return Column(
+        children: [
+          _buildBackBar(),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'No conversations yet',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        _buildBackBar(),
+        Expanded(child: _buildChatList()),
+      ],
+    );
+  }
+
+  Widget _buildBackBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(_isProviderMode ? '/order_manager' : '/my_trips');
+            }
+          },
+          icon: const Icon(Icons.arrow_back_rounded),
+          label: const Text('Back'),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF004779),
+            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSideNav() {
     return Container(
       width: 80,
@@ -40,94 +259,106 @@ class DirectMessagingScreen extends StatelessWidget {
         color: Colors.white,
         border: Border(
           right: BorderSide(
-            color: const Color(0xFFEFF6FF).withOpacity(0.1),
+            color: const Color(0xFFEFF6FF).withValues(alpha: 0.1),
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.02),
+            color: const Color(0xFF005F9F).withValues(alpha: 0.02),
             blurRadius: 20,
             offset: const Offset(4, 0),
-          )
+          ),
         ],
       ),
       child: Column(
         children: [
           const SizedBox(height: 32),
-          _buildNavItem(Icons.dashboard, 'DASH', false),
+          _buildNavItem(Icons.dashboard, 'DASH', false, '/provider_dashboard'),
           const SizedBox(height: 32),
-          _buildNavItem(Icons.calendar_month, 'BOOK', false),
+          _buildNavItem(Icons.calendar_month, 'BOOK', false, '/order_manager'),
           const SizedBox(height: 32),
-          _buildNavItem(Icons.chat, 'CHAT', true),
-          const SizedBox(height: 32),
-          _buildNavItem(Icons.settings, 'SET', false),
+          _buildNavItem(Icons.chat, 'CHAT', true, '/direct_messaging'),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isSelected) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: isSelected ? const Color(0xFFF97316) : const Color(0xFF94A3B8),
-          size: 24,
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    bool isSelected,
+    String route,
+  ) {
+    return InkWell(
+      onTap: isSelected ? null : () => context.go(route),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? const Color(0xFFF97316)
+                  : const Color(0xFF94A3B8),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isSelected
+                    ? const Color(0xFFF97316)
+                    : const Color(0xFF94A3B8),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? const Color(0xFFF97316) : const Color(0xFF94A3B8),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildChatList() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      children: [
-        _buildConversationHeader(),
-        const SizedBox(height: 24),
-        _buildDateHeader('YESTERDAY'),
-        const SizedBox(height: 16),
-        _buildReceivedMessage(
-          "Hello! I'm interested in booking the private sunset boat tour for next Tuesday. Is there still availability for a group of four?",
-          "6:45 PM",
-        ),
-        const SizedBox(height: 24),
-        _buildSentMessage(
-          "Hi Elena! Yes, we still have two slots open for the Tuesday tour. It would be our pleasure to host your group at Azure Horizon.",
-          "7:02 PM",
-        ),
-        const SizedBox(height: 24),
-        _buildDateHeader('TODAY'),
-        const SizedBox(height: 16),
-        _buildReceivedMessage(
-          "That's wonderful! Can you tell me if dinner is included in the package, or should we plan to eat afterwards?",
-          "10:15 AM",
-        ),
-        const SizedBox(height: 24),
-        _buildSentMessage(
-          "The package includes artisan appetizers and a selection of local wines. For a full dinner, most guests prefer visiting the Pier Restaurant right after we dock at 8:00 PM. I can make a reservation for you!",
-          "10:28 AM",
-        ),
-        const SizedBox(height: 24),
-        _buildReceivedMessage(
-          "That would be perfect. Please go ahead and reserve a table for four at 8:15 PM. Thank you so much for the help!",
-          "11:02 AM",
-        ),
-        const SizedBox(height: 32), // spacer for bottom nav input
-      ],
+    final children = <Widget>[
+      _buildConversationHeader(_conversation!),
+      const SizedBox(height: 24),
+    ];
+
+    String? currentDateLabel;
+    for (final message in _messages) {
+      if (message.dateLabel != currentDateLabel) {
+        currentDateLabel = message.dateLabel;
+        children.add(
+          _buildDateHeader(
+            currentDateLabel.isEmpty ? 'MESSAGES' : currentDateLabel,
+          ),
+        );
+        children.add(const SizedBox(height: 16));
+      }
+      children.add(
+        message.isMine
+            ? _buildSentMessage(message)
+            : _buildReceivedMessage(message),
+      );
+      children.add(const SizedBox(height: 24));
+    }
+
+    children.add(const SizedBox(height: 32));
+
+    return RefreshIndicator(
+      onRefresh: _loadConversation,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        children: children,
+      ),
     );
   }
 
-  Widget _buildConversationHeader() {
+  Widget _buildConversationHeader(DirectConversation conversation) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -135,7 +366,7 @@ class DirectMessagingScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.05),
+            color: const Color(0xFF005F9F).withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -143,29 +374,35 @@ class DirectMessagingScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 24,
-            backgroundImage: NetworkImage(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAwkgKjIfjQRXJZ0Upbvg11Xt6wr7eenGCFU5mpvHG6_qmCR0v2N9E2yHgTxSP1W2OJk1JZxvXesiRwXJ2u1Pek91eYIwmO2vy-_mg6XEbh3AtUNvRq_RPZzaHrP3wUmHVywTauMyQlV6tg-Me_NRKpEWVRuuEprdb7lCvW1g7DmfRJYIsdR_6PN-GCng9QnmMQWIXCaIFeM4C2yB-SMSUs69idNPcPMj2PrhuKiHcyhj7b2OjMKjiBVQFqNcd3vXzPxzQF7hlANwkW',
-            ),
+            backgroundColor: const Color(0xFFE5E8F0),
+            backgroundImage: conversation.avatarUrl == null
+                ? null
+                : NetworkImage(conversation.avatarUrl!),
+            child: conversation.avatarUrl == null
+                ? const Icon(Icons.person, color: Color(0xFF64748B))
+                : null,
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Elena Rossi',
-                  style: TextStyle(
+                  conversation.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF004779),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'AZURE HORIZON BAY RESORT',
-                  style: TextStyle(
+                  conversation.subtitle.toUpperCase(),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF64748B),
@@ -193,7 +430,7 @@ class DirectMessagingScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFECEEF4), // surface-container
+          color: const Color(0xFFECEEF4),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
@@ -201,7 +438,7 @@ class DirectMessagingScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF414750), // on-surface-variant
+            color: Color(0xFF414750),
             letterSpacing: 0.5,
           ),
         ),
@@ -209,11 +446,11 @@ class DirectMessagingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReceivedMessage(String message, String time) {
+  Widget _buildReceivedMessage(DirectMessage message) {
     return Align(
       alignment: Alignment.centerLeft,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320), // 85% approx
+        constraints: const BoxConstraints(maxWidth: 400),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -236,10 +473,10 @@ class DirectMessagingScreen extends StatelessWidget {
                 ],
               ),
               child: Text(
-                message,
+                message.body,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF191C20), // on-surface
+                  color: Color(0xFF191C20),
                   height: 1.5,
                 ),
               ),
@@ -248,11 +485,8 @@ class DirectMessagingScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Text(
-                time,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF94A3B8), // slate-400
-                ),
+                message.timeLabel,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
               ),
             ),
           ],
@@ -261,11 +495,11 @@ class DirectMessagingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSentMessage(String message, String time) {
+  Widget _buildSentMessage(DirectMessage message) {
     return Align(
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320), // 85% approx
+        constraints: const BoxConstraints(maxWidth: 400),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -273,7 +507,7 @@ class DirectMessagingScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF004779), Color(0xFF005F9F)], // primary to primary-container
+                  colors: [Color(0xFF004779), Color(0xFF005F9F)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -292,10 +526,10 @@ class DirectMessagingScreen extends StatelessWidget {
                 ],
               ),
               child: Text(
-                message,
+                message.body,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.white, // on-primary
+                  color: Colors.white,
                   height: 1.5,
                 ),
               ),
@@ -307,7 +541,7 @@ class DirectMessagingScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    time,
+                    message.timeLabel,
                     style: const TextStyle(
                       fontSize: 10,
                       color: Color(0xFF94A3B8),
@@ -329,13 +563,15 @@ class DirectMessagingScreen extends StatelessWidget {
   }
 
   Widget _buildMessageInput() {
+    final enabled = !_isLoading && _conversation != null && !_isSending;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.04), // shadow-[0px_-10px_40px_rgba(0,95,159,0.04)]
+            color: const Color(0xFF005F9F).withValues(alpha: 0.04),
             blurRadius: 40,
             offset: const Offset(0, -10),
           ),
@@ -343,19 +579,19 @@ class DirectMessagingScreen extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 896), // max-w-5xl approx
+          constraints: const BoxConstraints(maxWidth: 896),
           child: Row(
             children: [
               Container(
                 width: 48,
                 height: 48,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF2F3F9), // surface-container-low
+                  color: Color(0xFFF2F3F9),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.add, color: Color(0xFF004779)),
-                  onPressed: () {},
+                  onPressed: enabled ? () {} : null,
                 ),
               ),
               const SizedBox(width: 16),
@@ -363,7 +599,7 @@ class DirectMessagingScreen extends StatelessWidget {
                 child: Container(
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white, // surface-container-lowest equivalent bg
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: const [
                       BoxShadow(
@@ -374,15 +610,22 @@ class DirectMessagingScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const TextField(
-                    decoration: InputDecoration(
+                  child: TextField(
+                    controller: _messageController,
+                    enabled: enabled,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
+                    decoration: const InputDecoration(
                       hintText: 'Type your message...',
                       hintStyle: TextStyle(
                         fontSize: 16,
                         color: Color(0xFF94A3B8),
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -392,19 +635,28 @@ class DirectMessagingScreen extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFF5E1F), // secondary-container
+                  color: Color(0xFFFF5E1F),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: Color(0x33000000),
                       blurRadius: 15,
-                      offset: Offset(0, 4), // shadow-lg approx
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                  onPressed: () {},
+                  icon: _isSending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.send, color: Colors.white, size: 20),
+                  onPressed: enabled ? _sendMessage : null,
                 ),
               ),
             ],
@@ -413,4 +665,8 @@ class DirectMessagingScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NoConversationsException implements Exception {
+  const _NoConversationsException();
 }

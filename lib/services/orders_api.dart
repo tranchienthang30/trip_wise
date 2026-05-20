@@ -4,12 +4,14 @@ import 'api_client.dart';
 class OrdersApi {
   Future<ProviderOrdersResponse> fetchOrders({
     required String status,
+    String? sort,
     String? providerId,
   }) async {
     final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
       '/orders',
       queryParameters: {
         'status': status,
+        if (sort != null && sort.isNotEmpty) 'sort': sort,
         if (providerId != null && providerId.isNotEmpty)
           'providerId': providerId,
       },
