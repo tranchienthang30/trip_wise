@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
+import '../services/auth_session_store.dart';
+import '../services/provider_application_api.dart';
 import '../widgets/shared_top_bars.dart';
 
 class ProviderRegistrationFormScreen extends StatefulWidget {
@@ -14,12 +16,15 @@ class ProviderRegistrationFormScreen extends StatefulWidget {
 class _ProviderRegistrationFormScreenState
     extends State<ProviderRegistrationFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ProviderApplicationApi _api = ProviderApplicationApi();
   final _fullNameController = TextEditingController();
   final _bioController = TextEditingController();
   final _experienceController = TextEditingController();
   final _phoneController = TextEditingController();
 
   String? _selectedSpecialty;
+  bool _isSubmitting = false;
+  String? _submitError;
   final List<String> _specialties = [
     'Adventure Tours',
     'Cultural Experiences',
@@ -30,6 +35,14 @@ class _ProviderRegistrationFormScreenState
     'Photography',
     'Wellness & Spa',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthSessionStore.instance.session?.user;
+    _fullNameController.text = user?.fullName ?? '';
+    _phoneController.text = user?.phone ?? '';
+  }
 
   @override
   void dispose() {
@@ -44,7 +57,7 @@ class _ProviderRegistrationFormScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const ProviderAppBar(),
+      appBar: const PlannerAppBar(backRoute: '/profile_registration'),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -220,12 +233,17 @@ class _ProviderRegistrationFormScreenState
                 ),
                 const SizedBox(height: 32),
 
+                if (_submitError != null) ...[
+                  _InlineError(message: _submitError!),
+                  const SizedBox(height: 20),
+                ],
+
                 // Action Buttons
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => context.pop(),
+                        onPressed: _isSubmitting ? null : () => context.pop(),
                         style: TripwiseButtonStyles.outlined(
                           radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -244,7 +262,9 @@ class _ProviderRegistrationFormScreenState
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
                           if (_formKey.currentState?.validate() ?? false) {
                             _submitRegistration();
                           }
@@ -253,10 +273,19 @@ class _ProviderRegistrationFormScreenState
                           radius: 12,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text(
-                          'Submit',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: TripwiseColors.onPrimary,
+                                ),
+                              )
+                            : const Text(
+                                'Submit',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
                       ),
                     ),
                   ],
@@ -370,18 +399,77 @@ class _ProviderRegistrationFormScreenState
     );
   }
 
-  void _submitRegistration() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Registration submitted successfully!'),
-        backgroundColor: TripwiseColors.primary,
-        duration: const Duration(seconds: 2),
+  Future<void> _submitRegistration() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
+    try {
+      await _api.submitApplication(
+        fullName: _fullNameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        specialty: _selectedSpecialty!,
+        yearsExperience: int.parse(_experienceController.text.trim()),
+        bio: _bioController.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Provider application submitted for admin review.'),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+      context.go('/profile_registration');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.errorContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: TripwiseColors.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: TripwiseColors.onErrorContainer,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        context.pop();
-      }
-    });
   }
 }

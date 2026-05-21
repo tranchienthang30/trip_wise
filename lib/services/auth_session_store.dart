@@ -33,7 +33,9 @@ class AuthSessionStore extends ChangeNotifier {
   bool get isReady => _isReady;
   bool get isAuthenticated => _session != null && !_session!.isExpired;
   AuthSessionData? get session => _session;
+  bool get isAdmin => _session?.isAdmin ?? false;
   bool get isProvider => _session?.isProvider ?? false;
+  bool get isPlanner => _session?.isPlanner ?? false;
   String get landingRoute => _session?.landingRoute ?? '/home';
 
   Future<void> initialize() async {

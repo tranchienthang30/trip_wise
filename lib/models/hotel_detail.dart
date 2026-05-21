@@ -49,14 +49,14 @@ class HotelDetail {
 
   factory HotelDetail.fromJson(Map<String, dynamic> json) {
     return HotelDetail(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      address: json['address'] as String,
+      id: _intValue(json['id']),
+      name: json['name'] as String? ?? 'Tripwise stay',
+      category: json['category'] as String? ?? 'HOTEL',
+      address: json['address'] as String? ?? '',
       locationPath: json['locationPath'] as String? ?? '',
-      starRating: json['starRating'] as int,
-      rating: (json['rating'] as num).toDouble(),
-      reviewCount: json['reviewCount'] as int,
+      starRating: _intValue(json['starRating']),
+      rating: _doubleValue(json['rating']),
+      reviewCount: _intValue(json['reviewCount']),
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       description: json['description'] as String?,
@@ -84,6 +84,18 @@ class HotelDetail {
           : null,
     );
   }
+}
+
+int _intValue(Object? value, [int fallback = 0]) {
+  if (value is num) return value.round();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+double _doubleValue(Object? value, [double fallback = 0]) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
 }
 
 class HotelHost {

@@ -1,14 +1,25 @@
-enum AuthAccessRole { planner, provider }
+enum AuthAccessRole { admin, provider, planner }
 
 AuthAccessRole authAccessRoleFromString(String? value) {
-  if ((value ?? '').trim().toUpperCase() == 'PROVIDER') {
+  final normalized = (value ?? '').trim().toUpperCase();
+  if (normalized == 'ADMIN') {
+    return AuthAccessRole.admin;
+  }
+  if (normalized == 'PROVIDER') {
     return AuthAccessRole.provider;
   }
   return AuthAccessRole.planner;
 }
 
 String authAccessRoleToApiValue(AuthAccessRole role) {
-  return role == AuthAccessRole.provider ? 'PROVIDER' : 'PLANNER';
+  switch (role) {
+    case AuthAccessRole.admin:
+      return 'ADMIN';
+    case AuthAccessRole.provider:
+      return 'PROVIDER';
+    case AuthAccessRole.planner:
+      return 'PLANNER';
+  }
 }
 
 class AuthUser {
@@ -30,10 +41,15 @@ class AuthUser {
   final String role;
   final String status;
 
-  bool get isProvider => authAccessRole == AuthAccessRole.provider;
-  bool get isPlanner => !isProvider;
   AuthAccessRole get authAccessRole => authAccessRoleFromString(role);
-  String get landingRoute => isProvider ? '/provider_dashboard' : '/home';
+  bool get isAdmin => authAccessRole == AuthAccessRole.admin;
+  bool get isProvider => authAccessRole == AuthAccessRole.provider;
+  bool get isPlanner => authAccessRole == AuthAccessRole.planner;
+  String get landingRoute {
+    if (isAdmin) return '/admin_provider_approvals';
+    if (isProvider) return '/provider_dashboard';
+    return '/home';
+  }
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
@@ -75,6 +91,7 @@ class AuthSessionData {
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
   String get landingRoute => user.landingRoute;
+  bool get isAdmin => user.isAdmin;
   bool get isProvider => user.isProvider;
   bool get isPlanner => user.isPlanner;
 

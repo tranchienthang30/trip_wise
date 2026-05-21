@@ -1,0 +1,133 @@
+import 'package:dio/dio.dart';
+
+import '../models/admin_provider_payout.dart';
+import '../models/provider_application.dart';
+import 'api_client.dart';
+
+class AdminApiException implements Exception {
+  const AdminApiException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+class AdminApi {
+  Future<ProviderApplicationsResponse> fetchProviderApplications({
+    required ProviderApplicationStatus status,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/admin/provider-applications',
+        queryParameters: {
+          'status': providerApplicationStatusToApiValue(status),
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException(
+          'Empty response from /admin/provider-applications',
+        );
+      }
+      return ProviderApplicationsResponse.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<ProviderApplication> reviewProviderApplication({
+    required String userId,
+    required ProviderApplicationStatus decision,
+    String? reason,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/admin/provider-applications/$userId/review',
+        data: {
+          'decision': providerApplicationStatusToApiValue(decision),
+          if (reason != null && reason.trim().isNotEmpty)
+            'reason': reason.trim(),
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw AdminApiException(
+          'Empty response from /admin/provider-applications/$userId/review',
+        );
+      }
+      return ProviderApplication.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<AdminProviderPayoutsResponse> fetchProviderPayouts({
+    required String period,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/admin/provider-payouts',
+        queryParameters: {'period': period},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException(
+          'Empty response from /admin/provider-payouts',
+        );
+      }
+      return AdminProviderPayoutsResponse.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<void> payProvider({
+    required String providerId,
+    required String period,
+  }) async {
+    try {
+      await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/admin/provider-payouts/$providerId/pay',
+        data: {'period': period},
+      );
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<Map<String, dynamic>> createTestEscrow({
+    required String email,
+    required int amount,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/admin/provider-payouts/test-escrow',
+        data: {
+          'email': email,
+          'amount': amount,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException(
+          'Empty response from /admin/provider-payouts/test-escrow',
+        );
+      }
+      return data;
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  String _messageFromDio(DioException error) {
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+    }
+    return error.message ?? 'Request failed';
+  }
+}

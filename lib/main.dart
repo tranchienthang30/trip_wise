@@ -5,6 +5,8 @@ import 'constants/theme.dart';
 import 'services/auth_session_store.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
+import 'screens/admin_provider_approvals_screen.dart';
+import 'screens/admin_provider_payouts_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_activity_screen.dart';
 import 'screens/add_location_search_screen.dart';
@@ -20,7 +22,6 @@ import 'screens/order_manager_screen.dart';
 import 'screens/plan_new_trip_form_screen.dart';
 import 'screens/provider_dashboard_screen.dart';
 import 'screens/provider_finance_payout_screen.dart';
-import 'screens/provider_registration_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/profile_verification_screen.dart';
 import 'screens/provider_listing_management_screen.dart';
@@ -47,6 +48,20 @@ import 'screens/provider_registration_form_screen.dart';
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final AuthSessionStore _authSessionStore = AuthSessionStore.instance;
 
+const Set<String> _providerOnlyRoutes = {
+  '/provider_dashboard',
+  '/provider_finance',
+  '/provider_listings',
+  '/provider_listing_edit',
+  '/provider_listing_add',
+  '/provider_analytics',
+  '/add_new_listing_form',
+  '/order_manager',
+  '/vip_services',
+  '/elite_upgrade_confirmation',
+  '/inventory_pricing',
+};
+
 // A deep link that arrived before the router was mounted (cold start from a
 // killed-state notification tap). Flushed on the first frame.
 String? _pendingDeepLink;
@@ -70,11 +85,24 @@ final GoRouter _router = GoRouter(
   redirect: (context, state) {
     final isLoggedIn = _authSessionStore.isAuthenticated;
     final onAuthScreen = state.matchedLocation == '/register';
+    final isAdminRoute = state.matchedLocation.startsWith('/admin');
+    final isProviderOnlyRoute = _providerOnlyRoutes.contains(
+      state.matchedLocation,
+    );
 
     if (!isLoggedIn && !onAuthScreen) {
       return '/register';
     }
     if (isLoggedIn && onAuthScreen) {
+      return _authSessionStore.landingRoute;
+    }
+    if (isLoggedIn && _authSessionStore.isAdmin && !isAdminRoute) {
+      return _authSessionStore.landingRoute;
+    }
+    if (isLoggedIn && !_authSessionStore.isAdmin && isAdminRoute) {
+      return _authSessionStore.landingRoute;
+    }
+    if (isLoggedIn && !_authSessionStore.isProvider && isProviderOnlyRoute) {
       return _authSessionStore.landingRoute;
     }
     return null;
@@ -83,6 +111,14 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const InitialRegistrationScreen(),
+    ),
+    GoRoute(
+      path: '/admin_provider_approvals',
+      builder: (context, state) => const AdminProviderApprovalsScreen(),
+    ),
+    GoRoute(
+      path: '/admin_provider_payouts',
+      builder: (context, state) => const AdminProviderPayoutsScreen(),
     ),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
@@ -176,7 +212,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/provider_registration',
-      builder: (context, state) => const ProviderRegistrationScreen(),
+      builder: (context, state) => const ProviderRegistrationFormScreen(),
     ),
     GoRoute(
       path: '/provider_dashboard',

@@ -9,7 +9,6 @@ import '../services/auth_session_store.dart';
 import '../services/profile_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
-import 'provider_dashboard_screen.dart';
 
 class ProfileRegistrationScreen extends StatefulWidget {
   const ProfileRegistrationScreen({super.key});
@@ -290,46 +289,25 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               icon: const Icon(Icons.arrow_forward),
               label: Text(provider.ctaLabel),
             ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => context.go(provider.dashboardRoute),
-              style: TripwiseButtonStyles.outlined(
-                radius: 12,
-                foregroundColor: TripwiseColors.onPrimaryContainer,
-                borderColor: TripwiseColors.onPrimaryContainer.withOpacity(
-                  0.25,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              icon: const Icon(Icons.storefront_rounded),
-              label: const Text('Open Dashboard'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ProviderDashboardScreen(),
+            if (provider.isRegistered) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => context.go(provider.dashboardRoute),
+                style: TripwiseButtonStyles.outlined(
+                  radius: 12,
+                  foregroundColor: TripwiseColors.onPrimaryContainer,
+                  borderColor: TripwiseColors.onPrimaryContainer.withOpacity(
+                    0.25,
                   ),
-                );
-              },
-              style: TripwiseButtonStyles.outlined(
-                radius: 12,
-                foregroundColor: TripwiseColors.onPrimaryContainer,
-                borderColor: TripwiseColors.onPrimaryContainer.withOpacity(
-                  0.25,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                icon: const Icon(Icons.storefront_rounded),
+                label: const Text('Open Dashboard'),
               ),
-              icon: const Icon(Icons.build_rounded),
-              label: const Text('Temp Backend Dashboard'),
-            ),
+            ],
           ],
         ),
       ),

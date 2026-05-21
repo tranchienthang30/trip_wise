@@ -49,6 +49,7 @@ class ProviderListingsApi {
     required int bathrooms,
     required double pricePerNight,
     required List<String> amenities,
+    Map<String, dynamic>? imageUpload,
   }) async {
     return _mutate(
       method: 'POST',
@@ -64,6 +65,7 @@ class ProviderListingsApi {
         'bathrooms': bathrooms,
         'pricePerNight': pricePerNight,
         'amenities': amenities,
+        if (imageUpload != null) 'imageUpload': imageUpload,
       },
     );
   }

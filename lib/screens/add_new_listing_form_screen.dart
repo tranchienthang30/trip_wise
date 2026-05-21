@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
 import '../services/provider_listings_api.dart';
@@ -16,6 +21,7 @@ class AddNewListingFormScreen extends StatefulWidget {
 
 class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
   final ProviderListingsApi _api = ProviderListingsApi();
+  final ImagePicker _imagePicker = ImagePicker();
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -34,9 +40,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
   );
 
   bool _isSubmitting = false;
+  bool _isPickingImage = false;
   int _roomsCount = 1;
   String _category = 'Hotel';
   final Set<String> _amenities = {'WiFi', 'Pool'};
+  XFile? _listingImage;
+  Uint8List? _listingImageBytes;
 
   @override
   void dispose() {
@@ -65,6 +74,16 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       return;
     }
 
+    if (_listingImage == null || _listingImageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add a listing photo before publishing.'),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final listing = await _api.createListing(
@@ -78,6 +97,11 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         bathrooms: _safeInt(_bathroomsController.text, 1),
         pricePerNight: _safeDouble(_priceController.text, 200),
         amenities: _amenities.toList(),
+        imageUpload: {
+          'fileName': _listingImage!.name,
+          'mimeType': _inferMimeType(_listingImage!.name),
+          'dataBase64': base64Encode(_listingImageBytes!),
+        },
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,6 +123,39 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _pickListingImage() async {
+    if (_isPickingImage) return;
+
+    setState(() => _isPickingImage = true);
+    try {
+      final file = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _listingImage = file;
+        _listingImageBytes = bytes;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is MissingPluginException
+          ? 'Image picker is not ready yet. Please fully restart the app.'
+          : error.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
@@ -149,6 +206,8 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     hint: 'Tell travelers what makes your space unique...',
                     maxLines: 4,
                   ),
+                  const SizedBox(height: 14),
+                  _buildImagePicker(),
                 ],
               ),
             ),
@@ -334,6 +393,87 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     );
   }
 
+  Widget _buildImagePicker() {
+    final bytes = _listingImageBytes;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Listing Photo', style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Material(
+          color: TripwiseColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: _isPickingImage ? null : _pickListingImage,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              height: 180,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TripwiseColors.outlineVariant),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: bytes == null
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _isPickingImage
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(
+                                Icons.add_photo_alternate_rounded,
+                                size: 36,
+                                color: TripwiseColors.primary,
+                              ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Add a clear cover photo',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'JPG, PNG, or WEBP up to 5MB',
+                          style: TextStyle(
+                            color: TripwiseColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.memory(bytes, fit: BoxFit.cover),
+                        Positioned(
+                          right: 10,
+                          bottom: 10,
+                          child: ElevatedButton.icon(
+                            onPressed: _isPickingImage ? null : _pickListingImage,
+                            style: TripwiseButtonStyles.surfaceElevated(
+                              radius: 8,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 9,
+                              ),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(Icons.photo_camera_rounded, size: 16),
+                            label: const Text('Change'),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDropdown() {
     const categories = ['Hotel', 'Apartment', 'Villa', 'Resort', 'Hostel'];
     return Column(
@@ -459,5 +599,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     final v = double.tryParse(raw.trim());
     if (v == null || v <= 0) return fallback;
     return v;
+  }
+
+  String _inferMimeType(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 }
