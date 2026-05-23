@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
@@ -65,8 +66,17 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         maxWidth: 1200,
       );
       if (file == null) return;
+      final croppedFile = await _cropAvatarImage(file);
+      if (croppedFile == null) return;
+
       setState(() => _isUploadingAvatar = true);
-      await _api.uploadAvatar(file);
+      await _api.uploadAvatar(
+        XFile(
+          croppedFile.path,
+          name: 'tripwise_avatar.jpg',
+          mimeType: 'image/jpeg',
+        ),
+      );
       if (!mounted) return;
       await _loadProfile();
       messenger.showSnackBar(
@@ -89,6 +99,41 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     } finally {
       if (mounted) setState(() => _isUploadingAvatar = false);
     }
+  }
+
+  Future<CroppedFile?> _cropAvatarImage(XFile file) {
+    return ImageCropper().cropImage(
+      sourcePath: file.path,
+      maxWidth: 900,
+      maxHeight: 900,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 90,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop avatar',
+          toolbarColor: TripwiseColors.primary,
+          toolbarWidgetColor: TripwiseColors.onPrimary,
+          activeControlsWidgetColor: TripwiseColors.primary,
+          cropStyle: CropStyle.circle,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          showCropGrid: false,
+          hideBottomControls: false,
+          aspectRatioPresets: const [CropAspectRatioPreset.square],
+        ),
+        IOSUiSettings(
+          title: 'Crop avatar',
+          doneButtonTitle: 'Save',
+          cancelButtonTitle: 'Cancel',
+          cropStyle: CropStyle.circle,
+          aspectRatioLockEnabled: true,
+          aspectRatioPickerButtonHidden: true,
+          resetAspectRatioEnabled: false,
+          aspectRatioPresets: const [CropAspectRatioPreset.square],
+        ),
+      ],
+    );
   }
 
   @override
