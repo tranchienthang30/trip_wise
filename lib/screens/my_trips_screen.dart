@@ -8,11 +8,7 @@ import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
 class MyTripsScreen extends StatefulWidget {
-  const MyTripsScreen({
-    super.key,
-    this.initialStatus,
-    this.focusBookingId,
-  });
+  const MyTripsScreen({super.key, this.initialStatus, this.focusBookingId});
 
   final String? initialStatus;
   final String? focusBookingId;
@@ -103,6 +99,14 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
   Future<void> _openTripDetails(String route) async {
     await context.push(route);
+    if (!mounted) return;
+    await _loadTrips(status: _selectedTab);
+  }
+
+  Future<void> _openProviderChat(MyTripCard item) async {
+    await context.push(
+      '/direct_messaging?mode=user&orderId=${Uri.encodeComponent(item.id)}',
+    );
     if (!mounted) return;
     await _loadTrips(status: _selectedTab);
   }
@@ -206,93 +210,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildFeaturedCard(MyTripCard card) {
-    return Container(
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: TripwiseColors.primary.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: _TripImage(url: card.imageUrl, height: 180),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _StatusChip(label: card.statusLabel, status: card.status),
-                    Text(
-                      card.amountLabel,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: TripwiseColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  card.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: TripwiseColors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  card.subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: TripwiseColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  card.dateLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: TripwiseColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.push(card.route),
-                    style: TripwiseButtonStyles.primaryElevated(
-                      radius: 12,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(
-                      Icons.confirmation_number_outlined,
-                      size: 18,
-                    ),
-                    label: Text(_actionLabel(card.serviceType)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTripList(List<MyTripCard> items) {
     if (items.isEmpty) {
       return Container(
@@ -334,6 +251,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           child: _TripListCard(
             item: item,
             onOpen: () => _openTripDetails(item.route),
+            onMessage: () => _openProviderChat(item),
           ),
         );
       }).toList(),
@@ -373,12 +291,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       ),
     );
   }
-
-  String _actionLabel(String serviceType) {
-    if (serviceType == 'flight') return 'View Ticket';
-    if (serviceType == 'activity') return 'View Pass';
-    return 'View Booking';
-  }
 }
 
 class _TripTab {
@@ -392,10 +304,12 @@ class _TripListCard extends StatelessWidget {
   const _TripListCard({
     required this.item,
     required this.onOpen,
+    required this.onMessage,
   });
 
   final MyTripCard item;
   final VoidCallback onOpen;
+  final VoidCallback onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -457,15 +371,29 @@ class _TripListCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      item.amountLabel,
-                      style: const TextStyle(
-                        color: TripwiseColors.primary,
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        item.amountLabel,
+                        style: const TextStyle(
+                          color: TripwiseColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
+                    IconButton(
+                      onPressed: onMessage,
+                      tooltip: 'Message provider',
+                      style: IconButton.styleFrom(
+                        foregroundColor: TripwiseColors.primary,
+                        backgroundColor: TripwiseColors.surfaceContainerLowest,
+                        side: const BorderSide(
+                          color: TripwiseColors.outlineVariant,
+                        ),
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline_rounded),
+                    ),
+                    const SizedBox(width: 8),
                     OutlinedButton(
                       onPressed: onOpen,
                       style: TripwiseButtonStyles.outlined(
@@ -502,7 +430,7 @@ class _StatusChip extends StatelessWidget {
     final Color fg;
     switch (status) {
       case 'cancelled':
-        bg = TripwiseColors.error.withOpacity(0.1);
+        bg = TripwiseColors.error.withValues(alpha: 0.1);
         fg = TripwiseColors.error;
         break;
       case 'completed':
