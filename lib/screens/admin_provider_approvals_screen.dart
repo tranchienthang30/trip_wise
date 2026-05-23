@@ -127,11 +127,19 @@ class _AdminProviderApprovalsScreenState
         title: Text(
           'TRIP WISE ADMIN',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: TripwiseColors.primary,
-                fontWeight: FontWeight.w900,
-              ),
+            color: TripwiseColors.primary,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         actions: [
+          IconButton(
+            onPressed: () => context.go('/admin_listing_approvals'),
+            tooltip: 'Listing approvals',
+            icon: const Icon(
+              Icons.hotel_rounded,
+              color: TripwiseColors.primary,
+            ),
+          ),
           IconButton(
             onPressed: () => context.go('/admin_provider_payouts'),
             tooltip: 'Provider payouts',
@@ -151,10 +159,7 @@ class _AdminProviderApprovalsScreenState
           IconButton(
             onPressed: _signOut,
             tooltip: 'Sign out',
-            icon: const Icon(
-              Icons.logout_rounded,
-              color: TripwiseColors.error,
-            ),
+            icon: const Icon(Icons.logout_rounded, color: TripwiseColors.error),
           ),
           const SizedBox(width: 12),
         ],
@@ -206,26 +211,23 @@ class _AdminProviderApprovalsScreenState
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    ProviderApplicationCounts? counts,
-  ) {
+  Widget _buildHeader(BuildContext context, ProviderApplicationCounts? counts) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Provider applications',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 8),
         Text(
           'Only users who submitted provider registration appear here.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: TripwiseColors.onSurfaceVariant,
-                height: 1.4,
-              ),
+            color: TripwiseColors.onSurfaceVariant,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -366,8 +368,8 @@ class _ProviderApplicationTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -375,8 +377,8 @@ class _ProviderApplicationTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: TripwiseColors.onSurfaceVariant,
-                          ),
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -417,9 +419,9 @@ class _ProviderApplicationTile extends StatelessWidget {
           Text(
             application.bio.isEmpty ? 'No bio provided.' : application.bio,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                  height: 1.45,
-                ),
+              color: TripwiseColors.onSurfaceVariant,
+              height: 1.45,
+            ),
           ),
           if (application.isPending) ...[
             const SizedBox(height: 14),
@@ -485,10 +487,7 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: TripwiseColors.primary),
         const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
+        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w800)),
         Expanded(
           child: Text(
             value,
@@ -544,21 +543,20 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color, textColor) = switch (status) {
       ProviderApplicationStatus.approved => (
-          'Approved',
-          TripwiseColors.primaryFixed,
-          TripwiseColors.onPrimaryFixedVariant,
-        ),
+        'Approved',
+        TripwiseColors.primaryFixed,
+        TripwiseColors.onPrimaryFixedVariant,
+      ),
       ProviderApplicationStatus.rejected => (
-          'Rejected',
-          TripwiseColors.errorContainer,
-          TripwiseColors.onErrorContainer,
-        ),
-      ProviderApplicationStatus.pending ||
-      ProviderApplicationStatus.all => (
-          'Pending',
-          TripwiseColors.surfaceContainerHigh,
-          TripwiseColors.onSurfaceVariant,
-        ),
+        'Rejected',
+        TripwiseColors.errorContainer,
+        TripwiseColors.onErrorContainer,
+      ),
+      ProviderApplicationStatus.pending || ProviderApplicationStatus.all => (
+        'Pending',
+        TripwiseColors.surfaceContainerHigh,
+        TripwiseColors.onSurfaceVariant,
+      ),
     };
 
     return Container(

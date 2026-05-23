@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -106,7 +105,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Listing published successfully.'),
+          content: Text('Listing submitted for admin review.'),
           backgroundColor: TripwiseColors.primary,
         ),
       );
@@ -149,10 +148,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
           ? 'Image picker is not ready yet. Please fully restart the app.'
           : error.toString();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: TripwiseColors.error,
-        ),
+        SnackBar(content: Text(message), backgroundColor: TripwiseColors.error),
       );
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
@@ -177,7 +173,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Publish a new property for travelers in a few steps.',
+              'Submit a new property for admin review in a few steps.',
               style: TextStyle(color: TripwiseColors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
@@ -316,7 +312,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Publish Listing',
+                            'Submit for Review',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -330,7 +326,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'By publishing, you agree to Tripwise Service Provider Terms.',
+              'Approved listings appear in Trip Search after admin review.',
               style: TextStyle(
                 fontSize: 12,
                 color: TripwiseColors.onSurfaceVariant,
@@ -398,7 +394,10 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Listing Photo', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text(
+          'Listing Photo',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
         Material(
           color: TripwiseColors.surfaceContainerLow,
@@ -422,7 +421,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                             ? const SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(
                                 Icons.add_photo_alternate_rounded,
@@ -452,7 +453,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                           right: 10,
                           bottom: 10,
                           child: ElevatedButton.icon(
-                            onPressed: _isPickingImage ? null : _pickListingImage,
+                            onPressed: _isPickingImage
+                                ? null
+                                : _pickListingImage,
                             style: TripwiseButtonStyles.surfaceElevated(
                               radius: 8,
                               padding: const EdgeInsets.symmetric(
@@ -461,7 +464,10 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                               ),
                               elevation: 0,
                             ),
-                            icon: const Icon(Icons.photo_camera_rounded, size: 16),
+                            icon: const Icon(
+                              Icons.photo_camera_rounded,
+                              size: 16,
+                            ),
                             label: const Text('Change'),
                           ),
                         ),
@@ -482,7 +488,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: categories.contains(_category) ? _category : categories.first,
+          initialValue: categories.contains(_category)
+              ? _category
+              : categories.first,
           decoration: InputDecoration(
             filled: true,
             fillColor: TripwiseColors.surfaceContainerLow,

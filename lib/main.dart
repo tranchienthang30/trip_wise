@@ -6,6 +6,7 @@ import 'services/auth_session_store.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
 import 'screens/admin_provider_approvals_screen.dart';
+import 'screens/admin_listing_approvals_screen.dart';
 import 'screens/admin_provider_payouts_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_activity_screen.dart';
@@ -142,6 +143,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/admin_provider_payouts',
       builder: (context, state) => const AdminProviderPayoutsScreen(),
+    ),
+    GoRoute(
+      path: '/admin_listing_approvals',
+      builder: (context, state) => const AdminListingApprovalsScreen(),
     ),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(

@@ -14,7 +14,8 @@ class AdminProviderPayoutsScreen extends StatefulWidget {
       _AdminProviderPayoutsScreenState();
 }
 
-class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen> {
+class _AdminProviderPayoutsScreenState
+    extends State<AdminProviderPayoutsScreen> {
   final AdminApi _api = AdminApi();
   final Set<String> _payingProviderIds = {};
 
@@ -60,7 +61,9 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Paid ${provider.displayProviderNetAmount} to ${provider.providerName}.'),
+          content: Text(
+            'Paid ${provider.displayProviderNetAmount} to ${provider.providerName}.',
+          ),
           backgroundColor: TripwiseColors.primary,
         ),
       );
@@ -68,10 +71,15 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString()), backgroundColor: TripwiseColors.error),
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
       );
     } finally {
-      if (mounted) setState(() => _payingProviderIds.remove(provider.providerId));
+      if (mounted) {
+        setState(() => _payingProviderIds.remove(provider.providerId));
+      }
     }
   }
 
@@ -84,7 +92,10 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
 
     try {
       for (final provider in providers) {
-        await _api.payProvider(providerId: provider.providerId, period: _period);
+        await _api.payProvider(
+          providerId: provider.providerId,
+          period: _period,
+        );
         successCount += 1;
       }
       if (!mounted) return;
@@ -171,12 +182,26 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
           IconButton(
             onPressed: () => context.go('/admin_provider_approvals'),
             tooltip: 'Provider applications',
-            icon: const Icon(Icons.verified_user_rounded, color: TripwiseColors.primary),
+            icon: const Icon(
+              Icons.verified_user_rounded,
+              color: TripwiseColors.primary,
+            ),
+          ),
+          IconButton(
+            onPressed: () => context.go('/admin_listing_approvals'),
+            tooltip: 'Listing approvals',
+            icon: const Icon(
+              Icons.hotel_rounded,
+              color: TripwiseColors.primary,
+            ),
           ),
           IconButton(
             onPressed: _isLoading ? null : _load,
             tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded, color: TripwiseColors.primary),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: TripwiseColors.primary,
+            ),
           ),
           IconButton(
             onPressed: _signOut,
@@ -194,17 +219,17 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
           children: [
             Text(
               'Provider escrow payouts',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
               'User payments stay in the admin wallet until you release the net amount to each provider.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: TripwiseColors.onSurfaceVariant,
-                    height: 1.4,
-                  ),
+                color: TripwiseColors.onSurfaceVariant,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 16),
             SegmentedButton<String>(
@@ -249,7 +274,9 @@ class _AdminProviderPayoutsScreenState extends State<AdminProviderPayoutsScreen>
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _ProviderPayoutTile(
                       provider: provider,
-                      isPaying: _payingProviderIds.contains(provider.providerId),
+                      isPaying: _payingProviderIds.contains(
+                        provider.providerId,
+                      ),
                       onPay: () => _pay(provider),
                     ),
                   ),
@@ -303,10 +330,7 @@ class _ProcessNowButton extends StatelessWidget {
 }
 
 class _SeedTestButton extends StatelessWidget {
-  const _SeedTestButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
+  const _SeedTestButton({required this.isLoading, required this.onPressed});
 
   final bool isLoading;
   final VoidCallback onPressed;
@@ -350,8 +374,14 @@ class _SummaryCard extends StatelessWidget {
         children: [
           _Line(label: 'Admin wallet', value: data.adminWallet.displayBalance),
           _Line(label: 'Gross held', value: data.totals.displayGrossAmount),
-          _Line(label: 'App commission (${data.commissionLabel})', value: data.totals.displayCommissionAmount),
-          _Line(label: 'Net to providers', value: data.totals.displayProviderNetAmount),
+          _Line(
+            label: 'App commission (${data.commissionLabel})',
+            value: data.totals.displayCommissionAmount,
+          ),
+          _Line(
+            label: 'Net to providers',
+            value: data.totals.displayProviderNetAmount,
+          ),
           _Line(label: 'Bookings', value: '${data.totals.bookingCount}'),
         ],
       ),
@@ -384,21 +414,27 @@ class _ProviderPayoutTile extends StatelessWidget {
         children: [
           Text(
             provider.providerName,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           _Line(label: 'Gross', value: provider.displayGrossAmount),
           _Line(label: 'Commission', value: provider.displayCommissionAmount),
-          _Line(label: 'Provider receives', value: provider.displayProviderNetAmount),
+          _Line(
+            label: 'Provider receives',
+            value: provider.displayProviderNetAmount,
+          ),
           _Line(label: 'Bookings', value: '${provider.bookingCount}'),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: isPaying ? null : onPay,
-              style: TripwiseButtonStyles.primaryElevated(radius: 8, elevation: 0),
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 8,
+                elevation: 0,
+              ),
               icon: isPaying
                   ? const SizedBox(
                       width: 16,

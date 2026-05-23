@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/admin_provider_payout.dart';
+import '../models/admin_listing.dart';
 import '../models/provider_application.dart';
 import 'api_client.dart';
 
@@ -14,6 +15,50 @@ class AdminApiException implements Exception {
 }
 
 class AdminApi {
+  Future<AdminListingsResponse> fetchListings({
+    required AdminListingStatus status,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/admin/listings',
+        queryParameters: {'status': adminListingStatusToApiValue(status)},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException('Empty response from /admin/listings');
+      }
+      return AdminListingsResponse.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<AdminListing> reviewListing({
+    required int listingId,
+    required AdminListingStatus decision,
+    String? reason,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/admin/listings/$listingId/review',
+        data: {
+          'decision': adminListingStatusToApiValue(decision),
+          if (reason != null && reason.trim().isNotEmpty)
+            'reason': reason.trim(),
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw AdminApiException(
+          'Empty response from /admin/listings/$listingId/review',
+        );
+      }
+      return AdminListing.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
   Future<ProviderApplicationsResponse> fetchProviderApplications({
     required ProviderApplicationStatus status,
   }) async {
@@ -103,10 +148,7 @@ class AdminApi {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/admin/provider-payouts/test-escrow',
-        data: {
-          'email': email,
-          'amount': amount,
-        },
+        data: {'email': email, 'amount': amount},
       );
       final data = response.data;
       if (data == null) {
