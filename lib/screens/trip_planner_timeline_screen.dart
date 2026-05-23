@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/trip_timeline.dart';
 import '../services/trips_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -670,7 +671,7 @@ class _FriendsStack extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(2),
                 child: CircleAvatar(
-                  backgroundImage: NetworkImage(friends[i]),
+                  backgroundImage: tripwiseImageProvider(friends[i]),
                 ),
               ),
             ),

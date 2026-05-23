@@ -5,6 +5,7 @@ import '../constants/colors.dart';
 import '../models/provider_application.dart';
 import '../services/admin_api.dart';
 import '../services/auth_session_store.dart';
+import '../utils/tripwise_image_provider.dart';
 
 class AdminProviderApprovalsScreen extends StatefulWidget {
   const AdminProviderApprovalsScreen({super.key});
@@ -326,6 +327,7 @@ class _ProviderApplicationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarProvider = tripwiseImageProvider(application.image);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -343,14 +345,8 @@ class _ProviderApplicationTile extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: TripwiseColors.primaryFixed,
-                backgroundImage:
-                    application.image != null &&
-                        application.image!.trim().isNotEmpty
-                    ? NetworkImage(application.image!)
-                    : null,
-                child:
-                    application.image == null ||
-                        application.image!.trim().isEmpty
+                backgroundImage: avatarProvider,
+                child: avatarProvider == null
                     ? Text(
                         application.initials.toUpperCase(),
                         style: const TextStyle(

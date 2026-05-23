@@ -8,6 +8,7 @@ import '../constants/colors.dart';
 import '../models/profile_data.dart';
 import '../services/auth_session_store.dart';
 import '../services/profile_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -187,6 +188,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   }
 
   Widget _buildHeader(ProfileData data) {
+    final avatarProvider = tripwiseImageProvider(data.user.image);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -209,13 +211,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                 child: CircleAvatar(
                   radius: 60,
                   backgroundColor: TripwiseColors.surface,
-                  backgroundImage:
-                      data.user.image != null &&
-                          data.user.image!.trim().isNotEmpty
-                      ? NetworkImage(data.user.image!)
-                      : null,
-                  child:
-                      data.user.image == null || data.user.image!.trim().isEmpty
+                  backgroundImage: avatarProvider,
+                  child: avatarProvider == null
                       ? const Icon(
                           Icons.person,
                           size: 54,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/provider_order.dart';
 import '../services/orders_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -627,6 +628,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   }
 
   Widget _buildGuestRow(ProviderOrder order, {bool compact = false}) {
+    final avatarProvider = tripwiseImageProvider(order.guestAvatarUrl);
     final guestDetails = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -665,14 +667,14 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFFE5E8F0),
-            image: order.guestAvatarUrl == null
+            image: avatarProvider == null
                 ? null
                 : DecorationImage(
-                    image: NetworkImage(order.guestAvatarUrl!),
+                    image: avatarProvider,
                     fit: BoxFit.cover,
                   ),
           ),
-          child: order.guestAvatarUrl == null
+          child: avatarProvider == null
               ? const Icon(Icons.person, color: Color(0xFF3F4752))
               : null,
         ),

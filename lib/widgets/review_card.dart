@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/review.dart';
+import '../utils/tripwise_image_provider.dart';
 
 /// A small filled/outline star row used by review widgets.
 class ReviewStars extends StatelessWidget {
@@ -35,7 +36,7 @@ class ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final img = review.authorImage;
-    final hasImg = img != null && img.isNotEmpty;
+    final avatarProvider = tripwiseImageProvider(img);
     final initial = review.authorName.isNotEmpty
         ? review.authorName.characters.first.toUpperCase()
         : '?';
@@ -54,8 +55,8 @@ class ReviewCard extends StatelessWidget {
               CircleAvatar(
                 radius: 22,
                 backgroundColor: TripwiseColors.primaryContainer,
-                backgroundImage: hasImg ? NetworkImage(img) : null,
-                child: hasImg
+                backgroundImage: avatarProvider,
+                child: avatarProvider != null
                     ? null
                     : Text(
                         initial,

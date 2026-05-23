@@ -5,6 +5,7 @@ import '../models/direct_message.dart';
 import '../services/chat_api.dart';
 import '../services/direct_messages_api.dart';
 import '../services/rule_based_chatbot_service.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_top_bars.dart';
 
 class DirectMessagingScreen extends StatefulWidget {
@@ -499,6 +500,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   }
 
   Widget _buildConversationHeader(DirectConversation conversation) {
+    final avatarProvider = tripwiseImageProvider(conversation.avatarUrl);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -517,10 +519,8 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
           CircleAvatar(
             radius: 24,
             backgroundColor: const Color(0xFFE5E8F0),
-            backgroundImage: conversation.avatarUrl == null
-                ? null
-                : NetworkImage(conversation.avatarUrl!),
-            child: conversation.avatarUrl == null
+            backgroundImage: avatarProvider,
+            child: avatarProvider == null
                 ? Icon(
                     _isLocalAssistantMode
                         ? Icons.smart_toy_rounded
