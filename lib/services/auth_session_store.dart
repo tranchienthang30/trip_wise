@@ -51,6 +51,7 @@ class AuthSessionStore extends ChangeNotifier {
           final session = AuthSessionData.fromStoredJson(decoded);
           if (!session.isExpired && session.token.trim().isNotEmpty) {
             _setSession(session, notify: false);
+            await _refreshSessionFromServer(notify: false);
           } else {
             await _clearLocal(notify: false);
           }
@@ -85,10 +86,7 @@ class AuthSessionStore extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    final session = await _authApi.login(
-      email: email,
-      password: password,
-    );
+    final session = await _authApi.login(email: email, password: password);
     await _persistSession(session);
     await syncPushToken();
     return session;
@@ -125,9 +123,7 @@ class AuthSessionStore extends ChangeNotifier {
         throw AuthApiError('Unable to complete Google sign-in');
       }
 
-      final session = await _authApi.signInWithGoogle(
-        idToken: firebaseIdToken,
-      );
+      final session = await _authApi.signInWithGoogle(idToken: firebaseIdToken);
       await _persistSession(session);
       await syncPushToken();
       return session;
@@ -162,6 +158,20 @@ class AuthSessionStore extends ChangeNotifier {
     _preferences = prefs;
     await prefs.setString(_storageKey, jsonEncode(session.toStoredJson()));
     _setSession(session);
+  }
+
+  Future<void> _refreshSessionFromServer({bool notify = true}) async {
+    final current = _session;
+    if (current == null || current.token.trim().isEmpty) return;
+    try {
+      final refreshed = await _authApi.me(token: current.token);
+      final prefs = _preferences ?? await SharedPreferences.getInstance();
+      _preferences = prefs;
+      await prefs.setString(_storageKey, jsonEncode(refreshed.toStoredJson()));
+      _setSession(refreshed, notify: notify);
+    } catch (_) {
+      // Keep the cached session if the server cannot be reached on startup.
+    }
   }
 
   void _setSession(AuthSessionData? session, {bool notify = true}) {

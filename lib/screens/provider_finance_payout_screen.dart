@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import '../models/provider_finance.dart';
+import '../services/provider_finance_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -15,54 +17,81 @@ class _ProviderFinancePayoutScreenState
     extends State<ProviderFinancePayoutScreen> {
   static const List<String> _periods = ['Weekly', 'Monthly', 'Yearly'];
 
-  static const List<_ChartBarData> _chartBars = [
-    _ChartBarData(label: 'JAN', heightFactor: 0.34),
-    _ChartBarData(label: 'FEB', heightFactor: 0.58),
-    _ChartBarData(label: 'MAR', heightFactor: 0.44),
-    _ChartBarData(label: 'APR', heightFactor: 0.94, highlighted: true),
-    _ChartBarData(label: 'MAY', heightFactor: 0.25),
-    _ChartBarData(label: 'JUN', heightFactor: 0.68),
-  ];
-
-  static const List<_TransactionData> _transactions = [
-    _TransactionData(
-      title: 'Booking #TW-9482',
-      subtitle: 'Round-trip: Paris to Tokyo Premium',
-      date: 'Oct 24, 2023',
-      time: '14:20',
-      amount: '\$2,450.00',
-      status: 'PAID',
-      statusColor: Color(0xFFCFEFD8),
-      statusTextColor: Color(0xFF198754),
-      icon: Icons.flight_takeoff_rounded,
-    ),
-    _TransactionData(
-      title: 'Booking #TW-9480',
-      subtitle: '3 Nights: The Ritz-Carlton Kyoto',
-      date: 'Oct 23, 2023',
-      time: '09:15',
-      amount: '\$1,120.00',
-      status: 'PENDING',
-      statusColor: Color(0xFFFFE8B0),
-      statusTextColor: Color(0xFF9C6B00),
-      icon: Icons.flag_rounded,
-    ),
-    _TransactionData(
-      title: 'Booking #TW-9478',
-      subtitle: 'Private Heli-Tour: Mount Fuji',
-      date: 'Oct 21, 2023',
-      time: '18:45',
-      amount: '\$3,800.00',
-      status: 'PAID',
-      statusColor: Color(0xFFCFEFD8),
-      statusTextColor: Color(0xFF198754),
-      icon: Icons.explore_rounded,
-    ),
-  ];
-
+  final ProviderFinanceApi _api = ProviderFinanceApi();
   int _selectedPeriod = 1;
+  ProviderFinance? _data;
+  bool _isLoading = true;
+  bool _isRequestingPayout = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFinance();
+  }
+
+  String get _selectedPeriodValue => _periods[_selectedPeriod].toLowerCase();
+
+  Future<void> _loadFinance() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final data = await _api.fetchFinance(period: _selectedPeriodValue);
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _requestPayout() async {
+    if (_isRequestingPayout) return;
+    final available = _data?.overview.availableForPayout ?? 0;
+    if (available <= 0) {
+      _showSnackBar('No balance available for payout.');
+      return;
+    }
+    setState(() => _isRequestingPayout = true);
+    try {
+      await _api.requestPayout();
+      if (!mounted) return;
+      _showSnackBar('Payout request submitted.');
+      await _loadFinance();
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(error.toString(), isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isRequestingPayout = false);
+      }
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError
+              ? TripwiseColors.error
+              : TripwiseColors.primary,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final data = _data;
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
@@ -71,28 +100,52 @@ class _ProviderFinancePayoutScreenState
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          children: [
-            _PayoutSummaryCard(),
-            const SizedBox(height: 18),
-            _LifetimeEarningsCard(),
-            const SizedBox(height: 18),
-            _EarningsHistoryCard(
-              periods: _periods,
-              selectedPeriod: _selectedPeriod,
-              onPeriodSelected: (index) {
-                setState(() {
-                  _selectedPeriod = index;
-                });
-              },
-              chartBars: _chartBars,
-            ),
-            const SizedBox(height: 18),
-            const _RevenueGrowthCard(),
-            const SizedBox(height: 18),
-            _RecentTransactionsCard(transactions: _transactions),
-          ],
+        child: RefreshIndicator(
+          onRefresh: _loadFinance,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            children: [
+              if (_isLoading && data == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 180),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null && data == null)
+                _FinanceErrorState(message: _error!, onRetry: _loadFinance)
+              else if (data != null) ...[
+                _PayoutSummaryCard(
+                  overview: data.overview,
+                  isRequesting: _isRequestingPayout,
+                  onRequestPayout: _requestPayout,
+                ),
+                const SizedBox(height: 18),
+                _LifetimeEarningsCard(overview: data.overview),
+                const SizedBox(height: 18),
+                _EarningsHistoryCard(
+                  periods: _periods,
+                  selectedPeriod: _selectedPeriod,
+                  onPeriodSelected: (index) {
+                    setState(() {
+                      _selectedPeriod = index;
+                    });
+                    _loadFinance();
+                  },
+                  chartBars: data.earningsHistory.bars,
+                  peakLabel: data.earningsHistory.peakLabel,
+                ),
+                const SizedBox(height: 18),
+                _RevenueGrowthCard(growth: data.growth),
+                const SizedBox(height: 18),
+                _RecentTransactionsCard(
+                  transactions: data.recentTransactions.items,
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  _InlineFinanceError(message: _error!, onRetry: _loadFinance),
+                ],
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -100,6 +153,16 @@ class _ProviderFinancePayoutScreenState
 }
 
 class _PayoutSummaryCard extends StatelessWidget {
+  const _PayoutSummaryCard({
+    required this.overview,
+    required this.isRequesting,
+    required this.onRequestPayout,
+  });
+
+  final ProviderFinanceOverview overview;
+  final bool isRequesting;
+  final VoidCallback onRequestPayout;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -108,7 +171,7 @@ class _PayoutSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: TripwiseColors.primary.withOpacity(0.05),
+            color: TripwiseColors.primary.withValues(alpha: 0.05),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -136,7 +199,7 @@ class _PayoutSummaryCard extends StatelessWidget {
               width: 70,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.58),
+                color: Colors.white.withValues(alpha: 0.58),
                 borderRadius: BorderRadius.circular(24),
               ),
             ),
@@ -146,7 +209,7 @@ class _PayoutSummaryCard extends StatelessWidget {
             top: 82,
             child: Icon(
               Icons.crop_square_rounded,
-              color: Colors.white.withOpacity(0.65),
+              color: Colors.white.withValues(alpha: 0.65),
               size: 14,
             ),
           ),
@@ -155,7 +218,7 @@ class _PayoutSummaryCard extends StatelessWidget {
             top: 38,
             child: Icon(
               Icons.crop_square_rounded,
-              color: Colors.white.withOpacity(0.65),
+              color: Colors.white.withValues(alpha: 0.65),
               size: 14,
             ),
           ),
@@ -165,33 +228,40 @@ class _PayoutSummaryCard extends StatelessWidget {
               Text(
                 'Available for Payout',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: TripwiseColors.onSurface,
-                    ),
+                  color: TripwiseColors.onSurface,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
-                '\$12,480.00',
+                overview.displayAvailableForPayout,
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: TripwiseColors.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: TripwiseColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 16),
               SizedBox(
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: isRequesting ? null : onRequestPayout,
                   style: TripwiseButtonStyles.primaryElevated(
                     radius: 24,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                   ),
                   iconAlignment: IconAlignment.end,
-                  icon: const Icon(Icons.content_copy_rounded, size: 16),
+                  icon: isRequesting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: TripwiseColors.onPrimary,
+                          ),
+                        )
+                      : const Icon(Icons.content_copy_rounded, size: 16),
                   label: const Text(
                     'Request Payout',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -201,9 +271,9 @@ class _PayoutSummaryCard extends StatelessWidget {
                 child: Text(
                   'View Payout Schedule',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: TripwiseColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: TripwiseColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -215,8 +285,21 @@ class _PayoutSummaryCard extends StatelessWidget {
 }
 
 class _LifetimeEarningsCard extends StatelessWidget {
+  const _LifetimeEarningsCard({required this.overview});
+
+  final ProviderFinanceOverview overview;
+
   @override
   Widget build(BuildContext context) {
+    final netShare = overview.servicesProvided > 0
+        ? ((overview.totalLifetimeEarnings / overview.servicesProvided) * 100)
+              .clamp(1, 100)
+              .round()
+        : 1;
+    final feeShare = overview.servicesProvided > 0
+        ? (100 - netShare).clamp(1, 100).round()
+        : 1;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5FF),
@@ -229,16 +312,16 @@ class _LifetimeEarningsCard extends StatelessWidget {
           Text(
             'TOTAL LIFETIME EARNINGS',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                  letterSpacing: 2.2,
-                ),
+              color: TripwiseColors.onSurfaceVariant,
+              letterSpacing: 2.2,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            '\$142,900.50',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            overview.displayTotalLifetimeEarnings,
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 18),
           Row(
@@ -250,15 +333,15 @@ class _LifetimeEarningsCard extends StatelessWidget {
                     Text(
                       'Services Provided',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: TripwiseColors.onSurfaceVariant,
-                          ),
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '\$156,200.00',
+                      overview.displayServicesProvided,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -274,10 +357,10 @@ class _LifetimeEarningsCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Row(
-              children: const [
+              children: [
                 Expanded(
-                  flex: 84,
-                  child: SizedBox(
+                  flex: netShare,
+                  child: const SizedBox(
                     height: 8,
                     child: DecoratedBox(
                       decoration: BoxDecoration(color: TripwiseColors.primary),
@@ -285,8 +368,8 @@ class _LifetimeEarningsCard extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  flex: 16,
-                  child: SizedBox(
+                  flex: feeShare,
+                  child: const SizedBox(
                     height: 8,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -306,25 +389,25 @@ class _LifetimeEarningsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Service Fees (8%)',
+                      'Service Fees (${overview.serviceFeePercentLabel})',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: TripwiseColors.onSurfaceVariant,
-                          ),
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '-\$13,299.50',
+                      overview.displayServiceFees,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFFC02A00),
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: const Color(0xFFC02A00),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
               ),
               const Icon(
                 Icons.percent_rounded,
-                color: const Color(0xFFC02A00),
+                color: Color(0xFFC02A00),
                 size: 22,
               ),
             ],
@@ -341,12 +424,14 @@ class _EarningsHistoryCard extends StatelessWidget {
     required this.selectedPeriod,
     required this.onPeriodSelected,
     required this.chartBars,
+    required this.peakLabel,
   });
 
   final List<String> periods;
   final int selectedPeriod;
   final ValueChanged<int> onPeriodSelected;
-  final List<_ChartBarData> chartBars;
+  final List<ProviderFinanceBar> chartBars;
+  final String peakLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -366,9 +451,9 @@ class _EarningsHistoryCard extends StatelessWidget {
                 child: Text(
                   'Earnings\nHistory',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                  ),
                 ),
               ),
               Wrap(
@@ -394,11 +479,11 @@ class _EarningsHistoryCard extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Text(
-                '\$5.2k',
+                peakLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
@@ -408,11 +493,7 @@ class _EarningsHistoryCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: chartBars
-                  .map(
-                    (bar) => _ChartBar(data: bar),
-                  )
-                  .toList(),
+              children: chartBars.map((bar) => _ChartBar(data: bar)).toList(),
             ),
           ),
         ],
@@ -422,7 +503,9 @@ class _EarningsHistoryCard extends StatelessWidget {
 }
 
 class _RevenueGrowthCard extends StatelessWidget {
-  const _RevenueGrowthCard();
+  const _RevenueGrowthCard({required this.growth});
+
+  final ProviderFinanceGrowth growth;
 
   @override
   Widget build(BuildContext context) {
@@ -448,25 +531,25 @@ class _RevenueGrowthCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            '14.2%',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            growth.displayPercent,
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
             'Revenue Growth',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
+              color: TripwiseColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            '+2.4% from last month',
+            growth.comparisonLabel,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: TripwiseColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: TripwiseColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -477,7 +560,7 @@ class _RevenueGrowthCard extends StatelessWidget {
 class _RecentTransactionsCard extends StatelessWidget {
   const _RecentTransactionsCard({required this.transactions});
 
-  final List<_TransactionData> transactions;
+  final List<ProviderFinanceTransaction> transactions;
 
   @override
   Widget build(BuildContext context) {
@@ -492,9 +575,9 @@ class _RecentTransactionsCard extends StatelessWidget {
         children: [
           Text(
             'Recent Transactions',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
           Row(
@@ -514,15 +597,18 @@ class _RecentTransactionsCard extends StatelessWidget {
                       Icon(
                         Icons.search_rounded,
                         size: 18,
-                        color: TripwiseColors.onSurfaceVariant.withOpacity(0.65),
+                        color: TripwiseColors.onSurfaceVariant.withValues(
+                          alpha: 0.65,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Search transactions...',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: TripwiseColors.onSurfaceVariant
-                                    .withOpacity(0.7),
+                                    .withValues(alpha: 0.7),
                               ),
                         ),
                       ),
@@ -543,12 +629,23 @@ class _RecentTransactionsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          ...transactions.map(
-            (transaction) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _TransactionCard(data: transaction),
+          if (transactions.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(
+                child: Text(
+                  'No recent transactions yet.',
+                  style: TextStyle(color: TripwiseColors.onSurfaceVariant),
+                ),
+              ),
+            )
+          else
+            ...transactions.map(
+              (transaction) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _TransactionCard(data: transaction),
+              ),
             ),
-          ),
           const SizedBox(height: 6),
           Center(
             child: TextButton(
@@ -568,7 +665,46 @@ class _RecentTransactionsCard extends StatelessWidget {
 class _TransactionCard extends StatelessWidget {
   const _TransactionCard({required this.data});
 
-  final _TransactionData data;
+  final ProviderFinanceTransaction data;
+
+  IconData get _icon {
+    switch (data.iconKey) {
+      case 'flight':
+        return Icons.flight_takeoff_rounded;
+      case 'activity':
+        return Icons.explore_rounded;
+      default:
+        return Icons.flag_rounded;
+    }
+  }
+
+  Color get _statusColor {
+    switch (data.statusLabel.toUpperCase()) {
+      case 'PAID OUT':
+        return const Color(0xFFCFEFD8);
+      case 'HELD':
+      case 'PENDING':
+        return const Color(0xFFFFE8B0);
+      case 'CANCELLED':
+        return TripwiseColors.errorContainer;
+      default:
+        return TripwiseColors.surfaceContainerLow;
+    }
+  }
+
+  Color get _statusTextColor {
+    switch (data.statusLabel.toUpperCase()) {
+      case 'PAID OUT':
+        return const Color(0xFF198754);
+      case 'HELD':
+      case 'PENDING':
+        return const Color(0xFF9C6B00);
+      case 'CANCELLED':
+        return TripwiseColors.onErrorContainer;
+      default:
+        return TripwiseColors.onSurfaceVariant;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -578,7 +714,7 @@ class _TransactionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -597,11 +733,7 @@ class _TransactionCard extends StatelessWidget {
                   color: Color(0xFFE5F0FF),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  data.icon,
-                  color: TripwiseColors.primary,
-                  size: 20,
-                ),
+                child: Icon(_icon, color: TripwiseColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -611,16 +743,16 @@ class _TransactionCard extends StatelessWidget {
                     Text(
                       data.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       data.subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: TripwiseColors.onSurfaceVariant,
-                            height: 1.35,
-                          ),
+                        color: TripwiseColors.onSurfaceVariant,
+                        height: 1.35,
+                      ),
                     ),
                   ],
                 ),
@@ -633,15 +765,15 @@ class _TransactionCard extends StatelessWidget {
               Text(
                 '${data.date} • ${data.time}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: TripwiseColors.onSurface,
-                    ),
+                  color: TripwiseColors.onSurface,
+                ),
               ),
               const Spacer(),
               Text(
-                data.amount,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                data.displayAmount,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -650,19 +782,105 @@ class _TransactionCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Container(
               decoration: BoxDecoration(
-                color: data.statusColor,
+                color: _statusColor,
                 borderRadius: BorderRadius.circular(14),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               child: Text(
-                data.status,
+                data.statusLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: data.statusTextColor,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.8,
-                    ),
+                  color: _statusTextColor,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceErrorState extends StatelessWidget {
+  const _FinanceErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 120),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 44,
+            color: TripwiseColors.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "Couldn't load finance",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            style: TripwiseButtonStyles.primaryElevated(radius: 8),
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineFinanceError extends StatelessWidget {
+  const _InlineFinanceError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: TripwiseColors.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: TripwiseColors.onErrorContainer,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TripwiseButtonStyles.text(
+              foregroundColor: TripwiseColors.onErrorContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+            child: const Text('Retry'),
           ),
         ],
       ),
@@ -699,9 +917,9 @@ class _SegmentChip extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: isSelected ? Colors.white : TripwiseColors.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: isSelected ? Colors.white : TripwiseColors.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
@@ -712,7 +930,7 @@ class _SegmentChip extends StatelessWidget {
 class _ChartBar extends StatelessWidget {
   const _ChartBar({required this.data});
 
-  final _ChartBarData data;
+  final ProviderFinanceBar data;
 
   @override
   Widget build(BuildContext context) {
@@ -734,48 +952,12 @@ class _ChartBar extends StatelessWidget {
           Text(
             data.label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                  fontWeight: data.highlighted ? FontWeight.w800 : FontWeight.w600,
-                ),
+              color: TripwiseColors.onSurfaceVariant,
+              fontWeight: data.highlighted ? FontWeight.w800 : FontWeight.w600,
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _ChartBarData {
-  const _ChartBarData({
-    required this.label,
-    required this.heightFactor,
-    this.highlighted = false,
-  });
-
-  final String label;
-  final double heightFactor;
-  final bool highlighted;
-}
-
-class _TransactionData {
-  const _TransactionData({
-    required this.title,
-    required this.subtitle,
-    required this.date,
-    required this.time,
-    required this.amount,
-    required this.status,
-    required this.statusColor,
-    required this.statusTextColor,
-    required this.icon,
-  });
-
-  final String title;
-  final String subtitle;
-  final String date;
-  final String time;
-  final String amount;
-  final String status;
-  final Color statusColor;
-  final Color statusTextColor;
-  final IconData icon;
 }

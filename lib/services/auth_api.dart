@@ -46,10 +46,7 @@ class AuthApi {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
       final data = response.data;
       if (data == null) {
@@ -69,15 +66,26 @@ class AuthApi {
     }
   }
 
-  Future<AuthSessionData> signInWithGoogle({
-    required String idToken,
-  }) async {
+  Future<AuthSessionData> me({required String token}) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/auth/me',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw AuthApiError('Empty response from /auth/me');
+      }
+      return AuthSessionData.fromMeResponse(data, token: token);
+    } on DioException catch (error) {
+      throw AuthApiError(_messageFromDio(error));
+    }
+  }
+
+  Future<AuthSessionData> signInWithGoogle({required String idToken}) async {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/auth/google',
-        data: {
-          'idToken': idToken,
-        },
+        data: {'idToken': idToken},
       );
       final data = response.data;
       if (data == null) {

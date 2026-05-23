@@ -106,14 +106,6 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       ),
       actions: [
-        IconButton(
-          onPressed: () => context.go('/trip_planner_dashboard'),
-          tooltip: 'Switch to Planner',
-          icon: const Icon(
-            Icons.swap_horiz_rounded,
-            color: TripwiseColors.primary,
-          ),
-        ),
         const NotificationBellButton(),
         Padding(
           padding: const EdgeInsets.only(right: 20),

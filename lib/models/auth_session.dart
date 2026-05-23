@@ -109,6 +109,23 @@ class AuthSessionData {
     );
   }
 
+  factory AuthSessionData.fromMeResponse(
+    Map<String, dynamic> json, {
+    required String token,
+  }) {
+    final session = (json['session'] as Map<String, dynamic>?) ?? const {};
+    return AuthSessionData(
+      user: AuthUser.fromJson(
+        (json['user'] as Map<String, dynamic>?) ?? const {},
+      ),
+      token: token,
+      expiresAt:
+          DateTime.tryParse(session['expiresAt'] as String? ?? '') ??
+          DateTime.now(),
+      ttlDays: (session['ttlDays'] as num?)?.toInt() ?? 14,
+    );
+  }
+
   factory AuthSessionData.fromStoredJson(Map<String, dynamic> json) {
     return AuthSessionData(
       user: AuthUser.fromJson(

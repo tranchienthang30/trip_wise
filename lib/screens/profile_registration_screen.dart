@@ -92,10 +92,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           ? 'Image picker is not ready yet. Please fully restart the app.'
           : error.toString();
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: TripwiseColors.error,
-        ),
+        SnackBar(content: Text(message), backgroundColor: TripwiseColors.error),
       );
     } finally {
       if (mounted) setState(() => _isUploadingAvatar = false);
@@ -140,10 +137,11 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final data = _data;
+    final isProvider = AuthSessionStore.instance.isProvider;
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const PlannerAppBar(),
+      appBar: isProvider ? const ProviderAppBar() : const PlannerAppBar(),
       body: RefreshIndicator(
         onRefresh: _loadProfile,
         child: SingleChildScrollView(
@@ -181,9 +179,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const PlannerTaskbar(
-        currentTab: PlannerTaskbarTab.profile,
-      ),
+      bottomNavigationBar: isProvider
+          ? const ProviderTaskbar(currentTab: ProviderTaskbarTab.dashboard)
+          : const PlannerTaskbar(currentTab: PlannerTaskbarTab.profile),
     );
   }
 
@@ -289,7 +287,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: TripwiseColors.primaryContainer.withOpacity(0.3),
+              color: TripwiseColors.primaryContainer.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -314,13 +312,19 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   : 'Share your local expertise and earn while you travel. Join our global network of trip planners.',
               style: TextStyle(
                 fontSize: 13,
-                color: TripwiseColors.onPrimaryContainer.withOpacity(0.85),
+                color: TripwiseColors.onPrimaryContainer.withValues(
+                  alpha: 0.85,
+                ),
                 height: 1.4,
               ),
             ),
             const SizedBox(height: 14),
             ElevatedButton.icon(
-              onPressed: () => context.push(provider.ctaRoute),
+              onPressed: () => context.go(
+                provider.isRegistered
+                    ? provider.dashboardRoute
+                    : provider.ctaRoute,
+              ),
               style: TripwiseButtonStyles.primaryElevated(
                 radius: 12,
                 padding: const EdgeInsets.symmetric(
@@ -328,28 +332,17 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   vertical: 12,
                 ),
               ),
-              icon: const Icon(Icons.arrow_forward),
-              label: Text(provider.ctaLabel),
-            ),
-            if (provider.isRegistered) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => context.go(provider.dashboardRoute),
-                style: TripwiseButtonStyles.outlined(
-                  radius: 12,
-                  foregroundColor: TripwiseColors.onPrimaryContainer,
-                  borderColor: TripwiseColors.onPrimaryContainer.withOpacity(
-                    0.25,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                icon: const Icon(Icons.storefront_rounded),
-                label: const Text('Open Dashboard'),
+              icon: Icon(
+                provider.isRegistered
+                    ? Icons.dashboard_rounded
+                    : Icons.arrow_forward,
               ),
-            ],
+              label: Text(
+                provider.isRegistered
+                    ? 'Open Provider Dashboard'
+                    : provider.ctaLabel,
+              ),
+            ),
           ],
         ),
       ),
@@ -378,7 +371,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     Container(
                       padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: TripwiseColors.primary.withOpacity(0.1),
+                        color: TripwiseColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -522,8 +515,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: isDestructive
-                      ? TripwiseColors.error.withOpacity(0.1)
-                      : TripwiseColors.primary.withOpacity(0.1),
+                      ? TripwiseColors.error.withValues(alpha: 0.1)
+                      : TripwiseColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 padding: const EdgeInsets.all(8),

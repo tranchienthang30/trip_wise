@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
 import '../models/profile_data.dart';
+import '../services/auth_session_store.dart';
 import '../services/profile_api.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
@@ -91,10 +92,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
           ? 'Image picker is not ready yet. Please fully restart the app.'
           : error.toString();
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: TripwiseColors.error,
-        ),
+        SnackBar(content: Text(message), backgroundColor: TripwiseColors.error),
       );
     } finally {
       if (mounted) setState(() => _uploadingType = null);
@@ -143,10 +141,13 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final verification = _verification;
+    final isProvider = AuthSessionStore.instance.isProvider;
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const PlannerAppBar(backRoute: '/profile_registration'),
+      appBar: isProvider
+          ? const ProviderAppBar(backRoute: '/profile_registration')
+          : const PlannerAppBar(backRoute: '/profile_registration'),
       body: RefreshIndicator(
         onRefresh: _loadVerification,
         child: SingleChildScrollView(
@@ -192,9 +193,9 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                 ),
         ),
       ),
-      bottomNavigationBar: const PlannerTaskbar(
-        currentTab: PlannerTaskbarTab.profile,
-      ),
+      bottomNavigationBar: isProvider
+          ? const ProviderTaskbar(currentTab: ProviderTaskbarTab.dashboard)
+          : const PlannerTaskbar(currentTab: PlannerTaskbarTab.profile),
     );
   }
 
@@ -210,7 +211,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: TripwiseColors.primaryContainer.withOpacity(0.24),
+            color: TripwiseColors.primaryContainer.withValues(alpha: 0.24),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -224,7 +225,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.14),
+                  color: Colors.white.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -252,8 +253,8 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                           : '${verification.uploadedCount} of 2 documents submitted',
                       style: TextStyle(
                         fontSize: 13,
-                        color: TripwiseColors.onPrimaryContainer.withOpacity(
-                          0.82,
+                        color: TripwiseColors.onPrimaryContainer.withValues(
+                          alpha: 0.82,
                         ),
                       ),
                     ),
@@ -268,7 +269,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.22),
+              backgroundColor: Colors.white.withValues(alpha: 0.22),
               color: complete
                   ? TripwiseColors.secondaryContainer
                   : TripwiseColors.primaryFixedDim,
@@ -280,7 +281,9 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
               'Updated: ${verification.updatedAt}',
               style: TextStyle(
                 fontSize: 11,
-                color: TripwiseColors.onPrimaryContainer.withOpacity(0.78),
+                color: TripwiseColors.onPrimaryContainer.withValues(
+                  alpha: 0.78,
+                ),
               ),
             ),
           ],

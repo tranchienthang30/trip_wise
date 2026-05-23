@@ -62,6 +62,22 @@ const Set<String> _providerOnlyRoutes = {
   '/inventory_pricing',
 };
 
+const Set<String> _plannerOnlyRoutes = {
+  '/home',
+  '/search_filter',
+  '/add_location_search',
+  '/trip_planner_dashboard',
+  '/trip_planner_timeline',
+  '/plan_new_trip_form',
+  '/my_trips',
+  '/booking_checkout',
+  '/payment_success',
+  '/wallet_loyalty',
+  '/wallet_transactions',
+  '/service_details',
+  '/reviews',
+};
+
 // A deep link that arrived before the router was mounted (cold start from a
 // killed-state notification tap). Flushed on the first frame.
 String? _pendingDeepLink;
@@ -89,6 +105,10 @@ final GoRouter _router = GoRouter(
     final isProviderOnlyRoute = _providerOnlyRoutes.contains(
       state.matchedLocation,
     );
+    final isPlannerOnlyRoute =
+        _plannerOnlyRoutes.contains(state.matchedLocation) ||
+        state.matchedLocation.startsWith('/service_details/') ||
+        state.matchedLocation.startsWith('/reviews/');
 
     if (!isLoggedIn && !onAuthScreen) {
       return '/register';
@@ -103,6 +123,9 @@ final GoRouter _router = GoRouter(
       return _authSessionStore.landingRoute;
     }
     if (isLoggedIn && !_authSessionStore.isProvider && isProviderOnlyRoute) {
+      return _authSessionStore.landingRoute;
+    }
+    if (isLoggedIn && _authSessionStore.isProvider && isPlannerOnlyRoute) {
       return _authSessionStore.landingRoute;
     }
     return null;
