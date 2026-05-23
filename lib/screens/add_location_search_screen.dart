@@ -12,10 +12,16 @@ class AddLocationSearchScreen extends StatefulWidget {
     super.key,
     this.initialCategory = 'all',
     this.initialQuery = '',
+    this.startDate,
+    this.endDate,
+    this.guests,
   });
 
   final String initialCategory;
   final String initialQuery;
+  final String? startDate;
+  final String? endDate;
+  final String? guests;
 
   @override
   State<AddLocationSearchScreen> createState() => _AddLocationSearchScreenState();
@@ -89,6 +95,26 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+
+  String _routeWithTripParams(String route) {
+    final uri = Uri.parse(route);
+    final query = <String, String>{...uri.queryParameters};
+    final startDate = widget.startDate?.trim();
+    final endDate = widget.endDate?.trim();
+    final guests = widget.guests?.trim();
+
+    if (startDate != null && startDate.isNotEmpty) {
+      query['startDate'] = startDate;
+    }
+    if (endDate != null && endDate.isNotEmpty) {
+      query['endDate'] = endDate;
+    }
+    if (guests != null && guests.isNotEmpty) {
+      query['guests'] = guests;
+    }
+
+    return uri.replace(queryParameters: query).toString();
   }
 
   @override
@@ -184,7 +210,7 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                       padding: const EdgeInsets.only(bottom: 14),
                       child: _HotelResultTile(
                         item: item,
-                        onTap: () => context.push(item.route),
+                        onTap: () => context.push(_routeWithTripParams(item.route)),
                       ),
                     ),
                   ),

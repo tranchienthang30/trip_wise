@@ -12,9 +12,18 @@ import '../widgets/review_card.dart';
 import 'image_gallery_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
-  const ServiceDetailsScreen({super.key, required this.hotelId});
+  const ServiceDetailsScreen({
+    super.key,
+    required this.hotelId,
+    this.startDate,
+    this.endDate,
+    this.guests,
+  });
 
   final int hotelId;
+  final String? startDate;
+  final String? endDate;
+  final String? guests;
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -74,6 +83,25 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         ? 'mode=user'
         : 'mode=user&orderId=${Uri.encodeQueryComponent(orderId)}';
     context.push('/direct_messaging?$query');
+  }
+
+  String _bookingRoute(HotelDetail data) {
+    final query = <String, String>{'hotelId': '${data.id}'};
+    final startDate = widget.startDate?.trim();
+    final endDate = widget.endDate?.trim();
+    final guests = widget.guests?.trim();
+
+    if (startDate != null && startDate.isNotEmpty) {
+      query['startDate'] = startDate;
+    }
+    if (endDate != null && endDate.isNotEmpty) {
+      query['endDate'] = endDate;
+    }
+    if (guests != null && guests.isNotEmpty) {
+      query['guests'] = guests;
+    }
+
+    return Uri(path: '/booking_checkout', queryParameters: query).toString();
   }
 
   Future<void> _cancelExistingBooking() async {
@@ -152,7 +180,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 ? null
                 : canCancel
                 ? _cancelExistingBooking
-                : () => context.push('/booking_checkout?hotelId=${data.id}'),
+                : () => context.push(_bookingRoute(data)),
           );
         },
       ),

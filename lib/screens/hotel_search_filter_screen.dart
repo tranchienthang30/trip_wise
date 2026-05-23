@@ -4,8 +4,24 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../widgets/shared_taskbars.dart';
 
+String? _cleanParam(String? value) {
+  final trimmed = value?.trim() ?? '';
+  return trimmed.isEmpty ? null : trimmed;
+}
+
 class HotelSearchFilterScreen extends StatefulWidget {
-  const HotelSearchFilterScreen({super.key});
+  const HotelSearchFilterScreen({
+    super.key,
+    this.initialQuery = '',
+    this.startDate,
+    this.endDate,
+    this.guests,
+  });
+
+  final String initialQuery;
+  final String? startDate;
+  final String? endDate;
+  final String? guests;
 
   @override
   State<HotelSearchFilterScreen> createState() =>
@@ -89,9 +105,21 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
 
   _FilterSettings _filterSettings = _FilterSettings.defaults;
   _SearchSortMode _sortMode = _SearchSortMode.popularity;
-  String _searchQuery = '';
+  late String _searchQuery;
+  String? _startDate;
+  String? _endDate;
+  int? _guests;
   bool _isMapView = false;
   int _selectedBottomNavIndex = 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchQuery = widget.initialQuery.trim();
+    _startDate = _cleanParam(widget.startDate);
+    _endDate = _cleanParam(widget.endDate);
+    _guests = int.tryParse(widget.guests ?? '');
+  }
 
   List<_HotelImageCardData> get _visibleHotels {
     final visibleHotels = _hotelCards.where(_matchesHotelCard).toList();
@@ -121,6 +149,22 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
 
   int get _visiblePropertyCount =>
       _visibleHotels.length + (_showFeaturedHotel ? 1 : 0);
+
+  bool get _hasTripSearchDetails =>
+      (_startDate?.isNotEmpty ?? false) ||
+      (_endDate?.isNotEmpty ?? false) ||
+      (_guests ?? 0) > 0;
+
+  String get _tripDetailsLabel {
+    final parts = <String>[];
+    if ((_startDate?.isNotEmpty ?? false) && (_endDate?.isNotEmpty ?? false)) {
+      parts.add('${_startDate!} to ${_endDate!}');
+    }
+    if ((_guests ?? 0) > 0) {
+      parts.add('${_guests!} ${_guests == 1 ? 'guest' : 'guests'}');
+    }
+    return parts.join(' | ');
+  }
 
   bool _matchesHotelCard(_HotelImageCardData hotel) {
     return _matchesSearchTokens([hotel.name, hotel.location]) &&
@@ -407,6 +451,9 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
   void _resetSearchAndFilters() {
     setState(() {
       _searchQuery = '';
+      _startDate = null;
+      _endDate = null;
+      _guests = null;
       _filterSettings = _FilterSettings.defaults;
       _sortMode = _SearchSortMode.popularity;
       _isMapView = false;
@@ -459,7 +506,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(sheetContext).pop();
-                    context.push('/booking_checkout');
+                    context.push(_bookingRoute());
                   },
                   child: const Text('Continue To Booking'),
                 ),
@@ -520,6 +567,21 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+
+  String _bookingRoute() {
+    final query = <String, String>{};
+    if ((_startDate?.isNotEmpty ?? false)) {
+      query['startDate'] = _startDate!;
+    }
+    if ((_endDate?.isNotEmpty ?? false)) {
+      query['endDate'] = _endDate!;
+    }
+    if ((_guests ?? 0) > 0) {
+      query['guests'] = '${_guests!}';
+    }
+
+    return Uri(path: '/booking_checkout', queryParameters: query).toString();
   }
 
   @override
@@ -587,11 +649,14 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
                 ),
               ),
             ),
-            if (_searchQuery.isNotEmpty || _filterSettings.hasActiveFilters) ...[
+            if (_searchQuery.isNotEmpty ||
+                _filterSettings.hasActiveFilters ||
+                _hasTripSearchDetails) ...[
               const SizedBox(height: 14),
               _ActiveSearchSummary(
                 searchQuery: _searchQuery,
                 hasFilters: _filterSettings.hasActiveFilters,
+                tripDetailsLabel: _tripDetailsLabel,
                 onClearAll: _resetSearchAndFilters,
               ),
             ],
@@ -817,17 +882,20 @@ class _ActiveSearchSummary extends StatelessWidget {
   const _ActiveSearchSummary({
     required this.searchQuery,
     required this.hasFilters,
+    required this.tripDetailsLabel,
     required this.onClearAll,
   });
 
   final String searchQuery;
   final bool hasFilters;
+  final String tripDetailsLabel;
   final VoidCallback onClearAll;
 
   @override
   Widget build(BuildContext context) {
     final summaryParts = <String>[
       if (searchQuery.isNotEmpty) 'Search: "$searchQuery"',
+      if (tripDetailsLabel.isNotEmpty) tripDetailsLabel,
       if (hasFilters) 'Custom filters applied',
     ];
 

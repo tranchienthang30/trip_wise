@@ -33,6 +33,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   final TextEditingController _requestsController = TextEditingController();
 
   CheckoutSummary? _summary;
+  String? _selectedStartDate;
+  String? _selectedEndDate;
+  int? _selectedGuests;
   String _selectedPaymentMethod = 'card';
   bool _agreeToTerms = false;
   bool _isLoading = true;
@@ -42,6 +45,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedStartDate = _cleanString(widget.startDate);
+    _selectedEndDate = _cleanString(widget.endDate);
+    _selectedGuests = _toInt(widget.guests);
     _loadSummary();
   }
 
@@ -64,14 +70,17 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       final summary = await _api.fetchSummary(
         hotelId: _toInt(widget.hotelId),
         roomId: _toInt(widget.roomId),
-        startDate: widget.startDate,
-        endDate: widget.endDate,
-        guests: _toInt(widget.guests),
+        startDate: _selectedStartDate,
+        endDate: _selectedEndDate,
+        guests: _selectedGuests,
       );
       if (!mounted) return;
 
       setState(() {
         _summary = summary;
+        _selectedStartDate = summary.listing.startDate;
+        _selectedEndDate = summary.listing.endDate;
+        _selectedGuests = summary.listing.guests;
         _selectedPaymentMethod = summary.paymentOptions.isEmpty
             ? 'card'
             : summary.paymentOptions.first.key;
@@ -93,13 +102,18 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     final summary = _summary;
     if (summary == null || _isSubmitting) return;
 
+    final validationMessage = _bookingValidationMessage(
+      startDate: summary.listing.startDate,
+      endDate: summary.listing.endDate,
+      guests: summary.listing.guests,
+    );
+    if (validationMessage != null) {
+      _showFeedback(validationMessage, isError: true);
+      return;
+    }
+
     if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please agree to booking terms to continue.'),
-          backgroundColor: TripwiseColors.primary,
-        ),
-      );
+      _showFeedback('Please agree to booking terms to continue.');
       return;
     }
 
@@ -127,6 +141,107 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _pickDates(CheckoutSummary summary) async {
+    final currentRange = _currentDateRange(summary);
+    final today = _dateOnly(DateTime.now());
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: today,
+      lastDate: DateTime(today.year + 2, 12, 31),
+      initialDateRange: currentRange,
+      helpText: 'Select booking dates',
+      saveText: 'Apply',
+    );
+    if (picked == null) return;
+
+    final startDate = _isoDate(picked.start);
+    final endDate = _isoDate(picked.end);
+    final validationMessage = _bookingValidationMessage(
+      startDate: startDate,
+      endDate: endDate,
+      guests: _selectedGuests ?? summary.listing.guests,
+    );
+    if (validationMessage != null) {
+      _showFeedback(validationMessage, isError: true);
+      return;
+    }
+
+    setState(() {
+      _selectedStartDate = startDate;
+      _selectedEndDate = endDate;
+    });
+    await _loadSummary();
+  }
+
+  Future<void> _pickGuests(CheckoutSummary summary) async {
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        var draftGuests = _selectedGuests ?? summary.listing.guests;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: TripwiseColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Guests',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 14),
+                    _GuestStepper(
+                      label: 'Guests',
+                      value: draftGuests,
+                      min: 1,
+                      onChanged: (value) {
+                        setSheetState(() => draftGuests = value);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(sheetContext).pop(draftGuests),
+                        style: TripwiseButtonStyles.primaryElevated(radius: 18),
+                        child: const Text('Apply'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (picked == null) return;
+
+    final validationMessage = _bookingValidationMessage(
+      startDate: _selectedStartDate ?? summary.listing.startDate,
+      endDate: _selectedEndDate ?? summary.listing.endDate,
+      guests: picked,
+    );
+    if (validationMessage != null) {
+      _showFeedback(validationMessage, isError: true);
+      return;
+    }
+
+    setState(() => _selectedGuests = picked);
+    await _loadSummary();
   }
 
   @override
@@ -248,13 +363,16 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                     color: TripwiseColors.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '${summary.listing.startDate} → ${summary.listing.endDate} • ${summary.listing.nights} night(s) • ${summary.listing.guests} guest(s)',
-                  style: const TextStyle(
-                    color: TripwiseColors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
+                const SizedBox(height: 16),
+                _BookingTripDetailsCard(
+                  dateLabel:
+                      '${_formatDate(summary.listing.startDate)} - ${_formatDate(summary.listing.endDate)}',
+                  nightsLabel:
+                      '${summary.listing.nights} ${_plural(summary.listing.nights, 'night')}',
+                  guestsLabel:
+                      '${summary.listing.guests} ${_plural(summary.listing.guests, 'guest')}',
+                  onEditDates: () => _pickDates(summary),
+                  onEditGuests: () => _pickGuests(summary),
                 ),
               ],
             ),
@@ -557,5 +675,345 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   int? _toInt(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     return int.tryParse(value);
+  }
+
+  String? _cleanString(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  DateTime _dateOnly(DateTime value) {
+    return DateTime(value.year, value.month, value.day);
+  }
+
+  String _isoDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  DateTimeRange _currentDateRange(CheckoutSummary summary) {
+    final today = _dateOnly(DateTime.now());
+    final start =
+        DateTime.tryParse(_selectedStartDate ?? summary.listing.startDate) ??
+        today.add(const Duration(days: 1));
+    final end =
+        DateTime.tryParse(_selectedEndDate ?? summary.listing.endDate) ??
+        start.add(const Duration(days: 1));
+
+    final normalizedStart = _dateOnly(start);
+    final normalizedEnd = _dateOnly(end);
+    if (normalizedStart.isBefore(today) ||
+        !normalizedEnd.isAfter(normalizedStart)) {
+      return DateTimeRange(
+        start: today.add(const Duration(days: 1)),
+        end: today.add(const Duration(days: 2)),
+      );
+    }
+
+    return DateTimeRange(start: normalizedStart, end: normalizedEnd);
+  }
+
+  String? _bookingValidationMessage({
+    required String startDate,
+    required String endDate,
+    required int guests,
+  }) {
+    final start = DateTime.tryParse(startDate);
+    final end = DateTime.tryParse(endDate);
+    if (start == null || end == null) {
+      return 'Please choose valid booking dates.';
+    }
+
+    final today = _dateOnly(DateTime.now());
+    final startOnly = _dateOnly(start);
+    final endOnly = _dateOnly(end);
+    if (startOnly.isBefore(today)) {
+      return 'Start date cannot be in the past.';
+    }
+    if (!endOnly.isAfter(startOnly)) {
+      return 'End date must be after start date.';
+    }
+    if (guests < 1) {
+      return 'At least 1 guest is required.';
+    }
+    return null;
+  }
+
+  void _showFeedback(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor:
+              isError ? TripwiseColors.error : TripwiseColors.primary,
+        ),
+      );
+  }
+
+  String _formatDate(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    return MaterialLocalizations.of(context).formatShortMonthDay(parsed);
+  }
+
+  String _plural(int value, String singular) {
+    return value == 1 ? singular : '${singular}s';
+  }
+}
+
+class _BookingTripDetailsCard extends StatelessWidget {
+  const _BookingTripDetailsCard({
+    required this.dateLabel,
+    required this.nightsLabel,
+    required this.guestsLabel,
+    required this.onEditDates,
+    required this.onEditGuests,
+  });
+
+  final String dateLabel;
+  final String nightsLabel;
+  final String guestsLabel;
+  final VoidCallback onEditDates;
+  final VoidCallback onEditGuests;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          _TripDetailRow(
+            icon: Icons.calendar_today_rounded,
+            eyebrow: 'DATES',
+            value: dateLabel,
+            onTap: onEditDates,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: TripwiseColors.outlineVariant),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _TripDetailMetric(
+                  icon: Icons.bedtime_rounded,
+                  eyebrow: 'STAY',
+                  value: nightsLabel,
+                  onTap: onEditDates,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 42,
+                color: TripwiseColors.outlineVariant,
+              ),
+              Expanded(
+                child: _TripDetailMetric(
+                  icon: Icons.group_rounded,
+                  eyebrow: 'GUESTS',
+                  value: guestsLabel,
+                  onTap: onEditGuests,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TripDetailRow extends StatelessWidget {
+  const _TripDetailRow({
+    required this.icon,
+    required this.eyebrow,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String eyebrow;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        child: Row(
+          children: [
+            _TripDetailIcon(icon: icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TripDetailText(eyebrow: eyebrow, value: value),
+            ),
+            const Icon(
+              Icons.edit_calendar_rounded,
+              size: 20,
+              color: TripwiseColors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TripDetailMetric extends StatelessWidget {
+  const _TripDetailMetric({
+    required this.icon,
+    required this.eyebrow,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String eyebrow;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Row(
+          children: [
+            _TripDetailIcon(icon: icon, compact: true),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TripDetailText(eyebrow: eyebrow, value: value),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TripDetailText extends StatelessWidget {
+  const _TripDetailText({
+    required this.eyebrow,
+    required this.value,
+  });
+
+  final String eyebrow;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          eyebrow,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: TripwiseColors.onSurfaceVariant,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.1,
+              ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: TripwiseColors.onSurface,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TripDetailIcon extends StatelessWidget {
+  const _TripDetailIcon({
+    required this.icon,
+    this.compact = false,
+  });
+
+  final IconData icon;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 34.0 : 38.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: TripwiseColors.primaryFixed,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        icon,
+        size: compact ? 18 : 20,
+        color: TripwiseColors.primary,
+      ),
+    );
+  }
+}
+
+class _GuestStepper extends StatelessWidget {
+  const _GuestStepper({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int min;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: value <= min ? null : () => onChanged(value - 1),
+          icon: const Icon(Icons.remove_rounded),
+        ),
+        SizedBox(
+          width: 44,
+          child: Text(
+            '$value',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: () => onChanged(value + 1),
+          icon: const Icon(Icons.add_rounded),
+        ),
+      ],
+    );
   }
 }

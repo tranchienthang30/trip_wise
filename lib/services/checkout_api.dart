@@ -19,21 +19,25 @@ class CheckoutApi {
     String? endDate,
     int? guests,
   }) async {
-    final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
-      '/checkout/summary',
-      queryParameters: {
-        if (hotelId != null) 'hotelId': hotelId,
-        if (roomId != null) 'roomId': roomId,
-        if (startDate != null && startDate.isNotEmpty) 'startDate': startDate,
-        if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
-        if (guests != null) 'guests': guests,
-      },
-    );
-    final data = response.data;
-    if (data == null) {
-      throw StateError('Empty response from /checkout/summary');
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/checkout/summary',
+        queryParameters: {
+          if (hotelId != null) 'hotelId': hotelId,
+          if (roomId != null) 'roomId': roomId,
+          if (startDate != null && startDate.isNotEmpty) 'startDate': startDate,
+          if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
+          if (guests != null) 'guests': guests,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /checkout/summary');
+      }
+      return CheckoutSummary.fromJson(data);
+    } on DioException catch (e) {
+      throw CheckoutApiException(_messageFromDio(e));
     }
-    return CheckoutSummary.fromJson(data);
   }
 
   Future<CheckoutCompleteResult> complete({
@@ -64,13 +68,15 @@ class CheckoutApi {
       }
       return CheckoutCompleteResult.fromJson(data);
     } on DioException catch (e) {
-      final response = e.response?.data;
-      if (response is Map && response['message'] is String) {
-        throw CheckoutApiException(response['message'] as String);
-      }
-      throw CheckoutApiException(
-        'Could not complete booking. Please try again.',
-      );
+      throw CheckoutApiException(_messageFromDio(e));
     }
+  }
+
+  String _messageFromDio(DioException error) {
+    final response = error.response?.data;
+    if (response is Map && response['message'] is String) {
+      return response['message'] as String;
+    }
+    return 'Could not complete booking. Please try again.';
   }
 }

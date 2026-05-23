@@ -123,14 +123,28 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/search_filter',
-      builder: (context, state) => const HotelSearchFilterScreen(),
+      builder: (context, state) {
+        final q = state.uri.queryParameters;
+        return HotelSearchFilterScreen(
+          initialQuery: q['query'] ?? '',
+          startDate: q['startDate'],
+          endDate: q['endDate'],
+          guests: q['guests'],
+        );
+      },
     ),
     GoRoute(
       path: '/add_location_search',
-      builder: (context, state) => AddLocationSearchScreen(
-        initialCategory: state.uri.queryParameters['category'] ?? 'all',
-        initialQuery: state.uri.queryParameters['query'] ?? '',
-      ),
+      builder: (context, state) {
+        final q = state.uri.queryParameters;
+        return AddLocationSearchScreen(
+          initialCategory: q['category'] ?? 'all',
+          initialQuery: q['query'] ?? '',
+          startDate: q['startDate'],
+          endDate: q['endDate'],
+          guests: q['guests'],
+        );
+      },
     ),
     GoRoute(
       path: '/trip_planner_dashboard',
@@ -164,8 +178,15 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/service_details/:id',
-      builder: (context, state) =>
-          ServiceDetailsScreen(hotelId: int.parse(state.pathParameters['id']!)),
+      builder: (context, state) {
+        final q = state.uri.queryParameters;
+        return ServiceDetailsScreen(
+          hotelId: int.parse(state.pathParameters['id']!),
+          startDate: q['startDate'],
+          endDate: q['endDate'],
+          guests: q['guests'],
+        );
+      },
     ),
     GoRoute(
       path: '/reviews/:id',

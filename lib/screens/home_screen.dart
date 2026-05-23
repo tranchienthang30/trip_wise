@@ -62,16 +62,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeBody extends StatelessWidget {
+class _HomeBody extends StatefulWidget {
   const _HomeBody({required this.data});
 
   final HomeContent data;
+
+  @override
+  State<_HomeBody> createState() => _HomeBodyState();
+}
+
+class _HomeBodyState extends State<_HomeBody> {
+  DateTimeRange _selectedDates = _defaultDateRange();
+  _GuestSelection _guests = const _GuestSelection(adults: 2);
+
+  HomeContent get data => widget.data;
 
   void _openRoute(BuildContext context, String? route) {
     if (route == null || route.isEmpty) {
       return;
     }
-    context.push(route);
+    context.push(_routeWithTripParams(route));
+  }
+
+  String _routeWithTripParams(String route) {
+    final uri = Uri.parse(route);
+    final queryParameters = <String, String>{
+      ...uri.queryParameters,
+      'startDate': _dateOnly(_selectedDates.start),
+      'endDate': _dateOnly(_selectedDates.end),
+      'guests': '${_guests.totalGuests}',
+      'adults': '${_guests.adults}',
+      'children': '${_guests.children}',
+      'rooms': '${_guests.rooms}',
+    };
+
+    return uri.replace(queryParameters: queryParameters).toString();
   }
 
   @override
@@ -83,6 +108,10 @@ class _HomeBody extends StatelessWidget {
         children: [
           _SearchCard(
             searchCard: data.searchCard,
+            initialDates: _selectedDates,
+            initialGuests: _guests,
+            onDatesChanged: (dates) => setState(() => _selectedDates = dates),
+            onGuestsChanged: (guests) => setState(() => _guests = guests),
             onOpenRoute: (route) => _openRoute(context, route),
           ),
           const SizedBox(height: 28),
@@ -188,14 +217,170 @@ class _HomeErrorView extends StatelessWidget {
   }
 }
 
-class _SearchCard extends StatelessWidget {
+class _SearchCard extends StatefulWidget {
   const _SearchCard({
     required this.searchCard,
+    required this.initialDates,
+    required this.initialGuests,
+    required this.onDatesChanged,
+    required this.onGuestsChanged,
     required this.onOpenRoute,
   });
 
   final HomeSearchCard searchCard;
+  final DateTimeRange initialDates;
+  final _GuestSelection initialGuests;
+  final ValueChanged<DateTimeRange> onDatesChanged;
+  final ValueChanged<_GuestSelection> onGuestsChanged;
   final ValueChanged<String> onOpenRoute;
+
+  @override
+  State<_SearchCard> createState() => _SearchCardState();
+}
+
+class _SearchCardState extends State<_SearchCard> {
+  late DateTimeRange _selectedDates;
+  late _GuestSelection _guests;
+
+  HomeSearchCard get searchCard => widget.searchCard;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDates = widget.initialDates;
+    _guests = widget.initialGuests;
+  }
+
+  Future<void> _pickDates() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2, 12, 31),
+      initialDateRange: _selectedDates,
+      helpText: 'Select travel dates',
+      saveText: 'Apply',
+    );
+    if (picked == null) return;
+
+    setState(() => _selectedDates = picked);
+    widget.onDatesChanged(picked);
+  }
+
+  Future<void> _pickGuests() async {
+    final picked = await showModalBottomSheet<_GuestSelection>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        var draft = _guests;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void update(_GuestSelection next) {
+              setSheetState(() => draft = next);
+            }
+
+            return SafeArea(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: TripwiseColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Guests',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 14),
+                    _GuestStepper(
+                      label: 'Adults',
+                      value: draft.adults,
+                      min: 1,
+                      onChanged: (value) => update(draft.copyWith(adults: value)),
+                    ),
+                    _GuestStepper(
+                      label: 'Children',
+                      value: draft.children,
+                      min: 0,
+                      onChanged: (value) =>
+                          update(draft.copyWith(children: value)),
+                    ),
+                    _GuestStepper(
+                      label: 'Rooms',
+                      value: draft.rooms,
+                      min: 1,
+                      onChanged: (value) => update(draft.copyWith(rooms: value)),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(draft),
+                        style: TripwiseButtonStyles.primaryElevated(radius: 18),
+                        child: const Text('Apply'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (picked == null) return;
+
+    setState(() => _guests = picked);
+    widget.onGuestsChanged(picked);
+  }
+
+  String _routeWithFilters(String route) {
+    final uri = Uri.parse(route);
+    final queryParameters = <String, String>{
+      ...uri.queryParameters,
+      'guests': '${_guests.totalGuests}',
+      'adults': '${_guests.adults}',
+      'children': '${_guests.children}',
+      'rooms': '${_guests.rooms}',
+    };
+
+    queryParameters['startDate'] = _dateOnly(_selectedDates.start);
+    queryParameters['endDate'] = _dateOnly(_selectedDates.end);
+
+    return uri.replace(queryParameters: queryParameters).toString();
+  }
+
+  bool _isDatesItem(HomeSearchDetailItem item) {
+    return item.label.toLowerCase().contains('date') ||
+        item.icon == 'calendar_today_rounded';
+  }
+
+  bool _isGuestsItem(HomeSearchDetailItem item) {
+    return item.label.toLowerCase().contains('guest') ||
+        item.icon == 'group_rounded';
+  }
+
+  String _valueForItem(BuildContext context, HomeSearchDetailItem item) {
+    if (_isDatesItem(item)) {
+      return _formatDateRange(context, _selectedDates);
+    }
+    if (_isGuestsItem(item)) {
+      return _guests.label;
+    }
+    return item.value;
+  }
+
+  VoidCallback? _actionForItem(HomeSearchDetailItem item) {
+    if (_isDatesItem(item)) return _pickDates;
+    if (_isGuestsItem(item)) return _pickGuests;
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +411,8 @@ class _SearchCard extends StatelessWidget {
           ),
           const SizedBox(height: 22),
           InkWell(
-            onTap: () => onOpenRoute(searchCard.destinationRoute),
+            onTap: () =>
+                widget.onOpenRoute(_routeWithFilters(searchCard.destinationRoute)),
             borderRadius: BorderRadius.circular(18),
             child: Container(
               decoration: BoxDecoration(
@@ -266,7 +452,11 @@ class _SearchCard extends StatelessWidget {
                       .map(
                         (item) => SizedBox(
                           width: itemWidth,
-                          child: _SearchDetailCard(item: item),
+                          child: _SearchDetailCard(
+                            item: item,
+                            value: _valueForItem(context, item),
+                            onTap: _actionForItem(item),
+                          ),
                         ),
                       )
                       .toList(),
@@ -278,7 +468,8 @@ class _SearchCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => onOpenRoute(searchCard.searchButtonRoute),
+              onPressed: () =>
+                  widget.onOpenRoute(_routeWithFilters(searchCard.searchButtonRoute)),
               style: TripwiseButtonStyles.primaryElevated(
                 radius: 24,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -296,55 +487,175 @@ class _SearchCard extends StatelessWidget {
 }
 
 class _SearchDetailCard extends StatelessWidget {
-  const _SearchDetailCard({required this.item});
+  const _SearchDetailCard({
+    required this.item,
+    required this.value,
+    this.onTap,
+  });
 
   final HomeSearchDetailItem item;
+  final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              _iconFromName(item.icon),
-              size: 20,
-              color: TripwiseColors.primary,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Ink(
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(
+                _iconFromName(item.icon),
+                size: 20,
+                color: TripwiseColors.primary,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         letterSpacing: 1.4,
                         color: TripwiseColors.onSurfaceVariant,
                       ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.value,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuestSelection {
+  const _GuestSelection({
+    required this.adults,
+    this.children = 0,
+    this.rooms = 1,
+  });
+
+  final int adults;
+  final int children;
+  final int rooms;
+
+  int get totalGuests => adults + children;
+
+  String get label {
+    final parts = <String>[
+      '$adults ${adults == 1 ? 'Adult' : 'Adults'}',
+      if (children > 0) '$children ${children == 1 ? 'Child' : 'Children'}',
+    ];
+    return parts.join(', ');
+  }
+
+  _GuestSelection copyWith({
+    int? adults,
+    int? children,
+    int? rooms,
+  }) {
+    return _GuestSelection(
+      adults: adults ?? this.adults,
+      children: children ?? this.children,
+      rooms: rooms ?? this.rooms,
+    );
+  }
+}
+
+class _GuestStepper extends StatelessWidget {
+  const _GuestStepper({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int min;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          ),
+          IconButton.filledTonal(
+            onPressed: value <= min ? null : () => onChanged(value - 1),
+            icon: const Icon(Icons.remove_rounded),
+          ),
+          SizedBox(
+            width: 42,
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+          IconButton.filledTonal(
+            onPressed: () => onChanged(value + 1),
+            icon: const Icon(Icons.add_rounded),
           ),
         ],
       ),
     );
   }
+}
+
+String _dateOnly(DateTime value) {
+  final year = value.year.toString().padLeft(4, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+DateTimeRange _defaultDateRange() {
+  final now = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day + 1);
+  final end = start.add(const Duration(days: 2));
+  return DateTimeRange(start: start, end: end);
+}
+
+String _formatDateRange(BuildContext context, DateTimeRange range) {
+  final localizations = MaterialLocalizations.of(context);
+  final start = localizations.formatShortMonthDay(range.start);
+  final end = range.start.month == range.end.month
+      ? range.end.day.toString()
+      : localizations.formatShortMonthDay(range.end);
+  return '$start - $end';
 }
 
 class _CategoryRow extends StatelessWidget {
