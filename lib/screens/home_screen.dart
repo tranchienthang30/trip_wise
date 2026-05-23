@@ -499,51 +499,77 @@ class _SearchDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: TripwiseColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(
-                _iconFromName(item.icon),
-                size: 20,
-                color: TripwiseColors.primary,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          height: 98,
+          decoration: BoxDecoration(
+            color: TripwiseColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: TripwiseColors.outlineVariant),
+            boxShadow: [
+              BoxShadow(
+                color: TripwiseColors.primary.withOpacity(0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    item.label,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.4,
-                        color: TripwiseColors.onSurfaceVariant,
-                      ),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: TripwiseColors.primaryFixed,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _iconFromName(item.icon),
+                      size: 17,
+                      color: TripwiseColors.primary,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    value,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            letterSpacing: 1.1,
+                            color: TripwiseColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: TripwiseColors.onSurfaceVariant,
                   ),
                 ],
               ),
-            ),
-          ],
+              const Spacer(),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: TripwiseColors.onSurface,
+                      height: 1.05,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -652,10 +678,13 @@ DateTimeRange _defaultDateRange() {
 String _formatDateRange(BuildContext context, DateTimeRange range) {
   final localizations = MaterialLocalizations.of(context);
   final start = localizations.formatShortMonthDay(range.start);
-  final end = range.start.month == range.end.month
+  final end = range.start.month == range.end.month &&
+          range.start.year == range.end.year
       ? range.end.day.toString()
       : localizations.formatShortMonthDay(range.end);
-  return '$start - $end';
+  return range.start.month == range.end.month && range.start.year == range.end.year
+      ? '$start-$end'
+      : '$start - $end';
 }
 
 class _CategoryRow extends StatelessWidget {
@@ -697,6 +726,10 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundTone =
+        category.key == 'flights' ? 'primary_soft' : category.backgroundTone;
+    final iconTone = category.key == 'flights' ? 'primary' : category.iconTone;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(32),
@@ -706,12 +739,12 @@ class _CategoryChip extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              color: _backgroundToneColor(category.backgroundTone),
+              color: _backgroundToneColor(backgroundTone),
               shape: BoxShape.circle,
             ),
             child: Icon(
               _iconFromName(category.icon),
-              color: _toneColor(category.iconTone),
+              color: _toneColor(iconTone),
               size: 28,
             ),
           ),
@@ -771,6 +804,9 @@ class _OfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ctaColor = offer.ctaLabel.toUpperCase().contains('VIEW')
+        ? TripwiseColors.primary
+        : _toneColor(offer.accentTone);
     return InkWell(
       onTap: onOpenRoute,
       borderRadius: BorderRadius.circular(26),
@@ -834,7 +870,7 @@ class _OfferCard extends StatelessWidget {
                     FilledButton(
                       onPressed: onOpenRoute,
                       style: TripwiseButtonStyles.overlayFilled(
-                        foregroundColor: _toneColor(offer.accentTone),
+                        foregroundColor: ctaColor,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 18,
                           vertical: 10,
