@@ -99,8 +99,14 @@ class ProfileVerification {
   final String? addressImageUrl;
   final String? updatedAt;
 
+  bool get _hasPassportImage =>
+      (passportImageUrl ?? '').trim().isNotEmpty && passportUploaded;
+
+  bool get _hasAddressImage =>
+      (addressImageUrl ?? '').trim().isNotEmpty && addressUploaded;
+
   int get uploadedCount =>
-      (passportUploaded ? 1 : 0) + (addressUploaded ? 1 : 0);
+      (_hasPassportImage ? 1 : 0) + (_hasAddressImage ? 1 : 0);
 
   bool get isComplete => uploadedCount == 2;
 

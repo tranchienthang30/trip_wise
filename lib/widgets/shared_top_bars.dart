@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../services/auth_session_store.dart';
 import '../services/notifications_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import 'planner_assistant_chat.dart';
 
-const String _sharedAvatarUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuD59O85BxWYvpaeOBLKRHVJDl5xKk_FJK77zGka29CK_oQ1rOkOTPbkLfv5mZ2tk4SD93aU55v_9vSwY-8iZX87mDYD8LvaNn-UdHyoFg4bfL0xqZKHeriqkQd1SUKpeIE6gvVJ4QX_FawbPCT0y5pyTTOE8NETqEKIcfWrol-6cte2O7TlMuVWZmL-XT25F-nqWGLSrW9OOk7KIDBnYBgynVF0OgOioVdYbzo3IRETkhaSqqraHQeFRMQ2iFZihiTYLPIvigq3m8A';
-
 class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const PlannerAppBar({super.key, this.backRoute});
+  const PlannerAppBar({super.key, this.backRoute, this.titleText, this.onBack});
 
   final String? backRoute;
+  final String? titleText;
+  final VoidCallback? onBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(68);
@@ -26,7 +27,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: backRoute == null
           ? null
           : IconButton(
-              onPressed: () => context.go(backRoute!),
+              onPressed: onBack ?? () => context.go(backRoute!),
               tooltip: 'Back',
               icon: const Icon(
                 Icons.arrow_back_rounded,
@@ -35,45 +36,33 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       titleSpacing: 20,
       title: Text(
-        'TRIP WISE',
+        titleText ?? 'TRIP WISE',
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: TripwiseColors.primary,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
+          color: TripwiseColors.primary,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
+        ),
       ),
       actions: [
         const PlannerAssistantHeaderButton(),
         const NotificationBellButton(),
-        Padding(
-          padding: const EdgeInsets.only(right: 20),
-          child: GestureDetector(
-            onTap: () => context.go('/profile_registration'),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: TripwiseColors.primaryContainer,
-                  width: 2,
-                ),
-              ),
-              child: const CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(_sharedAvatarUrl),
-              ),
-            ),
-          ),
-        ),
+        const _HeaderAvatarButton(),
       ],
     );
   }
 }
 
 class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const ProviderAppBar({super.key, this.backRoute});
+  const ProviderAppBar({
+    super.key,
+    this.backRoute,
+    this.titleText,
+    this.onBack,
+  });
 
   final String? backRoute;
+  final String? titleText;
+  final VoidCallback? onBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(68);
@@ -88,7 +77,7 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: backRoute == null
           ? null
           : IconButton(
-              onPressed: () => context.go(backRoute!),
+              onPressed: onBack ?? () => context.go(backRoute!),
               tooltip: 'Back',
               icon: const Icon(
                 Icons.arrow_back_rounded,
@@ -97,21 +86,35 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       titleSpacing: 20,
       title: Text(
-        'TRIP WISE  BUSINESS',
+        titleText ?? 'TRIP WISE  BUSINESS',
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: TripwiseColors.primary,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-              fontSize: 16,
-            ),
+          color: TripwiseColors.primary,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
+          fontSize: 16,
+        ),
       ),
-      actions: [
-        const NotificationBellButton(),
-        Padding(
-          padding: const EdgeInsets.only(right: 20),
-          child: GestureDetector(
-            onTap: () => context.go('/profile_registration'),
-            child: Container(
+      actions: [const NotificationBellButton(), const _HeaderAvatarButton()],
+    );
+  }
+}
+
+class _HeaderAvatarButton extends StatelessWidget {
+  const _HeaderAvatarButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 20),
+      child: GestureDetector(
+        onTap: () => context.go('/profile_registration'),
+        child: AnimatedBuilder(
+          animation: AuthSessionStore.instance,
+          builder: (context, _) {
+            final avatarProvider = tripwiseImageProvider(
+              AuthSessionStore.instance.session?.user.image,
+            );
+            return Container(
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -120,14 +123,22 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
                   width: 2,
                 ),
               ),
-              child: const CircleAvatar(
+              child: CircleAvatar(
                 radius: 18,
-                backgroundImage: NetworkImage(_sharedAvatarUrl),
+                backgroundColor: TripwiseColors.surfaceContainerLow,
+                backgroundImage: avatarProvider,
+                child: avatarProvider == null
+                    ? const Icon(
+                        Icons.person_outline_rounded,
+                        size: 18,
+                        color: TripwiseColors.onSurfaceVariant,
+                      )
+                    : null,
               ),
-            ),
-          ),
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 }

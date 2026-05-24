@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +30,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   bool _isLoading = true;
   bool _isUploadingAvatar = false;
   String? _error;
+  bool _isVerificationBlinkOn = false;
+  Timer? _verificationBlinkTimer;
+  Timer? _verificationBlinkStopTimer;
 
   @override
   void initState() {
@@ -71,13 +76,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       if (croppedFile == null) return;
 
       setState(() => _isUploadingAvatar = true);
-      await _api.uploadAvatar(
+      final imageUrl = await _api.uploadAvatar(
         XFile(
           croppedFile.path,
           name: 'tripwise_avatar.jpg',
           mimeType: 'image/jpeg',
         ),
       );
+      await AuthSessionStore.instance.updateUserImage(imageUrl);
       if (!mounted) return;
       await _loadProfile();
       messenger.showSnackBar(
@@ -135,6 +141,13 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   }
 
   @override
+  void dispose() {
+    _verificationBlinkTimer?.cancel();
+    _verificationBlinkStopTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final data = _data;
     final isProvider = AuthSessionStore.instance.isProvider;
@@ -157,11 +170,11 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                 ? _buildErrorState()
                 : Column(
                     children: [
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       _buildHeader(data!),
-                      const SizedBox(height: 24),
-                      _buildProviderCard(data.provider),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+                      _buildProviderCard(data.provider, data.verification),
+                      const SizedBox(height: 16),
                       if (_error != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -170,9 +183,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                             onRetry: _loadProfile,
                           ),
                         ),
-                      if (_error != null) const SizedBox(height: 16),
+                      if (_error != null) const SizedBox(height: 12),
                       _buildVerificationSection(data.verification),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildMenuSection(),
                     ],
                   ),
@@ -207,13 +220,13 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                 ),
                 padding: const EdgeInsets.all(3),
                 child: CircleAvatar(
-                  radius: 60,
+                  radius: 46,
                   backgroundColor: TripwiseColors.surface,
                   backgroundImage: avatarProvider,
                   child: avatarProvider == null
                       ? const Icon(
                           Icons.person,
-                          size: 54,
+                          size: 42,
                           color: TripwiseColors.onSurfaceVariant,
                         )
                       : null,
@@ -230,11 +243,11 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                       color: TripwiseColors.secondaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(7),
                     child: _isUploadingAvatar
                         ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                            width: 16,
+                            height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: TripwiseColors.onSecondary,
@@ -243,33 +256,26 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                         : const Icon(
                             Icons.edit,
                             color: TripwiseColors.onSecondary,
-                            size: 18,
+                            size: 16,
                           ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Text(
             data.user.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${data.user.tierLabel} • ${data.user.countriesVisited} countries',
-            style: const TextStyle(
-              fontSize: 14,
-              color: TripwiseColors.onSurfaceVariant,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             data.user.email ?? data.user.phone ?? '',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: TripwiseColors.onSurfaceVariant,
             ),
           ),
@@ -278,69 +284,132 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     );
   }
 
-  Widget _buildProviderCard(ProfileProvider provider) {
+  void _startVerificationAttentionBlink() {
+    _verificationBlinkTimer?.cancel();
+    _verificationBlinkStopTimer?.cancel();
+
+    setState(() {
+      _isVerificationBlinkOn = true;
+    });
+
+    _verificationBlinkTimer = Timer.periodic(
+      const Duration(milliseconds: 320),
+      (timer) {
+        if (!mounted) return;
+        setState(() {
+          _isVerificationBlinkOn = !_isVerificationBlinkOn;
+        });
+      },
+    );
+
+    _verificationBlinkStopTimer = Timer(const Duration(seconds: 3), () {
+      _verificationBlinkTimer?.cancel();
+      if (!mounted) return;
+      setState(() {
+        _isVerificationBlinkOn = false;
+      });
+    });
+  }
+
+  Widget _buildProviderCard(
+    ProfileProvider provider,
+    ProfileVerification verification,
+  ) {
+    final isApplicationPending =
+        !provider.isRegistered &&
+        provider.ctaLabel.trim().toLowerCase() == 'application pending';
+    final isStartRegistrationRoute =
+        !provider.isRegistered &&
+        provider.ctaRoute.trim() == '/provider_registration_form';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         decoration: BoxDecoration(
           color: TripwiseColors.primaryContainer,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: TripwiseColors.primaryContainer.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              color: TripwiseColors.primaryContainer.withValues(alpha: 0.16),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               provider.isRegistered ? 'Provider Access' : 'Become a Provider',
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
                 color: TripwiseColors.onPrimaryContainer,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               provider.isRegistered
                   ? 'Your provider account is active. Manage your listings and performance from the dashboard.'
                   : 'Share your local expertise and earn while you travel. Join our global network of trip planners.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 10.5,
                 color: TripwiseColors.onPrimaryContainer.withValues(
                   alpha: 0.85,
                 ),
-                height: 1.4,
+                height: 1.2,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () => context.go(
-                provider.isRegistered
-                    ? provider.dashboardRoute
-                    : provider.ctaRoute,
-              ),
+              onPressed: isApplicationPending
+                  ? null
+                  : () {
+                      if (isStartRegistrationRoute &&
+                          !verification.isComplete) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please complete Identity Verification before provider registration.',
+                            ),
+                            backgroundColor: TripwiseColors.primary,
+                          ),
+                        );
+                        _startVerificationAttentionBlink();
+                        return;
+                      }
+                      context.go(
+                        provider.isRegistered
+                            ? provider.dashboardRoute
+                            : provider.ctaRoute,
+                      );
+                    },
               style: TripwiseButtonStyles.primaryElevated(
-                radius: 12,
+                radius: 10,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: 10,
+                  vertical: 7,
                 ),
+                disabledBackgroundColor: TripwiseColors.primary.withValues(
+                  alpha: 0.7,
+                ),
+                disabledForegroundColor: TripwiseColors.onPrimary,
               ),
               icon: Icon(
                 provider.isRegistered
                     ? Icons.dashboard_rounded
                     : Icons.arrow_forward,
+                size: 16,
               ),
               label: Text(
                 provider.isRegistered
                     ? 'Open Provider Dashboard'
                     : provider.ctaLabel,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -350,109 +419,123 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   }
 
   Widget _buildVerificationSection(ProfileVerification verification) {
-    final uploadedCount = verification.uploadedCount;
-    final complete = verification.isComplete;
+    final uploadedCount = verification.uploadedCount.clamp(0, 2).toInt();
+    final complete = uploadedCount == 2;
+    final progressValue = uploadedCount / 2.0;
+    final progressColor = complete
+        ? TripwiseColors.primaryContainer
+        : TripwiseColors.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Material(
-        color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: () => context.push('/profile_verification'),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: TripwiseColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.description,
-                        color: TripwiseColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Identity Verification',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            complete
-                                ? 'All required documents submitted'
-                                : '$uploadedCount of 2 documents submitted',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: TripwiseColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: complete
-                            ? TripwiseColors.primaryFixed
-                            : TripwiseColors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        complete ? 'Done' : 'Pending',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: complete
-                              ? TripwiseColors.onPrimaryFixedVariant
-                              : TripwiseColors.onSurfaceVariant,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: _isVerificationBlinkOn
+              ? TripwiseColors.primaryFixed.withValues(alpha: 0.65)
+              : TripwiseColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _isVerificationBlinkOn
+                ? TripwiseColors.primary
+                : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: () async {
+              await context.push('/profile_verification');
+              if (!mounted) return;
+              await _loadProfile();
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: TripwiseColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.description,
+                          color: TripwiseColors.primary,
+                          size: 20,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: TripwiseColors.primary,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: uploadedCount / 2,
-                    minHeight: 7,
-                    backgroundColor: TripwiseColors.surfaceContainerHigh,
-                    color: complete
-                        ? TripwiseColors.secondaryContainer
-                        : TripwiseColors.primary,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Identity Verification',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$uploadedCount/2 documents submitted',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: TripwiseColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (complete) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: TripwiseColors.primaryFixed,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Done',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              color: TripwiseColors.onPrimaryFixedVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: TripwiseColors.primary,
+                        size: 20,
+                      ),
+                    ],
                   ),
-                ),
-                if (verification.updatedAt != null) ...[
                   const SizedBox(height: 10),
-                  Text(
-                    'Updated: ${verification.updatedAt}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: TripwiseColors.onSurfaceVariant,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: progressValue,
+                      minHeight: 5,
+                      backgroundColor: TripwiseColors.surfaceContainerHigh,
+                      color: progressColor,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -469,12 +552,6 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          _buildMenuItemButton(
-            icon: Icons.security,
-            label: 'Security & Privacy',
-            onTap: () => context.push('/security_privacy'),
-          ),
-          Divider(height: 1, color: TripwiseColors.surfaceContainer),
           _buildMenuItemButton(
             icon: Icons.notifications_active,
             label: 'Notifications',
@@ -509,7 +586,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
             children: [
               Container(
@@ -519,21 +596,21 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                       : TripwiseColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 child: Icon(
                   icon,
-                  size: 20,
+                  size: 18,
                   color: isDestructive
                       ? TripwiseColors.error
                       : TripwiseColors.primary,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: isDestructive
                         ? TripwiseColors.error
@@ -543,6 +620,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               ),
               Icon(
                 Icons.chevron_right,
+                size: 20,
                 color: isDestructive
                     ? TripwiseColors.error
                     : TripwiseColors.primary,

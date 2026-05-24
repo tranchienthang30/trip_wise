@@ -26,6 +26,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
   bool _isLoading = true;
   String? _error;
   ProfileVerificationDocumentType? _uploadingType;
+  ProfileVerificationDocumentType? _deletingType;
 
   @override
   void initState() {
@@ -83,7 +84,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text('${type.label} uploaded successfully.'),
-          backgroundColor: TripwiseColors.primary,
+          backgroundColor: TripwiseColors.primaryContainer,
         ),
       );
     } catch (error) {
@@ -138,6 +139,77 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     );
   }
 
+  Future<void> _deleteDocument(ProfileVerificationDocumentType type) async {
+    if (_uploadingType != null || _deletingType != null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      setState(() => _deletingType = type);
+      final verification = await _api.deleteVerificationDocument(
+        documentType: type,
+      );
+      if (!mounted) return;
+      setState(() => _verification = verification);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${type.label} deleted.'),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingType = null);
+    }
+  }
+
+  Future<void> _viewDocumentImage(String imageUrl) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final maxDialogHeight = MediaQuery.of(context).size.height * 0.72;
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxDialogHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 3.5,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 36,
+                              color: TripwiseColors.outline,
+                            ),
+                          ),
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final verification = _verification;
@@ -146,13 +218,21 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: isProvider
-          ? const ProviderAppBar(backRoute: '/profile_registration')
-          : const PlannerAppBar(backRoute: '/profile_registration'),
+          ? ProviderAppBar(
+              backRoute: '/profile_registration',
+              titleText: 'IDV',
+              onBack: () => Navigator.of(context).pop(),
+            )
+          : PlannerAppBar(
+              backRoute: '/profile_registration',
+              titleText: 'IDV',
+              onBack: () => Navigator.of(context).pop(),
+            ),
       body: RefreshIndicator(
         onRefresh: _loadVerification,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
           child: _isLoading && verification == null
               ? const Padding(
                   padding: EdgeInsets.only(top: 140),
@@ -160,36 +240,41 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                 )
               : _error != null && verification == null
               ? _buildErrorState()
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSummaryCard(verification!),
-                    const SizedBox(height: 18),
-                    if (_error != null) ...[
-                      _InlineVerificationError(
-                        message: _error!,
-                        onRetry: _loadVerification,
-                      ),
-                      const SizedBox(height: 18),
-                    ],
-                    _buildDocumentCard(
-                      type: ProfileVerificationDocumentType.passport,
-                      title: 'Passport or ID',
-                      subtitle: 'Government document',
-                      note: verification.passportNote,
-                      uploaded: verification.passportUploaded,
-                      imageUrl: verification.passportImageUrl,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildDocumentCard(
-                      type: ProfileVerificationDocumentType.address,
-                      title: 'Proof of Address',
-                      subtitle: 'Residence confirmation',
-                      note: verification.addressNote,
-                      uploaded: verification.addressUploaded,
-                      imageUrl: verification.addressImageUrl,
-                    ),
-                  ],
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 760;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_error != null) ...[
+                          _InlineVerificationError(
+                            message: _error!,
+                            onRetry: _loadVerification,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        _buildDocumentTile(
+                          type: ProfileVerificationDocumentType.passport,
+                          title: 'Passport or ID',
+                          subtitle: 'Government document',
+                          note: verification!.passportNote,
+                          uploaded: verification.passportUploaded,
+                          imageUrl: verification.passportImageUrl,
+                          compact: isCompact,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDocumentTile(
+                          type: ProfileVerificationDocumentType.address,
+                          title: 'Proof of Address',
+                          subtitle: 'Residence confirmation',
+                          note: verification.addressNote,
+                          uploaded: verification.addressUploaded,
+                          imageUrl: verification.addressImageUrl,
+                          compact: isCompact,
+                        ),
+                      ],
+                    );
+                  },
                 ),
         ),
       ),
@@ -199,115 +284,25 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     );
   }
 
-  Widget _buildSummaryCard(ProfileVerification verification) {
-    final complete = verification.isComplete;
-    final progress = verification.uploadedCount / 2;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: TripwiseColors.primaryContainer,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: TripwiseColors.primaryContainer.withValues(alpha: 0.24),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.verified_user_rounded,
-                  color: TripwiseColors.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Identity Verification',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: TripwiseColors.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      complete
-                          ? 'Ready for review'
-                          : '${verification.uploadedCount} of 2 documents submitted',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: TripwiseColors.onPrimaryContainer.withValues(
-                          alpha: 0.82,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.white.withValues(alpha: 0.22),
-              color: complete
-                  ? TripwiseColors.secondaryContainer
-                  : TripwiseColors.primaryFixedDim,
-            ),
-          ),
-          if (verification.updatedAt != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Updated: ${verification.updatedAt}',
-              style: TextStyle(
-                fontSize: 11,
-                color: TripwiseColors.onPrimaryContainer.withValues(
-                  alpha: 0.78,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDocumentCard({
+  Widget _buildDocumentTile({
     required ProfileVerificationDocumentType type,
     required String title,
     required String subtitle,
     required String note,
     required bool uploaded,
     required String? imageUrl,
+    required bool compact,
   }) {
     final isUploading = _uploadingType == type;
+    final isDeleting = _deletingType == type;
+    final canEdit = _uploadingType == null && _deletingType == null;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: TripwiseColors.outlineVariant),
       ),
       child: Column(
@@ -315,24 +310,6 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: uploaded
-                      ? TripwiseColors.primaryFixed
-                      : TripwiseColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  uploaded
-                      ? Icons.check_circle_rounded
-                      : Icons.upload_file_rounded,
-                  color: uploaded
-                      ? TripwiseColors.onPrimaryFixedVariant
-                      : TripwiseColors.outline,
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,16 +317,16 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: TripwiseColors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: TextStyle(
+                        fontSize: compact ? 10 : 10.5,
                         color: TripwiseColors.onSurfaceVariant,
                       ),
                     ),
@@ -359,45 +336,24 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
               _StatusChip(uploaded: uploaded),
             ],
           ),
-          const SizedBox(height: 14),
-          _buildImagePreview(imageUrl),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 6 : 8),
+          _buildInteractiveImageArea(
+            type: type,
+            imageUrl: imageUrl,
+            uploaded: uploaded,
+            compact: compact,
+            canEdit: canEdit,
+            isUploading: isUploading,
+            isDeleting: isDeleting,
+          ),
+          SizedBox(height: compact ? 5 : 6),
           Text(
             note,
-            style: const TextStyle(
-              fontSize: 12,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: compact ? 10 : 10.5,
               color: TripwiseColors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _uploadingType == null
-                  ? () => _uploadDocument(type)
-                  : null,
-              style: TripwiseButtonStyles.primaryElevated(
-                radius: 12,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-              ),
-              icon: isUploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: TripwiseColors.onPrimary,
-                      ),
-                    )
-                  : Icon(uploaded ? Icons.refresh_rounded : Icons.add_a_photo),
-              label: Text(
-                isUploading
-                    ? 'Uploading...'
-                    : uploaded
-                    ? 'Replace image'
-                    : 'Upload image',
-              ),
             ),
           ),
         ],
@@ -405,54 +361,140 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     );
   }
 
-  Widget _buildImagePreview(String? imageUrl) {
-    if (imageUrl == null || imageUrl.trim().isEmpty) {
-      return Container(
-        height: 116,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: TripwiseColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: TripwiseColors.outlineVariant),
+  Widget _buildInteractiveImageArea({
+    required ProfileVerificationDocumentType type,
+    required String? imageUrl,
+    required bool uploaded,
+    required bool compact,
+    required bool canEdit,
+    required bool isUploading,
+    required bool isDeleting,
+  }) {
+    final hasImage = imageUrl != null && imageUrl.trim().isNotEmpty;
+    return Stack(
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: !canEdit
+              ? null
+              : hasImage
+              ? () => _viewDocumentImage(imageUrl)
+              : () => _uploadDocument(type),
+          child: _buildImagePreview(imageUrl, compact: compact),
         ),
-        child: const Center(
-          child: Icon(
-            Icons.image_outlined,
-            size: 34,
-            color: TripwiseColors.outline,
+        if (hasImage)
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: uploaded && canEdit ? () => _deleteDocument(type) : null,
+                child: Container(
+                  width: compact ? 24 : 26,
+                  height: compact ? 24 : 26,
+                  decoration: const BoxDecoration(
+                    color: TripwiseColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: isDeleting
+                      ? const Padding(
+                          padding: EdgeInsets.all(5),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: TripwiseColors.onError,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: TripwiseColors.onError,
+                        ),
+                ),
+              ),
+            ),
+          ),
+        if (isUploading)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: TripwiseColors.onPrimary,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImagePreview(String? imageUrl, {required bool compact}) {
+    if (imageUrl == null || imageUrl.trim().isEmpty) {
+      return AspectRatio(
+        aspectRatio: compact ? 1.7 : 1.9,
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: TripwiseColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: TripwiseColors.outlineVariant),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add_a_photo_outlined,
+                  size: 30,
+                  color: TripwiseColors.outline,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Tap to upload',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: TripwiseColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.network(
-        imageUrl,
-        height: 156,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 156,
-            color: TripwiseColors.surfaceContainerLow,
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 156,
-            color: TripwiseColors.surfaceContainerLow,
-            child: const Center(
-              child: Icon(
-                Icons.broken_image_outlined,
-                size: 34,
-                color: TripwiseColors.outline,
+    return AspectRatio(
+      aspectRatio: compact ? 1.7 : 1.9,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              color: TripwiseColors.surfaceContainerLow,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: TripwiseColors.surfaceContainerLow,
+              child: const Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: 34,
+                  color: TripwiseColors.outline,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

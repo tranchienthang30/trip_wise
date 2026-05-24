@@ -182,6 +182,29 @@ class AuthSessionStore extends ChangeNotifier {
     }
   }
 
+  Future<void> updateUserImage(String? image) async {
+    final current = _session;
+    if (current == null) return;
+    final next = AuthSessionData(
+      user: AuthUser(
+        id: current.user.id,
+        fullName: current.user.fullName,
+        email: current.user.email,
+        phone: current.user.phone,
+        image: image,
+        role: current.user.role,
+        status: current.user.status,
+      ),
+      token: current.token,
+      expiresAt: current.expiresAt,
+      ttlDays: current.ttlDays,
+    );
+    final prefs = _preferences ?? await SharedPreferences.getInstance();
+    _preferences = prefs;
+    await prefs.setString(_storageKey, jsonEncode(next.toStoredJson()));
+    _setSession(next);
+  }
+
   Future<void> _clearLocal({bool notify = true}) async {
     final prefs = _preferences ?? await SharedPreferences.getInstance();
     _preferences = prefs;

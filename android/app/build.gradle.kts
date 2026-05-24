@@ -3,8 +3,6 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // Reads android/app/google-services.json at build time (Firebase/FCM).
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -51,4 +49,17 @@ dependencies {
     // Core library desugaring runtime — pairs with
     // isCoreLibraryDesugaringEnabled above (flutter_local_notifications 18.x).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+val hasGoogleServicesJson =
+    file("google-services.json").exists() ||
+        file("src/debug/google-services.json").exists() ||
+        file("src/release/google-services.json").exists()
+
+if (hasGoogleServicesJson) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle(
+        "google-services.json not found; skipping com.google.gms.google-services for local debug build.",
+    )
 }

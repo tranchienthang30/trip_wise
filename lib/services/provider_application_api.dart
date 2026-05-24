@@ -19,6 +19,9 @@ class ProviderApplicationApi {
     required String specialty,
     required int yearsExperience,
     required String bio,
+    required String licenseFileName,
+    required String licenseMimeType,
+    required String licenseDataBase64,
   }) async {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
@@ -29,6 +32,9 @@ class ProviderApplicationApi {
           'specialty': specialty,
           'yearsExperience': yearsExperience,
           'bio': bio,
+          'licenseFileName': licenseFileName,
+          'licenseMimeType': licenseMimeType,
+          'licenseDataBase64': licenseDataBase64,
         },
       );
       final data = response.data;

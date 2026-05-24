@@ -74,15 +74,14 @@ class ProfileApi {
     required List<int> bytes,
   }) async {
     try {
-      final response = await ApiClient.instance.dio
-          .patch<Map<String, dynamic>>(
-            '/profile/verification/${documentType.pathSegment}',
-            data: {
-              'fileName': fileName,
-              'mimeType': mimeType,
-              'dataBase64': base64Encode(bytes),
-            },
-          );
+      final response = await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/profile/verification/${documentType.pathSegment}',
+        data: {
+          'fileName': fileName,
+          'mimeType': mimeType,
+          'dataBase64': base64Encode(bytes),
+        },
+      );
       final data = response.data;
       final verification = data?['verification'];
       if (verification is! Map<String, dynamic>) {
@@ -100,6 +99,29 @@ class ProfileApi {
         throw StateError(response['message'] as String);
       }
       throw StateError('Could not upload document. Please try again.');
+    }
+  }
+
+  Future<ProfileVerification> deleteVerificationDocument({
+    required ProfileVerificationDocumentType documentType,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio
+          .delete<Map<String, dynamic>>(
+            '/profile/verification/${documentType.pathSegment}',
+          );
+      final data = response.data;
+      final verification = data?['verification'];
+      if (verification is! Map<String, dynamic>) {
+        throw StateError('Empty response from verification delete');
+      }
+      return ProfileVerification.fromJson(verification);
+    } on DioException catch (e) {
+      final response = e.response?.data;
+      if (response is Map && response['message'] is String) {
+        throw StateError(response['message'] as String);
+      }
+      throw StateError('Could not delete document. Please try again.');
     }
   }
 
