@@ -7,6 +7,7 @@ import '../constants/colors.dart';
 import '../models/profile_data.dart';
 import '../services/auth_session_store.dart';
 import '../services/profile_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -168,7 +169,10 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     }
   }
 
-  Future<void> _viewDocumentImage(String imageUrl) async {
+  Future<void> _viewDocumentImage(String imageValue) async {
+    final imageProvider = tripwiseImageProvider(imageValue);
+    if (imageProvider == null) return;
+
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -184,8 +188,8 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                   child: InteractiveViewer(
                     minScale: 0.8,
                     maxScale: 3.5,
-                    child: Image.network(
-                      imageUrl,
+                    child: Image(
+                      image: imageProvider,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) =>
                           const Center(
@@ -370,7 +374,8 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     required bool isUploading,
     required bool isDeleting,
   }) {
-    final hasImage = imageUrl != null && imageUrl.trim().isNotEmpty;
+    final normalizedImageUrl = imageUrl?.trim();
+    final hasImage = normalizedImageUrl != null && normalizedImageUrl.isNotEmpty;
     return Stack(
       children: [
         InkWell(
@@ -378,7 +383,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
           onTap: !canEdit
               ? null
               : hasImage
-              ? () => _viewDocumentImage(imageUrl)
+              ? () => _viewDocumentImage(normalizedImageUrl)
               : () => _uploadDocument(type),
           child: _buildImagePreview(imageUrl, compact: compact),
         ),
@@ -468,12 +473,29 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
       );
     }
 
+    final imageProvider = tripwiseImageProvider(imageUrl);
+    if (imageProvider == null) {
+      return AspectRatio(
+        aspectRatio: compact ? 1.7 : 1.9,
+        child: Container(
+          color: TripwiseColors.surfaceContainerLow,
+          child: const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 34,
+              color: TripwiseColors.outline,
+            ),
+          ),
+        ),
+      );
+    }
+
     return AspectRatio(
       aspectRatio: compact ? 1.7 : 1.9,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: Image.network(
-          imageUrl,
+        child: Image(
+          image: imageProvider,
           fit: BoxFit.cover,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
