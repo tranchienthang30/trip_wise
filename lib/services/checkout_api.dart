@@ -47,6 +47,7 @@ class CheckoutApi {
     required String endDate,
     required int guests,
     required String paymentMethod,
+    required bool usePoints,
     required bool agreeToTerms,
   }) async {
     try {
@@ -59,6 +60,7 @@ class CheckoutApi {
           'endDate': endDate,
           'guests': guests,
           'paymentMethod': paymentMethod,
+          'usePoints': usePoints,
           'agreeToTerms': agreeToTerms,
         },
       );

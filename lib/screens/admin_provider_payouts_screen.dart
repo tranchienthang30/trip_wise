@@ -196,6 +196,14 @@ class _AdminProviderPayoutsScreenState
             ),
           ),
           IconButton(
+            onPressed: () => context.go('/admin_refunds'),
+            tooltip: 'Refund confirmations',
+            icon: const Icon(
+              Icons.assignment_return_rounded,
+              color: TripwiseColors.primary,
+            ),
+          ),
+          IconButton(
             onPressed: _isLoading ? null : _load,
             tooltip: 'Refresh',
             icon: const Icon(
@@ -323,7 +331,7 @@ class _ProcessNowButton extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.flash_on_rounded),
-        label: Text(isProcessing ? 'Processing payouts...' : 'Xu ly tien ngay'),
+        label: Text(isProcessing ? 'Processing payouts...' : 'Process now'),
       ),
     );
   }
@@ -349,7 +357,7 @@ class _SeedTestButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.add_card_rounded),
-        label: Text(isLoading ? 'Dang nap test...' : 'Nap test thang3'),
+        label: Text(isLoading ? 'Creating test escrow...' : 'Create test escrow'),
       ),
     );
   }

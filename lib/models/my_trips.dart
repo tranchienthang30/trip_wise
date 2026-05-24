@@ -68,6 +68,7 @@ class MyTripCard {
     required this.subtitle,
     required this.serviceType,
     required this.status,
+    required this.rawStatus,
     required this.statusLabel,
     required this.dateLabel,
     required this.amount,
@@ -75,6 +76,10 @@ class MyTripCard {
     required this.imageUrl,
     required this.route,
     required this.ticketCode,
+    required this.canCancel,
+    required this.isCancellationPending,
+    required this.cancelDeadline,
+    required this.cancelDeadlineLabel,
   });
 
   final String id;
@@ -83,6 +88,7 @@ class MyTripCard {
   final String subtitle;
   final String serviceType;
   final String status;
+  final String rawStatus;
   final String statusLabel;
   final String dateLabel;
   final double amount;
@@ -90,6 +96,10 @@ class MyTripCard {
   final String imageUrl;
   final String route;
   final String ticketCode;
+  final bool canCancel;
+  final bool isCancellationPending;
+  final String? cancelDeadline;
+  final String? cancelDeadlineLabel;
 
   factory MyTripCard.fromJson(Map<String, dynamic> json) {
     return MyTripCard(
@@ -99,6 +109,7 @@ class MyTripCard {
       subtitle: json['subtitle'] as String? ?? '',
       serviceType: json['serviceType'] as String? ?? 'hotel',
       status: json['status'] as String? ?? 'upcoming',
+      rawStatus: json['rawStatus'] as String? ?? '',
       statusLabel: json['statusLabel'] as String? ?? 'Upcoming',
       dateLabel: json['dateLabel'] as String? ?? 'Date not set',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
@@ -106,6 +117,10 @@ class MyTripCard {
       imageUrl: json['imageUrl'] as String? ?? '',
       route: json['route'] as String? ?? '/my_trips',
       ticketCode: json['ticketCode'] as String? ?? '',
+      canCancel: json['canCancel'] as bool? ?? false,
+      isCancellationPending: json['isCancellationPending'] as bool? ?? false,
+      cancelDeadline: json['cancelDeadline'] as String?,
+      cancelDeadlineLabel: json['cancelDeadlineLabel'] as String?,
     );
   }
 }

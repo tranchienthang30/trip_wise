@@ -1,6 +1,8 @@
-String formatVnd(double? amount) {
-  if (amount == null) return '—';
-  return '₫${formatInt(amount)}';
+String formatVnd(double? amount) => formatUsd(amount);
+
+String formatUsd(double? amount) {
+  if (amount == null) return '-';
+  return '\$${formatInt(amount)}';
 }
 
 /// Thousands-grouped absolute integer (no currency symbol), e.g. `45,200`.
@@ -14,14 +16,16 @@ String formatInt(num value) {
   return buf.toString();
 }
 
-/// Short VND for tight spots (calendar cells), e.g. `₫4.8M`, `₫950k`, `₫800`.
-String formatVndCompact(double? amount) {
-  if (amount == null) return '—';
+String formatVndCompact(double? amount) => formatUsdCompact(amount);
+
+/// Short USD for tight spots (calendar cells), e.g. `$4.8K`, `$950`, `$1.2M`.
+String formatUsdCompact(double? amount) {
+  if (amount == null) return '-';
   final n = amount.abs();
   String trim(double v) =>
       v.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
-  if (n >= 1e9) return '₫${trim(n / 1e9)}B';
-  if (n >= 1e6) return '₫${trim(n / 1e6)}M';
-  if (n >= 1e3) return '₫${(n / 1e3).round()}k';
-  return '₫${n.round()}';
+  if (n >= 1e9) return '\$${trim(n / 1e9)}B';
+  if (n >= 1e6) return '\$${trim(n / 1e6)}M';
+  if (n >= 1e3) return '\$${trim(n / 1e3)}K';
+  return '\$${n.round()}';
 }

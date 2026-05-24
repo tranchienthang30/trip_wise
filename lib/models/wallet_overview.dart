@@ -1,9 +1,11 @@
-class WalletOverview {
+﻿class WalletOverview {
   WalletOverview({
     required this.user,
     required this.balance,
     required this.currency,
     required this.loyaltyPoints,
+    required this.completedInvoiceVnd,
+    required this.pointsRatePercent,
     required this.pointsValueVnd,
     required this.tier,
     required this.cards,
@@ -14,6 +16,8 @@ class WalletOverview {
   final double balance;
   final String currency;
   final int loyaltyPoints;
+  final double completedInvoiceVnd;
+  final double pointsRatePercent;
   final double pointsValueVnd;
   final WalletTier tier;
   final List<WalletCard> cards;
@@ -33,8 +37,12 @@ class WalletOverview {
           ? null
           : WalletUser.fromJson(json['user'] as Map<String, dynamic>),
       balance: (json['balance'] as num?)?.toDouble() ?? 0,
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       loyaltyPoints: (json['loyaltyPoints'] as num?)?.toInt() ?? 0,
+      completedInvoiceVnd:
+          (json['completedInvoiceVnd'] as num?)?.toDouble() ?? 0,
+      pointsRatePercent:
+          ((json['pointsRate'] as num?)?.toDouble() ?? 0.01) * 100,
       pointsValueVnd: (json['pointsValueVnd'] as num?)?.toDouble() ?? 0,
       tier: WalletTier.fromJson(
         (json['tier'] as Map<String, dynamic>?) ?? const {},
@@ -77,7 +85,7 @@ class WalletTier {
   final double progress;
 
   factory WalletTier.fromJson(Map<String, dynamic> json) => WalletTier(
-        current: json['current'] as String? ?? '—',
+        current: json['current'] as String? ?? '-',
         next: json['next'] as String?,
         pointsToNext: (json['pointsToNext'] as num?)?.toInt(),
         progress:

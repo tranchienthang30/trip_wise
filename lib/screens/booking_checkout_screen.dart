@@ -37,6 +37,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   String? _selectedEndDate;
   int? _selectedGuests;
   String _selectedPaymentMethod = 'card';
+  bool _usePoints = false;
   bool _agreeToTerms = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -84,6 +85,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         _selectedPaymentMethod = summary.paymentOptions.isEmpty
             ? 'card'
             : summary.paymentOptions.first.key;
+        if (summary.pricing.pointsMaxRedeem <= 0) {
+          _usePoints = false;
+        }
         _fullNameController.text = summary.guestPrefill.fullName;
         _emailController.text = summary.guestPrefill.email ?? '';
         _phoneController.text = summary.guestPrefill.phone ?? '';
@@ -126,6 +130,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         endDate: summary.listing.endDate,
         guests: summary.listing.guests,
         paymentMethod: _selectedPaymentMethod,
+        usePoints: _usePoints,
         agreeToTerms: true,
       );
       if (!mounted) return;
@@ -497,6 +502,15 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   }
 
   Widget _buildPricing(CheckoutPricing pricing) {
+    final canUsePoints = pricing.pointsMaxRedeem > 0;
+    final pointsDiscount = _usePoints && canUsePoints
+        ? pricing.pointsMaxRedeem
+        : 0.0;
+    final amountDue = (pricing.total - pointsDiscount).clamp(
+      0.0,
+      double.infinity,
+    ).toDouble();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -518,13 +532,75 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
           _buildSummaryItem('Taxes', pricing.taxesLabel),
           const SizedBox(height: 8),
           _buildSummaryItem('Fees', pricing.feesLabel),
+          if (canUsePoints) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: TripwiseColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: _usePoints,
+                    onChanged: (value) =>
+                        setState(() => _usePoints = value ?? false),
+                    activeColor: TripwiseColors.primary,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Use points',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Available: ${pricing.pointsAvailableLabel}. Max: ${pricing.pointsMaxRedeemLabel} (20% of this booking).',
+                          style: const TextStyle(
+                            color: TripwiseColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (pointsDiscount > 0) ...[
+            const SizedBox(height: 8),
+            _buildSummaryItem(
+              'Points discount',
+              '-${pricing.pointsMaxRedeemLabel}',
+            ),
+          ],
           const SizedBox(height: 10),
           const Divider(height: 1),
           const SizedBox(height: 10),
-          _buildSummaryItem('Total Amount', pricing.totalLabel, isBold: true),
+          _buildSummaryItem(
+            pointsDiscount > 0 ? 'Amount Due' : 'Total Amount',
+            pointsDiscount > 0 ? _moneyLabel(pricing, amountDue) : pricing.totalLabel,
+            isBold: true,
+          ),
         ],
       ),
     );
+  }
+
+  String _moneyLabel(CheckoutPricing pricing, double value) {
+    final rounded = value.round();
+    final digits = rounded.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(digits[i]);
+    }
+    if (pricing.currency.toUpperCase() == 'USD') return '\$${buffer.toString()}';
+    return '${buffer.toString()} ${pricing.currency}';
   }
 
   Widget _buildSummaryItem(String label, String value, {bool isBold = false}) {

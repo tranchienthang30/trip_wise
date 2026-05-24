@@ -1,4 +1,4 @@
-import 'review.dart';
+﻿import 'review.dart';
 
 class HotelDetail {
   HotelDetail({
@@ -65,7 +65,7 @@ class HotelDetail {
       amenities:
           (json['amenities'] as List?)?.map((e) => e as String).toList() ?? const [],
       priceFrom: (json['priceFrom'] as num?)?.toDouble(),
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       host: json['host'] == null
           ? null
           : HotelHost.fromJson(json['host'] as Map<String, dynamic>),
@@ -130,12 +130,18 @@ class HotelExistingBooking {
     required this.bookingItemId,
     required this.status,
     required this.canCancel,
+    required this.isCancellationPending,
+    required this.cancelDeadline,
+    required this.cancelDeadlineLabel,
   });
 
   final String bookingId;
   final String bookingItemId;
   final String status;
   final bool canCancel;
+  final bool isCancellationPending;
+  final String? cancelDeadline;
+  final String? cancelDeadlineLabel;
 
   factory HotelExistingBooking.fromJson(Map<String, dynamic> json) {
     return HotelExistingBooking(
@@ -143,6 +149,9 @@ class HotelExistingBooking {
       bookingItemId: json['bookingItemId'] as String? ?? '',
       status: json['status'] as String? ?? 'CONFIRMED',
       canCancel: json['canCancel'] as bool? ?? false,
+      isCancellationPending: json['isCancellationPending'] as bool? ?? false,
+      cancelDeadline: json['cancelDeadline'] as String?,
+      cancelDeadlineLabel: json['cancelDeadlineLabel'] as String?,
     );
   }
 }

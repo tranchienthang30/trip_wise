@@ -23,11 +23,15 @@ class MyTripsApi {
     return MyTripsResponse.fromJson(data);
   }
 
-  Future<void> cancelTrip(String bookingItemId) async {
+  Future<String> cancelTrip(String bookingItemId) async {
     try {
-      await ApiClient.instance.dio.post<void>(
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/my-trips/$bookingItemId/cancel',
       );
+      final message = response.data?['message'];
+      return message is String && message.trim().isNotEmpty
+          ? message.trim()
+          : 'Cancellation request sent.';
     } on DioException catch (e) {
       final response = e.response?.data;
       if (response is Map && response['message'] is String) {

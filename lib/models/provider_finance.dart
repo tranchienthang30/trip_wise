@@ -75,16 +75,16 @@ class ProviderFinanceOverview {
     return ProviderFinanceOverview(
       availableForPayout: (json['availableForPayout'] as num?)?.toDouble() ?? 0,
       displayAvailableForPayout:
-          json['displayAvailableForPayout'] as String? ?? '₫0',
+          json['displayAvailableForPayout'] as String? ?? '\$0',
       totalLifetimeEarnings:
           (json['totalLifetimeEarnings'] as num?)?.toDouble() ?? 0,
       displayTotalLifetimeEarnings:
-          json['displayTotalLifetimeEarnings'] as String? ?? '₫0',
+          json['displayTotalLifetimeEarnings'] as String? ?? '\$0',
       servicesProvided: (json['servicesProvided'] as num?)?.toDouble() ?? 0,
       displayServicesProvided:
-          json['displayServicesProvided'] as String? ?? '₫0',
+          json['displayServicesProvided'] as String? ?? '\$0',
       serviceFees: (json['serviceFees'] as num?)?.toDouble() ?? 0,
-      displayServiceFees: json['displayServiceFees'] as String? ?? '-₫0',
+      displayServiceFees: json['displayServiceFees'] as String? ?? '-\$0',
       serviceFeePercentLabel:
           json['serviceFeePercentLabel'] as String? ?? '0%',
     );
@@ -129,7 +129,7 @@ class ProviderFinanceBar {
   factory ProviderFinanceBar.fromJson(Map<String, dynamic> json) {
     return ProviderFinanceBar(
       label: json['label'] as String? ?? '',
-      displayValue: json['displayValue'] as String? ?? '₫0',
+      displayValue: json['displayValue'] as String? ?? '\$0',
       heightFactor: (json['heightFactor'] as num?)?.toDouble() ?? 0.08,
       highlighted: json['highlighted'] as bool? ?? false,
     );
@@ -192,7 +192,7 @@ class ProviderFinanceTransaction {
       subtitle: json['subtitle'] as String? ?? '',
       date: json['date'] as String? ?? '',
       time: json['time'] as String? ?? '',
-      displayAmount: json['displayAmount'] as String? ?? '₫0',
+      displayAmount: json['displayAmount'] as String? ?? '\$0',
       statusLabel: json['statusLabel'] as String? ?? 'PENDING',
       iconKey: json['iconKey'] as String? ?? 'hotel',
     );

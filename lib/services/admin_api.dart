@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/admin_cancellation.dart';
 import '../models/admin_provider_payout.dart';
 import '../models/admin_listing.dart';
 import '../models/provider_application.dart';
@@ -135,6 +136,37 @@ class AdminApi {
       await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/admin/provider-payouts/$providerId/pay',
         data: {'period': period},
+      );
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<AdminCancellationRequestsResponse> fetchCancellationRequests() async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/admin/cancellations',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException(
+          'Empty response from /admin/cancellations',
+        );
+      }
+      return AdminCancellationRequestsResponse.fromJson(data);
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<void> reviewCancellation({
+    required String bookingItemId,
+    required bool approve,
+  }) async {
+    try {
+      await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/admin/cancellations/$bookingItemId/review',
+        data: {'decision': approve ? 'APPROVED' : 'REJECTED'},
       );
     } on DioException catch (error) {
       throw AdminApiException(_messageFromDio(error));

@@ -7,34 +7,34 @@ class HelpCenterScreen extends StatelessWidget {
 
   static const List<FaqItem> _faqs = [
     FaqItem(
-      question: 'Làm sao để đặt chuyến đi?',
+      question: 'How do I make a booking?',
       answer:
-          'Vào Home, chọn dịch vụ bạn muốn, bấm Book Now, kiểm tra thông tin ở Checkout rồi bấm Complete Booking.',
+          'Go to Home, choose the service you want, tap Book Now, review the checkout details, then tap Complete Booking.',
     ),
     FaqItem(
-      question: 'Tôi có thể hủy booking ở đâu?',
+      question: 'Where can I request a cancellation?',
       answer:
-          'Bạn mở My Trips, chọn booking cần hủy hoặc vào Service Detail của dịch vụ đã đặt rồi bấm Cancel. Trạng thái sẽ chuyển sang Cancelled.',
+          'Open My Trips, choose the booking you want to cancel, or open the booked service detail page and tap Cancel. The request is sent to admin for review before a refund is issued.',
     ),
     FaqItem(
-      question: 'Vì sao booking không thấy trong Upcoming?',
+      question: 'Why is my booking not showing in Upcoming?',
       answer:
-          'Hãy kéo xuống để refresh My Trips. Nếu booking đã hủy thì sẽ nằm ở tab Cancelled, nếu hoàn tất thì ở tab Completed.',
+          'Pull down to refresh My Trips. Cancelled bookings appear in the Cancelled tab, and finished bookings appear in Completed.',
     ),
     FaqItem(
-      question: 'Trip Wise hỗ trợ phương thức thanh toán nào?',
+      question: 'Which payment methods does Tripwise support?',
       answer:
-          'Hiện tại ứng dụng hỗ trợ Card, Wallet và PayPal (tùy theo dữ liệu khả dụng ở màn Checkout).',
+          'The app currently supports card, wallet, and PayPal options when they are available on the checkout screen.',
     ),
     FaqItem(
-      question: 'Làm sao cập nhật thông tin profile?',
+      question: 'How do I update my profile?',
       answer:
-          'Trong màn Profile, bạn bấm vào avatar hoặc các mục thông tin để chỉnh sửa rồi lưu lại.',
+          'Open Profile, tap your avatar or the information fields you want to edit, then save your changes.',
     ),
     FaqItem(
-      question: 'Làm sao liên hệ hỗ trợ?',
+      question: 'How do I contact support?',
       answer:
-          'Bạn vào Profile > Help Center và gửi thông tin qua kênh hỗ trợ nội bộ hoặc email hỗ trợ của hệ thống.',
+          'Go to Profile > Help Center and use the available in-app support channel or support email.',
     ),
   ];
 
@@ -60,14 +60,14 @@ class HelpCenterScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         children: [
           Text(
-            'Câu hỏi thường gặp',
+            'Frequently Asked Questions',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Các câu trả lời được chuẩn bị sẵn để bạn tra cứu nhanh.',
+            'Quick answers to common booking, payment, and profile questions.',
             style: TextStyle(
               color: TripwiseColors.onSurfaceVariant,
               fontSize: 13,

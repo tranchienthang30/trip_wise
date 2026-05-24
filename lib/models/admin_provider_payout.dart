@@ -1,4 +1,4 @@
-class AdminProviderPayoutsResponse {
+﻿class AdminProviderPayoutsResponse {
   const AdminProviderPayoutsResponse({
     required this.period,
     required this.periodStart,
@@ -55,7 +55,7 @@ class AdminWalletSummary {
     return AdminWalletSummary(
       userId: json['userId'] as String? ?? '',
       balance: json['balance'] as num? ?? 0,
-      displayBalance: json['displayBalance'] as String? ?? '0 VND',
+      displayBalance: json['displayBalance'] as String? ?? '\$0',
     );
   }
 }
@@ -76,11 +76,11 @@ class AdminPayoutTotals {
   factory AdminPayoutTotals.fromJson(Map<String, dynamic> json) {
     return AdminPayoutTotals(
       bookingCount: (json['bookingCount'] as num?)?.toInt() ?? 0,
-      displayGrossAmount: json['displayGrossAmount'] as String? ?? '0 VND',
+      displayGrossAmount: json['displayGrossAmount'] as String? ?? '\$0',
       displayCommissionAmount:
-          json['displayCommissionAmount'] as String? ?? '0 VND',
+          json['displayCommissionAmount'] as String? ?? '\$0',
       displayProviderNetAmount:
-          json['displayProviderNetAmount'] as String? ?? '0 VND',
+          json['displayProviderNetAmount'] as String? ?? '\$0',
     );
   }
 }
@@ -107,11 +107,11 @@ class AdminProviderPayoutSummary {
       providerId: json['providerId'] as String? ?? '',
       providerName: json['providerName'] as String? ?? 'Tripwise Provider',
       bookingCount: (json['bookingCount'] as num?)?.toInt() ?? 0,
-      displayGrossAmount: json['displayGrossAmount'] as String? ?? '0 VND',
+      displayGrossAmount: json['displayGrossAmount'] as String? ?? '\$0',
       displayCommissionAmount:
-          json['displayCommissionAmount'] as String? ?? '0 VND',
+          json['displayCommissionAmount'] as String? ?? '\$0',
       displayProviderNetAmount:
-          json['displayProviderNetAmount'] as String? ?? '0 VND',
+          json['displayProviderNetAmount'] as String? ?? '\$0',
     );
   }
 }

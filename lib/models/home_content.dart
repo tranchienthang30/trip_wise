@@ -1,4 +1,4 @@
-class HomeContent {
+﻿class HomeContent {
   HomeContent({
     required this.searchCard,
     required this.categories,
@@ -260,7 +260,7 @@ class HomeOfferItem {
       locationLabel: json['locationLabel'] as String? ?? '',
       priceFrom: (json['priceFrom'] as num?)?.toDouble(),
       priceLabel: json['priceLabel'] as String?,
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       ratingLabel: json['ratingLabel'] as String? ?? '0.0',
       title: json['title'] as String? ?? '',
@@ -315,7 +315,7 @@ class HomeRecommendedItem {
       locationLabel: json['locationLabel'] as String? ?? '',
       priceFrom: (json['priceFrom'] as num?)?.toDouble(),
       priceLabel: json['priceLabel'] as String?,
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       ratingLabel: json['ratingLabel'] as String? ?? '0.0',
       title: json['title'] as String? ?? '',
@@ -368,7 +368,7 @@ class HomeTrendingHotelItem {
       locationLabel: json['locationLabel'] as String? ?? '',
       priceFrom: (json['priceFrom'] as num?)?.toDouble(),
       priceLabel: json['priceLabel'] as String?,
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       ratingLabel: json['ratingLabel'] as String? ?? '0.0',
       name: json['name'] as String? ?? '',

@@ -707,7 +707,7 @@ class _DaySettingsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'PRICE (₫)',
+            'PRICE (\$)',
             style: textTheme.labelSmall?.copyWith(
               color: TripwiseColors.onSurfaceVariant,
               fontWeight: FontWeight.w800,
@@ -726,7 +726,7 @@ class _DaySettingsCard extends StatelessWidget {
               fontSize: 18,
             ),
             decoration: InputDecoration(
-              prefixText: '₫ ',
+              prefixText: '\$ ',
               prefixStyle: const TextStyle(
                 color: TripwiseColors.primary,
                 fontWeight: FontWeight.w900,

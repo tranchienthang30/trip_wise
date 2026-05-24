@@ -143,6 +143,14 @@ class _AdminListingApprovalsScreenState
             ),
           ),
           IconButton(
+            onPressed: () => context.go('/admin_refunds'),
+            tooltip: 'Refund confirmations',
+            icon: const Icon(
+              Icons.assignment_return_rounded,
+              color: TripwiseColors.primary,
+            ),
+          ),
+          IconButton(
             onPressed: _isLoading ? null : _loadListings,
             tooltip: 'Refresh',
             icon: const Icon(
@@ -179,7 +187,7 @@ class _AdminListingApprovalsScreenState
               ),
             ),
             const SizedBox(height: 16),
-            _buildStatusTabs(data?.counts),
+            _buildStatusFilters(data?.counts),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
               const Padding(
@@ -210,31 +218,66 @@ class _AdminListingApprovalsScreenState
     );
   }
 
-  Widget _buildStatusTabs(AdminListingCounts? counts) {
+  Widget _buildStatusFilters(AdminListingCounts? counts) {
     const statuses = [
       AdminListingStatus.pending,
       AdminListingStatus.approved,
       AdminListingStatus.rejected,
       AdminListingStatus.all,
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SegmentedButton<AdminListingStatus>(
-        showSelectedIcon: false,
-        segments: statuses
-            .map(
-              (status) => ButtonSegment(
-                value: status,
-                icon: Icon(_statusIcon(status)),
-                label: Text(
-                  '${adminListingStatusLabel(status)} (${counts?.countFor(status) ?? 0})',
+
+    return Column(
+      children: [
+        Row(
+          children: statuses
+              .take(2)
+              .map(
+                (status) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: status == AdminListingStatus.pending ? 8 : 0,
+                    ),
+                    child: _ListingStatusFilterTile(
+                      icon: _statusIcon(status),
+                      label: adminListingStatusLabel(status),
+                      value: counts?.countFor(status) ?? 0,
+                      accentColor: status == AdminListingStatus.rejected
+                          ? TripwiseColors.error
+                          : TripwiseColors.primary,
+                      isSelected: _status == status,
+                      onTap: () => _changeStatus(status),
+                    ),
+                  ),
                 ),
-              ),
-            )
-            .toList(),
-        selected: {_status},
-        onSelectionChanged: (selection) => _changeStatus(selection.first),
-      ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: statuses
+              .skip(2)
+              .map(
+                (status) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: status == AdminListingStatus.rejected ? 8 : 0,
+                    ),
+                    child: _ListingStatusFilterTile(
+                      icon: _statusIcon(status),
+                      label: adminListingStatusLabel(status),
+                      value: counts?.countFor(status) ?? 0,
+                      accentColor: status == AdminListingStatus.rejected
+                          ? TripwiseColors.error
+                          : TripwiseColors.primary,
+                      isSelected: _status == status,
+                      onTap: () => _changeStatus(status),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 
@@ -379,6 +422,119 @@ class _ListingReviewTile extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ListingStatusFilterTile extends StatelessWidget {
+  const _ListingStatusFilterTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accentColor,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final int value;
+  final Color accentColor;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor =
+        isSelected ? TripwiseColors.onPrimary : TripwiseColors.onSurface;
+    final supportingColor = isSelected
+        ? TripwiseColors.onPrimary
+        : TripwiseColors.onSurfaceVariant;
+    final iconBackground = isSelected
+        ? TripwiseColors.primaryContainer
+        : accentColor == TripwiseColors.error
+        ? TripwiseColors.errorContainer
+        : TripwiseColors.primaryFixed;
+    final iconColor = isSelected ? TripwiseColors.onPrimary : accentColor;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      constraints: const BoxConstraints(minHeight: 78),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? TripwiseColors.primary
+            : TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSelected
+              ? TripwiseColors.primary
+              : TripwiseColors.outlineVariant,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: TripwiseColors.primary.withOpacity(0.16),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(
+                              color: supportingColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(
+                              color: foregroundColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

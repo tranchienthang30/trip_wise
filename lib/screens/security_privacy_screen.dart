@@ -8,19 +8,19 @@ class SecurityPrivacyScreen extends StatelessWidget {
   static const List<_PolicyItem> _securityItems = [
     _PolicyItem(
       title: 'Two-Factor Authentication',
-      description: 'Bật xác thực 2 lớp để tăng bảo mật đăng nhập.',
+      description: 'Enable two-factor authentication to strengthen sign-in security.',
       status: 'Enabled',
       enabled: true,
     ),
     _PolicyItem(
       title: 'Login Alerts',
-      description: 'Gửi cảnh báo khi tài khoản đăng nhập từ thiết bị mới.',
+      description: 'Send an alert when your account signs in from a new device.',
       status: 'Enabled',
       enabled: true,
     ),
     _PolicyItem(
       title: 'Session Timeout',
-      description: 'Tự động đăng xuất sau 30 phút không hoạt động.',
+      description: 'Automatically sign out after 30 minutes of inactivity.',
       status: 'Enabled',
       enabled: true,
     ),
@@ -29,19 +29,19 @@ class SecurityPrivacyScreen extends StatelessWidget {
   static const List<_PolicyItem> _privacyItems = [
     _PolicyItem(
       title: 'Profile Visibility',
-      description: 'Thông tin profile chỉ hiển thị cho người dùng đã đăng nhập.',
+      description: 'Profile information is visible only to signed-in users.',
       status: 'Private',
       enabled: true,
     ),
     _PolicyItem(
       title: 'Activity Status',
-      description: 'Không hiển thị trạng thái online với người dùng khác.',
+      description: 'Hide your online status from other users.',
       status: 'Hidden',
       enabled: false,
     ),
     _PolicyItem(
       title: 'Direct Messages',
-      description: 'Chỉ nhận tin nhắn từ người đã kết nối hoặc đã đặt dịch vụ.',
+      description: 'Only receive messages from connected users or people with bookings.',
       status: 'Limited',
       enabled: true,
     ),
@@ -50,13 +50,13 @@ class SecurityPrivacyScreen extends StatelessWidget {
   static const List<_PolicyItem> _dataItems = [
     _PolicyItem(
       title: 'Data Retention',
-      description: 'Dữ liệu booking được lưu để hỗ trợ lịch sử chuyến đi và đối soát.',
+      description: 'Booking data is stored to support trip history and reconciliation.',
       status: 'Standard',
       enabled: true,
     ),
     _PolicyItem(
       title: 'Marketing Personalization',
-      description: 'Tắt cá nhân hóa quảng cáo và ưu tiên gợi ý mặc định.',
+      description: 'Turn off personalized ads and prefer default recommendations.',
       status: 'Disabled',
       enabled: false,
     ),

@@ -107,6 +107,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   Future<void> _cancelExistingBooking() async {
     final existingBooking = _data?.existingBooking;
     if (existingBooking == null ||
+        existingBooking.isCancellationPending ||
         !existingBooking.canCancel ||
         existingBooking.bookingItemId.isEmpty ||
         _isCancelling) {
@@ -115,11 +116,13 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
     setState(() => _isCancelling = true);
     try {
-      await _myTripsApi.cancelTrip(existingBooking.bookingItemId);
+      final message = await _myTripsApi.cancelTrip(
+        existingBooking.bookingItemId,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Booking cancelled successfully.'),
+        SnackBar(
+          content: Text(message),
           backgroundColor: TripwiseColors.primary,
         ),
       );
@@ -166,17 +169,24 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         builder: (context, snapshot) {
           final data = snapshot.data;
           final existingBooking = data?.existingBooking;
+          final isCancellationPending =
+              existingBooking?.isCancellationPending ?? false;
           final canCancel =
               existingBooking != null &&
+              !isCancellationPending &&
               existingBooking.canCancel &&
               existingBooking.bookingItemId.isNotEmpty;
           return _BookingBar(
             price: data == null ? '—' : formatVnd(data.priceFrom),
             freeCancellation: data?.policies.freeCancellation ?? false,
-            ctaLabel: canCancel ? 'Cancel' : 'Book Now',
+            ctaLabel: isCancellationPending
+                ? 'Cancel pending'
+                : canCancel
+                ? 'Request cancel'
+                : 'Book Now',
             isCancelAction: canCancel,
             isBusy: _isCancelling,
-            onTap: data == null || _isCancelling
+            onTap: data == null || _isCancelling || isCancellationPending
                 ? null
                 : canCancel
                 ? _cancelExistingBooking

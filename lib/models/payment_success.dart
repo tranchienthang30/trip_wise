@@ -1,4 +1,4 @@
-class PaymentSuccess {
+﻿class PaymentSuccess {
   PaymentSuccess({
     required this.bookingId,
     required this.bookingCode,
@@ -53,7 +53,7 @@ class PaymentSuccess {
       emailSentTo: json['emailSentTo'] as String?,
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       displayAmount: json['displayAmount'] as String? ?? '',
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       payment: PaymentSuccessPayment.fromJson(
         (json['payment'] as Map<String, dynamic>?) ?? const {},
       ),

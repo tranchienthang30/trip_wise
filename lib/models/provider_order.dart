@@ -1,4 +1,4 @@
-class ProviderOrdersResponse {
+﻿class ProviderOrdersResponse {
   ProviderOrdersResponse({
     required this.status,
     required this.counts,
@@ -124,7 +124,7 @@ class ProviderOrder {
       nights: json['nights'] as int?,
       guests: json['guests'] as int?,
       totalPrice: (json['totalPrice'] as num? ?? 0).toDouble(),
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       displayPrice: json['displayPrice'] as String? ?? '',
       bookingType: json['bookingType'] as String? ?? 'standard',
       imageUrl: json['imageUrl'] as String? ?? '',

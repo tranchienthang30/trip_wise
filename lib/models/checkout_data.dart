@@ -74,10 +74,14 @@ class CheckoutPricing {
     required this.subtotal,
     required this.taxes,
     required this.fees,
+    required this.pointsAvailable,
+    required this.pointsMaxRedeem,
     required this.total,
     required this.subtotalLabel,
     required this.taxesLabel,
     required this.feesLabel,
+    required this.pointsAvailableLabel,
+    required this.pointsMaxRedeemLabel,
     required this.totalLabel,
   });
 
@@ -85,10 +89,14 @@ class CheckoutPricing {
   final double subtotal;
   final double taxes;
   final double fees;
+  final int pointsAvailable;
+  final double pointsMaxRedeem;
   final double total;
   final String subtotalLabel;
   final String taxesLabel;
   final String feesLabel;
+  final String pointsAvailableLabel;
+  final String pointsMaxRedeemLabel;
   final String totalLabel;
 
   factory CheckoutPricing.fromJson(Map<String, dynamic> json) {
@@ -97,10 +105,14 @@ class CheckoutPricing {
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       taxes: (json['taxes'] as num?)?.toDouble() ?? 0,
       fees: (json['fees'] as num?)?.toDouble() ?? 0,
+      pointsAvailable: (json['pointsAvailable'] as num?)?.toInt() ?? 0,
+      pointsMaxRedeem: (json['pointsMaxRedeem'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? 0,
       subtotalLabel: json['subtotalLabel'] as String? ?? '',
       taxesLabel: json['taxesLabel'] as String? ?? '',
       feesLabel: json['feesLabel'] as String? ?? '',
+      pointsAvailableLabel: json['pointsAvailableLabel'] as String? ?? '0 points',
+      pointsMaxRedeemLabel: json['pointsMaxRedeemLabel'] as String? ?? '',
       totalLabel: json['totalLabel'] as String? ?? '',
     );
   }

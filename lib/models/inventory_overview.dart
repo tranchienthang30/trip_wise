@@ -1,4 +1,4 @@
-class InventoryOverview {
+﻿class InventoryOverview {
   InventoryOverview({
     required this.listing,
     required this.currency,
@@ -24,7 +24,7 @@ class InventoryOverview {
       listing: InventoryListing.fromJson(
         (json['listing'] as Map<String, dynamic>?) ?? const {},
       ),
-      currency: json['currency'] as String? ?? 'VND',
+      currency: json['currency'] as String? ?? 'USD',
       month: json['month'] as String? ?? '',
       monthLabel: json['monthLabel'] as String? ?? '',
       leadingBlanks: (json['leadingBlanks'] as num?)?.toInt() ?? 0,
@@ -106,7 +106,7 @@ class PricingRule {
   final String label;
   final String value;
 
-  /// One of `primary`, `secondary` — maps to a brand color on screen.
+  /// One of `primary`, `secondary` - maps to a brand color on screen.
   final String tone;
   final double percent;
   final bool enabled;
@@ -141,7 +141,7 @@ class InventoryAnalytics {
         occupancyPct: (json['occupancyPct'] as num?)?.toInt() ?? 0,
         revenueForecast: (json['revenueForecast'] as num?)?.toDouble() ?? 0,
         revenueDeltaLabel: json['revenueDeltaLabel'] as String? ?? '',
-        demandLevel: json['demandLevel'] as String? ?? '—',
+        demandLevel: json['demandLevel'] as String? ?? '-',
         demandNote: json['demandNote'] as String? ?? '',
       );
 }

@@ -21,7 +21,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   bool _submitting = false;
 
   // Mock card creation: every new card is minted server-side with a fixed
-  // ₫30,000,000 balance (the form fields are cosmetic for this slice).
+  // $1,200 balance (the form fields are cosmetic for this slice).
   Future<void> _onAddCardTap() async {
     if (_submitting) return;
     setState(() => _submitting = true);
@@ -30,7 +30,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Card added · ₫30,000,000 available'),
+          content: Text('Card added · \$1,200 available'),
           behavior: SnackBarBehavior.floating,
         ),
       );

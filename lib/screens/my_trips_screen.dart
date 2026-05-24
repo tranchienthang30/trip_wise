@@ -19,6 +19,7 @@ class MyTripsScreen extends StatefulWidget {
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
   final MyTripsApi _api = MyTripsApi();
+  final Set<String> _cancellingIds = {};
 
   String _selectedTab = 'upcoming';
   String? _focusBookingId;
@@ -109,6 +110,56 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
     if (!mounted) return;
     await _loadTrips(status: _selectedTab);
+  }
+
+  Future<void> _requestCancel(MyTripCard item) async {
+    if (!item.canCancel || _cancellingIds.contains(item.id)) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request cancellation?'),
+        content: Text(
+          item.cancelDeadlineLabel == null
+              ? 'Admin will review this cancellation before refunding your wallet.'
+              : 'Admin will review this cancellation before refunding your wallet. Deadline: ${item.cancelDeadlineLabel}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep booking'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TripwiseButtonStyles.primaryElevated(radius: 8),
+            child: const Text('Request cancel'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _cancellingIds.add(item.id));
+    try {
+      final message = await _api.cancelTrip(item.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+      await _loadTrips(status: _selectedTab);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _cancellingIds.remove(item.id));
+    }
   }
 
   @override
@@ -252,6 +303,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             item: item,
             onOpen: () => _openTripDetails(item.route),
             onMessage: () => _openProviderChat(item),
+            onCancel: () => _requestCancel(item),
+            isCancelling: _cancellingIds.contains(item.id),
           ),
         );
       }).toList(),
@@ -305,11 +358,15 @@ class _TripListCard extends StatelessWidget {
     required this.item,
     required this.onOpen,
     required this.onMessage,
+    required this.onCancel,
+    required this.isCancelling,
   });
 
   final MyTripCard item;
   final VoidCallback onOpen;
   final VoidCallback onMessage;
+  final VoidCallback onCancel;
+  final bool isCancelling;
 
   @override
   Widget build(BuildContext context) {
@@ -409,10 +466,62 @@ class _TripListCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (item.isCancellationPending) ...[
+                  const SizedBox(height: 8),
+                  const _CancellationPendingNote(),
+                ] else if (item.canCancel) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isCancelling ? null : onCancel,
+                      style: TripwiseButtonStyles.outlined(
+                        radius: 8,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        foregroundColor: TripwiseColors.error,
+                        borderColor: TripwiseColors.error,
+                      ),
+                      icon: isCancelling
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.assignment_return_rounded, size: 17),
+                      label: Text(
+                        isCancelling ? 'Sending...' : 'Request cancel',
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CancellationPendingNote extends StatelessWidget {
+  const _CancellationPendingNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: TripwiseColors.primaryFixed.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'Waiting for admin cancellation approval',
+        style: TextStyle(
+          color: TripwiseColors.onPrimaryFixedVariant,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -444,6 +553,7 @@ class _StatusChip extends StatelessWidget {
     }
 
     return Container(
+      constraints: const BoxConstraints(maxWidth: 128),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
@@ -451,6 +561,8 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
       ),
     );

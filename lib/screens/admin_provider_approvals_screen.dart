@@ -149,6 +149,14 @@ class _AdminProviderApprovalsScreenState
             ),
           ),
           IconButton(
+            onPressed: () => context.go('/admin_refunds'),
+            tooltip: 'Refund confirmations',
+            icon: const Icon(
+              Icons.assignment_return_rounded,
+              color: TripwiseColors.primary,
+            ),
+          ),
+          IconButton(
             onPressed: _isLoading ? null : _loadApplications,
             tooltip: 'Refresh',
             icon: const Icon(
@@ -170,9 +178,9 @@ class _AdminProviderApprovalsScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
-            _buildHeader(context, data?.counts),
-            const SizedBox(height: 16),
-            _buildStatusTabs(data?.counts),
+            _buildHeader(context),
+            const SizedBox(height: 14),
+            _buildStatusFilters(data?.counts),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
               const Padding(
@@ -211,7 +219,7 @@ class _AdminProviderApprovalsScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context, ProviderApplicationCounts? counts) {
+  Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -229,33 +237,11 @@ class _AdminProviderApprovalsScreenState
             height: 1.4,
           ),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _MetricPill(
-              icon: Icons.hourglass_top_rounded,
-              label: 'Pending',
-              value: counts?.pending ?? 0,
-            ),
-            _MetricPill(
-              icon: Icons.verified_rounded,
-              label: 'Approved',
-              value: counts?.approved ?? 0,
-            ),
-            _MetricPill(
-              icon: Icons.block_rounded,
-              label: 'Rejected',
-              value: counts?.rejected ?? 0,
-            ),
-          ],
-        ),
       ],
     );
   }
 
-  Widget _buildStatusTabs(ProviderApplicationCounts? counts) {
+  Widget _buildStatusFilters(ProviderApplicationCounts? counts) {
     const statuses = [
       ProviderApplicationStatus.pending,
       ProviderApplicationStatus.approved,
@@ -263,40 +249,64 @@ class _AdminProviderApprovalsScreenState
       ProviderApplicationStatus.all,
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SegmentedButton<ProviderApplicationStatus>(
-        showSelectedIcon: false,
-        segments: statuses
-            .map(
-              (status) => ButtonSegment(
-                value: status,
-                icon: Icon(_statusIcon(status)),
-                label: Text(
-                  '${providerApplicationStatusLabel(status)} (${counts?.countFor(status) ?? 0})',
+    return Column(
+      children: [
+        Row(
+          children: statuses
+              .take(2)
+              .map(
+                (status) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: status == ProviderApplicationStatus.pending
+                          ? 8
+                          : 0,
+                    ),
+                    child: _StatusFilterTile(
+                      icon: _statusIcon(status),
+                      label: providerApplicationStatusLabel(status),
+                      value: counts?.countFor(status) ?? 0,
+                      accentColor:
+                          status == ProviderApplicationStatus.rejected
+                          ? TripwiseColors.error
+                          : TripwiseColors.primary,
+                      isSelected: _status == status,
+                      onTap: () => _changeStatus(status),
+                    ),
+                  ),
                 ),
-              ),
-            )
-            .toList(),
-        selected: {_status},
-        onSelectionChanged: (selection) => _changeStatus(selection.first),
-        style: ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          foregroundColor: WidgetStateProperty.resolveWith((states) {
-            return states.contains(WidgetState.selected)
-                ? TripwiseColors.onPrimary
-                : TripwiseColors.primary;
-          }),
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            return states.contains(WidgetState.selected)
-                ? TripwiseColors.primary
-                : TripwiseColors.surfaceContainerLowest;
-          }),
-          side: WidgetStateProperty.all(
-            const BorderSide(color: TripwiseColors.outlineVariant),
-          ),
+              )
+              .toList(),
         ),
-      ),
+        const SizedBox(height: 8),
+        Row(
+          children: statuses
+              .skip(2)
+              .map(
+                (status) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: status == ProviderApplicationStatus.rejected
+                          ? 8
+                          : 0,
+                    ),
+                    child: _StatusFilterTile(
+                      icon: _statusIcon(status),
+                      label: providerApplicationStatusLabel(status),
+                      value: counts?.countFor(status) ?? 0,
+                      accentColor:
+                          status == ProviderApplicationStatus.rejected
+                          ? TripwiseColors.error
+                          : TripwiseColors.primary,
+                      isSelected: _status == status,
+                      onTap: () => _changeStatus(status),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 
@@ -499,36 +509,113 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({
+class _StatusFilterTile extends StatelessWidget {
+  const _StatusFilterTile({
     required this.icon,
     required this.label,
     required this.value,
+    required this.accentColor,
+    required this.isSelected,
+    required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final int value;
+  final Color accentColor;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    final foregroundColor =
+        isSelected ? TripwiseColors.onPrimary : TripwiseColors.onSurface;
+    final supportingColor = isSelected
+        ? TripwiseColors.onPrimary
+        : TripwiseColors.onSurfaceVariant;
+    final iconBackground = isSelected
+        ? TripwiseColors.primaryContainer
+        : accentColor == TripwiseColors.error
+        ? TripwiseColors.errorContainer
+        : TripwiseColors.primaryFixed;
+    final iconColor = isSelected ? TripwiseColors.onPrimary : accentColor;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      constraints: const BoxConstraints(minHeight: 78),
       decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLowest,
+        color: isSelected
+            ? TripwiseColors.primary
+            : TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: TripwiseColors.outlineVariant),
+        border: Border.all(
+          color:
+              isSelected ? TripwiseColors.primary : TripwiseColors.outlineVariant,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: TripwiseColors.primary.withOpacity(0.16),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: TripwiseColors.primary),
-          const SizedBox(width: 8),
-          Text(
-            '$label: $value',
-            style: const TextStyle(fontWeight: FontWeight.w800),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(
+                              color: supportingColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(
+                              color: foregroundColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -21,11 +21,6 @@ void _showWalletFlowNotice(BuildContext context, String message) {
     );
 }
 
-String _titleCase(String value) {
-  if (value.isEmpty) return value;
-  return value[0].toUpperCase() + value.substring(1).toLowerCase();
-}
-
 class WalletLoyaltyScreen extends StatefulWidget {
   const WalletLoyaltyScreen({super.key});
 
@@ -162,8 +157,8 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
             const SizedBox(height: 24),
             _LoyaltyPointsCard(
               points: data.loyaltyPoints,
-              pointsValueVnd: data.pointsValueVnd,
-              tier: data.tier,
+              completedInvoiceVnd: data.completedInvoiceVnd,
+              pointsRatePercent: data.pointsRatePercent,
             ),
             const SizedBox(height: 24),
             _TransactionsSection(
@@ -246,7 +241,7 @@ class _HeaderSection extends StatelessWidget {
           const SizedBox(height: 4),
         ],
         Text(
-          'Wallet & Loyalty',
+          'Wallet & Points',
           style: textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
@@ -255,7 +250,7 @@ class _HeaderSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Manage your travel funds and rewards points in one place.',
+          'Manage your travel funds and points earned from completed bookings.',
           style: textTheme.bodyLarge?.copyWith(
             color: TripwiseColors.onSurfaceVariant,
           ),
@@ -472,19 +467,17 @@ class _FundingCardChip extends StatelessWidget {
 class _LoyaltyPointsCard extends StatelessWidget {
   const _LoyaltyPointsCard({
     required this.points,
-    required this.pointsValueVnd,
-    required this.tier,
+    required this.completedInvoiceVnd,
+    required this.pointsRatePercent,
   });
 
   final int points;
-  final double pointsValueVnd;
-  final WalletTier tier;
+  final double completedInvoiceVnd;
+  final double pointsRatePercent;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final progress = tier.progress; // already clamped to 0..1 in the model
-    final hasNext = tier.next != null;
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
@@ -505,7 +498,7 @@ class _LoyaltyPointsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TRIP POINTS · ${tier.current}',
+                'EARNED POINTS',
                 style: textTheme.labelMedium?.copyWith(
                   color: TripwiseColors.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -528,86 +521,44 @@ class _LoyaltyPointsCard extends StatelessWidget {
             ),
           ),
           Text(
-            '≈ ${formatVnd(pointsValueVnd)} value',
+            '${pointsRatePercent.toStringAsFixed(0)}% of completed bookings',
             style: textTheme.bodySmall?.copyWith(
               color: TripwiseColors.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 24),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                children: [
-                  Container(color: TripwiseColors.surfaceContainerHigh),
-                  FractionallySizedBox(
-                    widthFactor: progress == 0 ? 0.001 : progress,
-                    child: Container(color: TripwiseColors.secondary),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 12),
+          Text(
+            'Points are calculated from the total amount of completed bookings.',
+            style: textTheme.bodySmall?.copyWith(
+              color: TripwiseColors.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
-          if (hasNext && tier.pointsToNext != null)
-            RichText(
-              text: TextSpan(
-                style: textTheme.bodySmall?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                ),
-                children: [
-                  TextSpan(
-                    text: '${formatInt(tier.pointsToNext!)} points away from ',
-                  ),
-                  TextSpan(
-                    text: '${_titleCase(tier.next!)} Tier',
-                    style: const TextStyle(
-                      color: TripwiseColors.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Text(
-              "You're at our top tier — enjoy the perks!",
-              style: textTheme.bodySmall?.copyWith(
-                color: TripwiseColors.onSurfaceVariant,
-              ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
             ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: () => _showWalletFlowNotice(
-                context,
-                'Rewards catalog will be available here soon.',
-              ),
-              style: TripwiseButtonStyles.text(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Explore Rewards',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: TripwiseColors.primary,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.receipt_long_rounded,
+                  color: TripwiseColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Completed invoices: ${formatVnd(completedInvoiceVnd)}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: TripwiseColors.onSurfaceVariant,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 18,
-                    color: TripwiseColors.primary,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -790,7 +741,7 @@ class _MoneySheetState extends State<_MoneySheet> {
               fontWeight: FontWeight.w900,
             ),
             decoration: InputDecoration(
-              prefixText: '₫ ',
+              prefixText: '\$ ',
               hintText: '0',
               filled: true,
               fillColor: TripwiseColors.surfaceContainerLow,
