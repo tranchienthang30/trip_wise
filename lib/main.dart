@@ -86,6 +86,26 @@ const Set<String> _plannerOnlyRoutes = {
 // killed-state notification tap). Flushed on the first frame.
 String? _pendingDeepLink;
 
+String? _logicalBackRouteFor(String path) {
+  if (path == '/trip_planner_timeline') return '/trip_planner_dashboard';
+  if (path.startsWith('/my_trip_booking_detail/')) return '/my_trips';
+  if (path == '/profile_verification') return '/profile_registration';
+  if (path == '/provider_registration_form') return '/profile_registration';
+  if (path == '/elite_upgrade_confirmation') return '/vip_services';
+  return null;
+}
+
+String? _systemBackTargetFor(String path) {
+  if (path == '/register') return null;
+
+  final logicalBackRoute = _logicalBackRouteFor(path);
+  if (logicalBackRoute != null) return logicalBackRoute;
+
+  final landingRoute = _authSessionStore.landingRoute;
+  if (path == landingRoute) return null;
+  return landingRoute;
+}
+
 /// Navigates to a notification's `action_route`. Rejects anything that is not
 /// an in-app absolute path (action_route safety). `go` (not `push`) so a tap
 /// lands the user *on* the target rather than stacked on a random screen.
@@ -369,6 +389,24 @@ final GoRouter _router = GoRouter(
   ],
 );
 
+final BackButtonDispatcher _backButtonDispatcher =
+    _TripwiseBackButtonDispatcher();
+
+class _TripwiseBackButtonDispatcher extends RootBackButtonDispatcher {
+  @override
+  Future<bool> didPopRoute() async {
+    final didPop = await super.didPopRoute();
+    if (didPop) return true;
+
+    final currentPath = _router.routerDelegate.currentConfiguration.uri.path;
+    final targetRoute = _systemBackTargetFor(currentPath);
+    if (targetRoute == null) return false;
+
+    _router.go(targetRoute);
+    return true;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _authSessionStore.initialize();
@@ -414,7 +452,10 @@ class MyApp extends StatelessWidget {
       title: 'Tripwise',
       theme: TripwiseTheme.light,
       debugShowCheckedModeBanner: false,
-      routerConfig: _router,
+      routeInformationProvider: _router.routeInformationProvider,
+      routeInformationParser: _router.routeInformationParser,
+      routerDelegate: _router.routerDelegate,
+      backButtonDispatcher: _backButtonDispatcher,
     );
   }
 }
