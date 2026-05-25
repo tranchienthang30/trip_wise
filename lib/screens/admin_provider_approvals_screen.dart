@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../constants/icons.dart';
 import '../models/provider_application.dart';
 import '../services/admin_api.dart';
 import '../utils/tripwise_image_provider.dart';
@@ -205,77 +206,44 @@ class _AdminProviderApprovalsScreenState
       ProviderApplicationStatus.all,
     ];
 
-    return Column(
-      children: [
-        Row(
-          children: statuses
-              .take(2)
-              .map(
-                (status) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: status == ProviderApplicationStatus.pending
-                          ? 8
-                          : 0,
-                    ),
-                    child: _StatusFilterTile(
-                      icon: _statusIcon(status),
-                      label: providerApplicationStatusLabel(status),
-                      value: counts?.countFor(status) ?? 0,
-                      accentColor:
-                          status == ProviderApplicationStatus.rejected
-                          ? TripwiseColors.error
-                          : TripwiseColors.primary,
-                      isSelected: _status == status,
-                      onTap: () => _changeStatus(status),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: statuses
-              .skip(2)
-              .map(
-                (status) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: status == ProviderApplicationStatus.rejected
-                          ? 8
-                          : 0,
-                    ),
-                    child: _StatusFilterTile(
-                      icon: _statusIcon(status),
-                      label: providerApplicationStatusLabel(status),
-                      value: counts?.countFor(status) ?? 0,
-                      accentColor:
-                          status == ProviderApplicationStatus.rejected
-                          ? TripwiseColors.error
-                          : TripwiseColors.primary,
-                      isSelected: _status == status,
-                      onTap: () => _changeStatus(status),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final tileWidth = (constraints.maxWidth - gap) / 2;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: statuses.map((status) {
+            return SizedBox(
+              width: tileWidth,
+              child: _StatusFilterTile(
+                icon: _statusIcon(status),
+                label: providerApplicationStatusLabel(status),
+                value: counts?.countFor(status) ?? 0,
+                accentColor: status == ProviderApplicationStatus.rejected
+                    ? TripwiseColors.error
+                    : TripwiseColors.primary,
+                isSelected: _status == status,
+                onTap: () => _changeStatus(status),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
   IconData _statusIcon(ProviderApplicationStatus status) {
     switch (status) {
       case ProviderApplicationStatus.pending:
-        return Icons.hourglass_top_rounded;
+        return TripwiseIcons.pending;
       case ProviderApplicationStatus.approved:
-        return Icons.verified_rounded;
+        return TripwiseIcons.approved;
       case ProviderApplicationStatus.rejected:
-        return Icons.block_rounded;
+        return TripwiseIcons.rejected;
       case ProviderApplicationStatus.all:
-        return Icons.list_alt_rounded;
+        return TripwiseIcons.all;
     }
   }
 }
@@ -376,7 +344,7 @@ class _ProviderApplicationTile extends StatelessWidget {
           if (application.rejectionReason != null) ...[
             const SizedBox(height: 8),
             _InfoRow(
-              icon: Icons.info_outline_rounded,
+              icon: Icons.info_rounded,
               label: 'Reason',
               value: application.rejectionReason!,
             ),
@@ -422,7 +390,7 @@ class _ProviderApplicationTile extends StatelessWidget {
                               color: TripwiseColors.onPrimary,
                             ),
                           )
-                        : const Icon(Icons.verified_rounded, size: 18),
+                        : const Icon(TripwiseIcons.approved, size: 18),
                     label: const Text('Approve'),
                   ),
                 ),
@@ -499,7 +467,7 @@ class _StatusFilterTile extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      constraints: const BoxConstraints(minHeight: 78),
+      height: 78,
       decoration: BoxDecoration(
         color: isSelected
             ? TripwiseColors.primary

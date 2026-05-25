@@ -535,7 +535,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                   width: 36,
                   height: 36,
                 ),
-                icon: const Icon(Icons.remove, size: 18),
+                icon: const Icon(Icons.remove_rounded, size: 18),
               ),
               Expanded(
                 child: Text(
@@ -554,7 +554,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                   width: 36,
                   height: 36,
                 ),
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(Icons.add_rounded, size: 18),
               ),
             ],
           ),

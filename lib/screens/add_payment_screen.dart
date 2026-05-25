@@ -370,7 +370,7 @@ class _PaymentForm extends StatelessWidget {
                     suffix: const Padding(
                       padding: EdgeInsets.only(right: 16),
                       child: Icon(
-                        Icons.help_outline_rounded,
+                        Icons.help_rounded,
                         color: TripwiseColors.outline,
                       ),
                     ),

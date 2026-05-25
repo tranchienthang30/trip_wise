@@ -497,19 +497,23 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
             if (localBytes != null)
               Image.memory(localBytes, fit: BoxFit.cover)
             else if (imageUrl.isEmpty)
-              const Center(child: Icon(Icons.image, size: 44))
+              const Center(child: Icon(Icons.image_rounded, size: 44))
             else if (imageUrl.startsWith('data:image'))
               Builder(
                 builder: (context) {
                   final commaIdx = imageUrl.indexOf(',');
                   if (commaIdx <= 0) {
-                    return const Center(child: Icon(Icons.image_not_supported));
+                    return const Center(
+                      child: Icon(Icons.image_not_supported_rounded),
+                    );
                   }
                   try {
                     final bytes = base64Decode(imageUrl.substring(commaIdx + 1));
                     return Image.memory(bytes, fit: BoxFit.cover);
                   } catch (_) {
-                    return const Center(child: Icon(Icons.image_not_supported));
+                    return const Center(
+                      child: Icon(Icons.image_not_supported_rounded),
+                    );
                   }
                 },
               )

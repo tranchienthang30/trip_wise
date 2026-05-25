@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../constants/icons.dart';
 import '../models/provider_listing.dart';
 import '../services/provider_listings_api.dart';
 import '../widgets/shared_taskbars.dart';
@@ -150,7 +151,7 @@ class _ProviderListingManagementScreenState
             onChanged: _onSearchChanged,
             decoration: InputDecoration(
               hintText: 'Search your listings...',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search_rounded),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -172,7 +173,7 @@ class _ProviderListingManagementScreenState
             tooltip: 'Filter status',
             onSelected: _selectStatus,
             icon: Icon(
-              Icons.filter_alt_rounded,
+              TripwiseIcons.filter,
               color: _status == 'all'
                   ? TripwiseColors.onSurfaceVariant
                   : TripwiseColors.primary,
@@ -205,7 +206,7 @@ class _ProviderListingManagementScreenState
                       ),
                       if (isSelected)
                         const Icon(
-                          Icons.check_rounded,
+                          TripwiseIcons.selected,
                           size: 18,
                           color: TripwiseColors.primary,
                         ),
@@ -317,14 +318,14 @@ class _ProviderListingManagementScreenState
   IconData _statusIcon(String status) {
     switch (status) {
       case 'active':
-        return Icons.public_rounded;
+        return TripwiseIcons.active;
       case 'pending':
-        return Icons.hourglass_top_rounded;
+        return TripwiseIcons.pending;
       case 'inactive':
-        return Icons.visibility_off_rounded;
+        return TripwiseIcons.inactive;
       case 'all':
       default:
-        return Icons.grid_view_rounded;
+        return TripwiseIcons.all;
     }
   }
 
@@ -586,7 +587,7 @@ class _ListingImagePreview extends StatelessWidget {
       height: height,
       color: TripwiseColors.surfaceContainer,
       alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported_outlined),
+      child: const Icon(Icons.image_not_supported_rounded),
     );
   }
 }
@@ -619,14 +620,14 @@ class _ListingCardMenu extends StatelessWidget {
         const PopupMenuItem<_ListingCardAction>(
           value: _ListingCardAction.edit,
           child: _MenuLabel(
-            icon: Icons.edit_outlined,
+            icon: Icons.edit_rounded,
             label: 'Edit listing',
           ),
         ),
         const PopupMenuItem<_ListingCardAction>(
           value: _ListingCardAction.analytics,
           child: _MenuLabel(
-            icon: Icons.analytics_outlined,
+            icon: Icons.analytics_rounded,
             label: 'View analytics',
           ),
         ),
@@ -642,7 +643,7 @@ class _ListingCardMenu extends StatelessWidget {
           const PopupMenuItem<_ListingCardAction>(
             value: _ListingCardAction.deactivate,
             child: _MenuLabel(
-              icon: Icons.visibility_off_outlined,
+              icon: Icons.visibility_off_rounded,
               label: 'Set inactive',
             ),
           ),
@@ -650,7 +651,7 @@ class _ListingCardMenu extends StatelessWidget {
         const PopupMenuItem<_ListingCardAction>(
           value: _ListingCardAction.delete,
           child: _MenuLabel(
-            icon: Icons.delete_outline_rounded,
+            icon: Icons.delete_rounded,
             label: 'Delete listing',
             danger: true,
           ),

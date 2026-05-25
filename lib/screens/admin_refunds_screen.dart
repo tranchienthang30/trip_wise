@@ -313,7 +313,7 @@ class _RefundRequestTile extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _InfoLine(
-            icon: Icons.person_outline_rounded,
+            icon: Icons.person_rounded,
             label: 'User',
             value: request.userEmail == null
                 ? request.userName

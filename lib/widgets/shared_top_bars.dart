@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../constants/icons.dart';
 import '../services/notifications_api.dart';
 import 'planner_assistant_chat.dart';
 
@@ -28,7 +29,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onBack ?? () => context.go(backRoute!),
               tooltip: 'Back',
               icon: const Icon(
-                Icons.arrow_back_rounded,
+                TripwiseIcons.back,
                 color: TripwiseColors.primary,
               ),
             ),
@@ -74,7 +75,7 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onBack ?? () => context.go(backRoute!),
               tooltip: 'Back',
               icon: const Icon(
-                Icons.arrow_back_rounded,
+                TripwiseIcons.back,
                 color: TripwiseColors.primary,
               ),
             ),
@@ -150,7 +151,7 @@ class _ProviderProfileButton extends StatelessWidget {
           shape: const CircleBorder(),
         ),
         icon: const Icon(
-          Icons.account_circle_outlined,
+          TripwiseIcons.profile,
           color: TripwiseColors.primary,
           size: 28,
         ),
@@ -198,7 +199,7 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
   @override
   Widget build(BuildContext context) {
     const icon = Icon(
-      Icons.notifications_none_rounded,
+      TripwiseIcons.notifications,
       color: TripwiseColors.primary,
       size: 28,
     );

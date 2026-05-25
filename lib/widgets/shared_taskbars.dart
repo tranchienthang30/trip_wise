@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../constants/icons.dart';
 import '../services/auth_session_store.dart';
 
 enum PlannerTaskbarTab { home, myTrips, planner, wallet, profile }
@@ -55,23 +56,23 @@ class PlannerTaskbar extends StatelessWidget {
         onTap: (index) => context.go(_routes[index]),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
+            icon: Icon(TripwiseIcons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.flight_rounded),
+            icon: Icon(TripwiseIcons.trips),
             label: 'My Trips',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_rounded),
+            icon: Icon(TripwiseIcons.planner),
             label: 'Planner',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
+            icon: Icon(TripwiseIcons.wallet),
             label: 'Wallet',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
+            icon: Icon(TripwiseIcons.profile),
             label: 'Profile',
           ),
         ],
@@ -81,9 +82,9 @@ class PlannerTaskbar extends StatelessWidget {
 }
 
 class ProviderTaskbar extends StatelessWidget {
-  const ProviderTaskbar({super.key, required this.currentTab});
+  const ProviderTaskbar({super.key, this.currentTab});
 
-  final ProviderTaskbarTab currentTab;
+  final ProviderTaskbarTab? currentTab;
 
   static const _routes = [
     '/provider_dashboard',
@@ -95,6 +96,11 @@ class ProviderTaskbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedTab = currentTab;
+    final selectedColor = selectedTab == null
+        ? TripwiseColors.onSurfaceVariant
+        : TripwiseColors.primary;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.92),
@@ -110,8 +116,8 @@ class ProviderTaskbar extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
-        currentIndex: currentTab.index,
-        selectedItemColor: TripwiseColors.primary,
+        currentIndex: (selectedTab ?? ProviderTaskbarTab.dashboard).index,
+        selectedItemColor: selectedColor,
         unselectedItemColor: TripwiseColors.onSurfaceVariant,
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(
@@ -125,23 +131,23 @@ class ProviderTaskbar extends StatelessWidget {
         onTap: (index) => context.go(_routes[index]),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
+            icon: Icon(TripwiseIcons.dashboard),
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_rounded),
+            icon: Icon(TripwiseIcons.listings),
             label: 'Listings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_rounded),
+            icon: Icon(TripwiseIcons.orders),
             label: 'Orders',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.workspace_premium_rounded),
+            icon: Icon(TripwiseIcons.vip),
             label: 'VIP',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.payments_rounded),
+            icon: Icon(TripwiseIcons.finance),
             label: 'Finance',
           ),
         ],
@@ -206,23 +212,23 @@ class AdminTaskbar extends StatelessWidget {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.verified_user_rounded),
+            icon: Icon(TripwiseIcons.providers),
             label: 'Providers',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.hotel_rounded),
+            icon: Icon(TripwiseIcons.listings),
             label: 'Listings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.payments_rounded),
+            icon: Icon(TripwiseIcons.finance),
             label: 'Payouts',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_return_rounded),
+            icon: Icon(TripwiseIcons.refunds),
             label: 'Refunds',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.logout_rounded),
+            icon: Icon(TripwiseIcons.logout),
             label: 'Logout',
           ),
         ],

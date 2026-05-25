@@ -306,7 +306,7 @@ class _BookingDetailBody extends StatelessWidget {
                   foregroundColor: TripwiseColors.primary,
                   borderColor: TripwiseColors.primary,
                 ),
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
                 label: const Text(
                   'Message provider',
                   style: TextStyle(fontWeight: FontWeight.w800),

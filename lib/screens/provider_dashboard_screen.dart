@@ -115,25 +115,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'GOOD DAY, ${safe.greeting.providerName.toUpperCase()}',
-          style: const TextStyle(
-            fontSize: 12,
-            color: TripwiseColors.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Overview',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            color: TripwiseColors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 20),
         _buildRevenueCard(safe.revenue),
         const SizedBox(height: 16),
         _buildQuickActions(context, safe.orderStatus),

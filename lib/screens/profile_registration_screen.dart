@@ -193,7 +193,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         ),
       ),
       bottomNavigationBar: isProvider
-          ? const ProviderTaskbar(currentTab: ProviderTaskbarTab.dashboard)
+          ? const ProviderTaskbar()
           : const PlannerTaskbar(currentTab: PlannerTaskbarTab.profile),
     );
   }

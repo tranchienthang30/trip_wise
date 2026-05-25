@@ -107,6 +107,17 @@ class AdminListing {
     required this.category,
     required this.status,
     required this.imageUrl,
+    required this.description,
+    required this.amenities,
+    required this.bedrooms,
+    required this.bathrooms,
+    required this.maxGuests,
+    required this.roomCount,
+    required this.priceFrom,
+    required this.priceTo,
+    required this.priceRangeLabel,
+    required this.totalAvailableQty,
+    required this.rooms,
     required this.submittedAt,
     required this.reviewedAt,
     required this.reviewedBy,
@@ -121,6 +132,17 @@ class AdminListing {
   final String category;
   final AdminListingStatus status;
   final String? imageUrl;
+  final String? description;
+  final List<String> amenities;
+  final int? bedrooms;
+  final int? bathrooms;
+  final int? maxGuests;
+  final int roomCount;
+  final double? priceFrom;
+  final double? priceTo;
+  final String priceRangeLabel;
+  final int? totalAvailableQty;
+  final List<AdminListingRoom> rooms;
   final String? submittedAt;
   final String? reviewedAt;
   final String? reviewedBy;
@@ -138,10 +160,61 @@ class AdminListing {
       category: json['category'] as String? ?? 'Hotel',
       status: adminListingStatusFromString(json['status'] as String?),
       imageUrl: json['imageUrl'] as String?,
+      description: json['description'] as String?,
+      amenities: ((json['amenities'] as List<dynamic>?) ?? const [])
+          .whereType<String>()
+          .toList(),
+      bedrooms: (json['bedrooms'] as num?)?.toInt(),
+      bathrooms: (json['bathrooms'] as num?)?.toInt(),
+      maxGuests: (json['maxGuests'] as num?)?.toInt(),
+      roomCount: (json['roomCount'] as num?)?.toInt() ?? 0,
+      priceFrom: (json['priceFrom'] as num?)?.toDouble(),
+      priceTo: (json['priceTo'] as num?)?.toDouble(),
+      priceRangeLabel: json['priceRangeLabel'] as String? ?? 'No room price',
+      totalAvailableQty: (json['totalAvailableQty'] as num?)?.toInt(),
+      rooms: ((json['rooms'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AdminListingRoom.fromJson)
+          .toList(),
       submittedAt: json['submittedAt'] as String?,
       reviewedAt: json['reviewedAt'] as String?,
       reviewedBy: json['reviewedBy'] as String?,
       rejectionReason: json['rejectionReason'] as String?,
+    );
+  }
+}
+
+class AdminListingRoom {
+  const AdminListingRoom({
+    required this.id,
+    required this.roomType,
+    required this.capacity,
+    required this.basePrice,
+    required this.basePriceLabel,
+    required this.imageUrl,
+    required this.availableQty,
+    required this.availabilityDate,
+  });
+
+  final int id;
+  final String roomType;
+  final int? capacity;
+  final double basePrice;
+  final String basePriceLabel;
+  final String? imageUrl;
+  final int? availableQty;
+  final String? availabilityDate;
+
+  factory AdminListingRoom.fromJson(Map<String, dynamic> json) {
+    return AdminListingRoom(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      roomType: json['roomType'] as String? ?? 'Room',
+      capacity: (json['capacity'] as num?)?.toInt(),
+      basePrice: (json['basePrice'] as num?)?.toDouble() ?? 0,
+      basePriceLabel: json['basePriceLabel'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      availableQty: (json['availableQty'] as num?)?.toInt(),
+      availabilityDate: json['availabilityDate'] as String?,
     );
   }
 }

@@ -400,7 +400,7 @@ class _TripListCard extends StatelessWidget {
                             color: TripwiseColors.outlineVariant,
                           ),
                         ),
-                        icon: const Icon(Icons.chat_bubble_outline_rounded),
+                        icon: const Icon(Icons.chat_bubble_rounded),
                       ),
                       const SizedBox(width: 8),
                       OutlinedButton(

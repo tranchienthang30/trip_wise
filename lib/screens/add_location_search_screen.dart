@@ -504,7 +504,7 @@ class _MoreCategoryTile extends StatelessWidget {
           : item.enabled
               ? null
               : const Icon(
-                  Icons.lock_outline_rounded,
+                  Icons.lock_rounded,
                   color: TripwiseColors.outline,
                   size: 20,
                 ),

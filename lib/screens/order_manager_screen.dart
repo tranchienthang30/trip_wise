@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../constants/icons.dart';
 import '../models/provider_order.dart';
 import '../services/orders_api.dart';
 import '../utils/tripwise_image_provider.dart';
@@ -25,10 +26,26 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   String? _acceptingOrderId;
 
   static const List<_OrderTab> _tabs = [
-    _OrderTab(status: 'pending', label: 'Pending'),
-    _OrderTab(status: 'confirmed', label: 'Confirmed'),
-    _OrderTab(status: 'completed', label: 'Completed'),
-    _OrderTab(status: 'cancelled', label: 'Cancelled'),
+    _OrderTab(
+      status: 'pending',
+      label: 'Pending',
+      icon: TripwiseIcons.pending,
+    ),
+    _OrderTab(
+      status: 'confirmed',
+      label: 'Confirmed',
+      icon: TripwiseIcons.confirmed,
+    ),
+    _OrderTab(
+      status: 'completed',
+      label: 'Completed',
+      icon: TripwiseIcons.completed,
+    ),
+    _OrderTab(
+      status: 'cancelled',
+      label: 'Cancelled',
+      icon: TripwiseIcons.cancelled,
+    ),
   ];
 
   @override
@@ -116,8 +133,6 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeader(),
-                      const SizedBox(height: 40),
                       _buildToolbar(),
                       const SizedBox(height: 48),
                       _buildBody(),
@@ -141,29 +156,6 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       runSpacing: 16,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [_buildFilterTabs(), _buildSortMenu()],
-    );
-  }
-
-  Widget _buildHeader() {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Orders',
-          style: TextStyle(
-            fontSize: 56,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF181C22),
-            letterSpacing: -2,
-            height: 1.1,
-          ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          'Manage your upcoming journeys and guest experiences from your editorial dashboard.',
-          style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
-        ),
-      ],
     );
   }
 
@@ -210,21 +202,32 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   Widget _buildFilterTabs() {
     final counts = _data?.counts;
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: _tabs.map((tab) {
-        final count = counts?.valueFor(tab.status) ?? 0;
-        return _buildTab(
-          label: '${tab.label} ($count)',
-          isActive: _selectedStatus == tab.status,
-          onTap: () => _selectStatus(tab.status),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final tileWidth = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: _tabs.map((tab) {
+            final count = counts?.valueFor(tab.status) ?? 0;
+            return SizedBox(
+              width: tileWidth,
+              child: _buildTab(
+                icon: tab.icon,
+                label: '${tab.label} ($count)',
+                isActive: _selectedStatus == tab.status,
+                onTap: () => _selectStatus(tab.status),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
   Widget _buildTab({
+    required IconData icon,
     required String label,
     required bool isActive,
     required VoidCallback onTap,
@@ -233,7 +236,9 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        height: 52,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF0078C7) : const Color(0xFFF0F4FC),
           borderRadius: BorderRadius.circular(12),
@@ -247,13 +252,28 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                 ]
               : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : const Color(0xFF3F4752),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-            fontSize: 16,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? Colors.white : const Color(0xFF3F4752),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isActive ? Colors.white : const Color(0xFF3F4752),
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -757,10 +777,15 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
 }
 
 class _OrderTab {
-  const _OrderTab({required this.status, required this.label});
+  const _OrderTab({
+    required this.status,
+    required this.label,
+    required this.icon,
+  });
 
   final String status;
   final String label;
+  final IconData icon;
 }
 
 enum _OrderSortOption {
