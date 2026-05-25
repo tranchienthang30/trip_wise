@@ -111,8 +111,10 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop document',
-          toolbarColor: TripwiseColors.primary,
-          toolbarWidgetColor: TripwiseColors.onPrimary,
+          toolbarColor: Colors.white,
+          toolbarWidgetColor: TripwiseColors.primary,
+          statusBarLight: true,
+          navBarLight: true,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
           aspectRatioPresets: const [

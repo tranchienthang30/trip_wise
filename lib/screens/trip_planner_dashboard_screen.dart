@@ -137,47 +137,14 @@ class _TripPlannerDashboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSearchBar(context),
-              const SizedBox(height: 32),
               _buildContent(context),
-              const SizedBox(height: 100),
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'create_trip_fab',
-        onPressed: () => context.push('/plan_new_trip_form'),
-        icon: const Icon(Icons.add_rounded, size: 28),
-        label: const Text(
-          'Create New Trip',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
       bottomNavigationBar: const PlannerTaskbar(
         currentTab: PlannerTaskbarTab.planner,
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFE5E8F0),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: TextField(
-        readOnly: true,
-        onTap: () => context.push('/add_location_search'),
-        decoration: const InputDecoration(
-          icon: Icon(Icons.search_rounded, color: Color(0xFF3F4752)),
-          hintText: 'Search hotels, flights, or attractions',
-          hintStyle: TextStyle(color: Color(0xFFBFC7D4)),
-          border: InputBorder.none,
-          suffixIcon: Icon(Icons.mic_rounded, color: Color(0xFF3F4752)),
-        ),
       ),
     );
   }

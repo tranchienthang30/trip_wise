@@ -168,18 +168,10 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                   },
                 ),
                 const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: data.categories
-                      .map(
-                        (item) => _CategoryFilterChip(
-                          item: item,
-                          isSelected: item.key == _category,
-                          onTap: item.enabled ? () => _selectCategory(item.key) : null,
-                        ),
-                      )
-                      .toList(),
+                _CategoryFilterBar(
+                  items: data.categories,
+                  selectedCategory: _category,
+                  onSelect: _selectCategory,
                 ),
                 const SizedBox(height: 24),
                 if (data.destinations.isNotEmpty) ...[
@@ -350,8 +342,129 @@ class _SearchInput extends StatelessWidget {
   }
 }
 
-class _CategoryFilterChip extends StatelessWidget {
-  const _CategoryFilterChip({
+class _CategoryFilterBar extends StatelessWidget {
+  const _CategoryFilterBar({
+    required this.items,
+    required this.selectedCategory,
+    required this.onSelect,
+  });
+
+  static const double _chipGap = 8;
+
+  final List<SearchCategoryChip> items;
+  final String selectedCategory;
+  final ValueChanged<String> onSelect;
+
+  List<SearchCategoryChip> get _primaryItems {
+    const keys = ['all', 'hotels', 'flights'];
+    final byKey = {for (final item in items) item.key: item};
+    final primary = [
+      for (final key in keys)
+        if (byKey[key] != null) byKey[key]!,
+    ];
+    if (primary.length >= 3) return primary;
+    return [
+      ...primary,
+      for (final item in items)
+        if (!primary.any((p) => p.key == item.key)) item,
+    ].take(3).toList();
+  }
+
+  List<SearchCategoryChip> get _moreItems {
+    final primaryKeys = _primaryItems.map((item) => item.key).toSet();
+    return [
+      for (final item in items)
+        if (!primaryKeys.contains(item.key)) item,
+    ];
+  }
+
+  void _openMoreCategories(BuildContext context) {
+    final moreItems = _moreItems;
+    if (moreItems.isEmpty) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: TripwiseColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                for (final item in moreItems)
+                  _MoreCategoryTile(
+                    item: item,
+                    isSelected: item.key == selectedCategory,
+                    onTap: item.enabled
+                        ? () {
+                            Navigator.of(sheetContext).pop();
+                            onSelect(item.key);
+                          }
+                        : null,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryItems = _primaryItems;
+    final moreItems = _moreItems;
+    final isMoreSelected = moreItems.any(
+      (item) => item.key == selectedCategory,
+    );
+
+    return Row(
+      children: [
+        for (final item in primaryItems) ...[
+          Expanded(
+            child: _CategoryFilterChip(
+              item: item,
+              isSelected: item.key == selectedCategory,
+              onTap: item.enabled ? () => onSelect(item.key) : null,
+            ),
+          ),
+          const SizedBox(width: _chipGap),
+        ],
+        Expanded(
+          child: _MoreFilterChip(
+            isSelected: isMoreSelected,
+            onTap: moreItems.isEmpty ? null : () => _openMoreCategories(context),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoreCategoryTile extends StatelessWidget {
+  const _MoreCategoryTile({
     required this.item,
     required this.isSelected,
     required this.onTap,
@@ -363,26 +476,192 @@ class _CategoryFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(item.label),
-      selected: isSelected,
-      onSelected: item.enabled && onTap != null ? (_) => onTap!() : null,
-      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: isSelected
-                ? TripwiseColors.onPrimary
-                : item.enabled
-                    ? TripwiseColors.primary
-                    : TripwiseColors.outline,
-          ),
-      selectedColor: TripwiseColors.primary,
-      backgroundColor: TripwiseColors.surfaceContainerLow,
-      disabledColor: TripwiseColors.surfaceContainerHigh,
-      side: BorderSide(
-        color: isSelected ? TripwiseColors.primary : TripwiseColors.outlineVariant,
+    final enabled = item.enabled && onTap != null;
+    final foreground = enabled
+        ? TripwiseColors.onSurface
+        : TripwiseColors.outline;
+
+    return ListTile(
+      enabled: enabled,
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: Icon(
+        _categoryIcon(item.key),
+        color: enabled ? TripwiseColors.primary : TripwiseColors.outline,
       ),
+      title: Text(
+        item.label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+      trailing: isSelected
+          ? const Icon(
+              Icons.check_circle_rounded,
+              color: TripwiseColors.primary,
+            )
+          : item.enabled
+              ? null
+              : const Icon(
+                  Icons.lock_outline_rounded,
+                  color: TripwiseColors.outline,
+                  size: 20,
+                ),
+    );
+  }
+}
+
+IconData _categoryIcon(String key) {
+  switch (key) {
+    case 'tours':
+      return Icons.explore_rounded;
+    case 'train':
+      return Icons.train_rounded;
+    case 'hotels':
+      return Icons.hotel_rounded;
+    case 'flights':
+      return Icons.flight_takeoff_rounded;
+    default:
+      return Icons.grid_view_rounded;
+  }
+}
+
+class _MoreFilterChip extends StatelessWidget {
+  const _MoreFilterChip({
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  static const double _height = 38;
+  static const double _horizontalPadding = 8;
+  static const double _iconTextGap = 4;
+
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground =
+        isSelected ? TripwiseColors.onPrimary : TripwiseColors.primary;
+
+    return Material(
+      color: isSelected
+          ? TripwiseColors.primary
+          : TripwiseColors.surfaceContainerLow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: isSelected
+              ? TripwiseColors.primary
+              : TripwiseColors.outlineVariant,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: SizedBox(
+          height: _height,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _horizontalPadding,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded, size: 15, color: foreground),
+                const SizedBox(width: _iconTextGap),
+                Flexible(
+                  child: Text(
+                    'More',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: foreground,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryFilterChip extends StatelessWidget {
+  const _CategoryFilterChip({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  static const double _height = 38;
+  static const double _horizontalPadding = 8;
+  static const double _iconTextGap = 4;
+
+  final SearchCategoryChip item;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = item.enabled && onTap != null;
+    final foreground = isSelected
+        ? TripwiseColors.onPrimary
+        : enabled
+            ? TripwiseColors.primary
+            : TripwiseColors.outline;
+
+    return Material(
+      color: isSelected
+          ? TripwiseColors.primary
+          : enabled
+              ? TripwiseColors.surfaceContainerLow
+              : TripwiseColors.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: isSelected
+              ? TripwiseColors.primary
+              : TripwiseColors.outlineVariant,
+        ),
+      ),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(22),
+        child: SizedBox(
+          height: _height,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _horizontalPadding,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected) ...[
+                  Icon(Icons.check_rounded, size: 14, color: foreground),
+                  const SizedBox(width: _iconTextGap),
+                ],
+                Flexible(
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: foreground,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

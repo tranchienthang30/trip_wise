@@ -557,45 +557,8 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
           _buildSummaryItem('Taxes', pricing.taxesLabel),
           const SizedBox(height: 8),
           _buildSummaryItem('Fees', pricing.feesLabel),
-          if (canUsePoints) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: TripwiseColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: _usePoints,
-                    onChanged: (value) =>
-                        setState(() => _usePoints = value ?? false),
-                    activeColor: TripwiseColors.primary,
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Use points',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Available: ${pricing.pointsAvailableLabel}. Max: ${pricing.pointsMaxRedeemLabel} (20% of this booking).',
-                          style: const TextStyle(
-                            color: TripwiseColors.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          const SizedBox(height: 12),
+          _buildPointsRedeemCard(pricing, canUsePoints: canUsePoints),
           if (pointsDiscount > 0) ...[
             const SizedBox(height: 8),
             _buildSummaryItem(
@@ -610,6 +573,86 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
             pointsDiscount > 0 ? 'Amount Due' : 'Total Amount',
             pointsDiscount > 0 ? _moneyLabel(pricing, amountDue) : pricing.totalLabel,
             isBold: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsRedeemCard(
+    CheckoutPricing pricing, {
+    required bool canUsePoints,
+  }) {
+    final subtitle = canUsePoints
+        ? 'Available: ${pricing.pointsAvailableLabel}. Save up to ${pricing.pointsMaxRedeemLabel}.'
+        : pricing.pointsAvailable > 0
+            ? 'Available: ${pricing.pointsAvailableLabel}. Points cannot reduce this booking.'
+            : 'No points available yet. Complete bookings to earn points.';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: canUsePoints
+            ? TripwiseColors.primaryFixed.withOpacity(0.55)
+            : TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: canUsePoints
+              ? TripwiseColors.primaryFixedDim
+              : TripwiseColors.outlineVariant,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: canUsePoints
+                  ? TripwiseColors.primary
+                  : TripwiseColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.stars_rounded,
+              color: canUsePoints
+                  ? TripwiseColors.onPrimary
+                  : TripwiseColors.outline,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tripwise Points',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: canUsePoints
+                            ? TripwiseColors.onSurface
+                            : TripwiseColors.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: TripwiseColors.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _usePoints && canUsePoints,
+            onChanged: canUsePoints
+                ? (value) => setState(() => _usePoints = value)
+                : null,
+            activeColor: TripwiseColors.primary,
           ),
         ],
       ),

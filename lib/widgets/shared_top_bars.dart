@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
-import '../services/auth_session_store.dart';
 import '../services/notifications_api.dart';
-import '../utils/tripwise_image_provider.dart';
 import 'planner_assistant_chat.dart';
 
 class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -43,11 +41,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
           letterSpacing: -0.5,
         ),
       ),
-      actions: [
-        const PlannerAssistantHeaderButton(),
-        const NotificationBellButton(),
-        const _HeaderAvatarButton(),
-      ],
+      actions: const [_PlannerHeaderActions()],
     );
   }
 }
@@ -94,49 +88,71 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontSize: 16,
         ),
       ),
-      actions: [const NotificationBellButton(), const _HeaderAvatarButton()],
+      actions: const [_ProviderHeaderActions()],
     );
   }
 }
 
-class _HeaderAvatarButton extends StatelessWidget {
-  const _HeaderAvatarButton();
+class _PlannerHeaderActions extends StatelessWidget {
+  const _PlannerHeaderActions();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
-      child: GestureDetector(
-        onTap: () => context.go('/profile_registration'),
-        child: AnimatedBuilder(
-          animation: AuthSessionStore.instance,
-          builder: (context, _) {
-            final avatarProvider = tripwiseImageProvider(
-              AuthSessionStore.instance.session?.user.image,
-            );
-            return Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: TripwiseColors.primaryContainer,
-                  width: 2,
-                ),
-              ),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: TripwiseColors.surfaceContainerLow,
-                backgroundImage: avatarProvider,
-                child: avatarProvider == null
-                    ? const Icon(
-                        Icons.person_outline_rounded,
-                        size: 18,
-                        color: TripwiseColors.onSurfaceVariant,
-                      )
-                    : null,
-              ),
-            );
-          },
+    return const Padding(
+      padding: EdgeInsets.only(right: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PlannerAssistantHeaderButton(),
+          SizedBox(width: 8),
+          NotificationBellButton(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProviderHeaderActions extends StatelessWidget {
+  const _ProviderHeaderActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(right: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          NotificationBellButton(),
+          SizedBox(width: 8),
+          _ProviderProfileButton(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProviderProfileButton extends StatelessWidget {
+  const _ProviderProfileButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        onPressed: () => context.go('/profile_registration'),
+        tooltip: 'Profile',
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          minimumSize: const Size(40, 40),
+          shape: const CircleBorder(),
+        ),
+        icon: const Icon(
+          Icons.account_circle_outlined,
+          color: TripwiseColors.primary,
+          size: 28,
         ),
       ),
     );
@@ -184,17 +200,41 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
     const icon = Icon(
       Icons.notifications_none_rounded,
       color: TripwiseColors.primary,
+      size: 28,
     );
-    return IconButton(
-      onPressed: _openInbox,
-      tooltip: 'Notifications',
-      icon: _unread > 0
-          ? Badge(
-              label: Text(_unread > 99 ? '99+' : '$_unread'),
-              backgroundColor: TripwiseColors.secondaryContainer,
-              child: icon,
-            )
-          : icon,
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        onPressed: _openInbox,
+        tooltip: 'Notifications',
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          minimumSize: const Size(40, 40),
+          shape: const CircleBorder(),
+        ),
+        icon: _unread > 0
+            ? Badge(
+                smallSize: 8,
+                largeSize: 16,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                label: Text(
+                  _unread > 99 ? '99+' : '$_unread',
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+                backgroundColor: TripwiseColors.secondaryContainer,
+                alignment: Alignment.topRight,
+                offset: const Offset(2, -3),
+                child: icon,
+              )
+            : icon,
+      ),
     );
   }
 }

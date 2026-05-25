@@ -109,12 +109,6 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       backgroundColor: TripwiseColors.surface,
       appBar: const PlannerAppBar(backRoute: '/trip_planner_dashboard'),
       body: SafeArea(top: false, child: _buildBody()),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAddActivity,
-        elevation: 6,
-        child: const Icon(Icons.add_rounded, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: const PlannerTaskbar(
         currentTab: PlannerTaskbarTab.planner,
       ),
@@ -144,7 +138,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: TripwiseInsets.screenWithFloatingAction,
+        padding: TripwiseInsets.screen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

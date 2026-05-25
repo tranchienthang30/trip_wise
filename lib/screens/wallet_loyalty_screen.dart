@@ -142,8 +142,6 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _HeaderSection(userName: data.user?.name),
-            const SizedBox(height: 24),
             _PrimaryWalletCard(
               balance: formatVnd(data.balance),
               onTopUp: () => _openMoneySheet(isTopUp: true),
@@ -219,6 +217,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HeaderSection extends StatelessWidget {
   const _HeaderSection({this.userName});
 
@@ -240,21 +239,6 @@ class _HeaderSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
         ],
-        Text(
-          'Wallet & Points',
-          style: textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-            height: 1.05,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Manage your travel funds and points earned from completed bookings.',
-          style: textTheme.bodyLarge?.copyWith(
-            color: TripwiseColors.onSurfaceVariant,
-          ),
-        ),
       ],
     );
   }

@@ -20,84 +20,87 @@ class PlannerAssistantHeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, right: 2),
-      child: Tooltip(
-        message: 'Open planner assistant',
-        child: InkWell(
-          onTap: () => showPlannerAssistantSheet(context),
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFBEE1FF), TripwiseColors.primary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return Tooltip(
+      message: 'Open planner assistant',
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Center(
+          child: InkWell(
+            onTap: () => showPlannerAssistantSheet(context),
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFBEE1FF), TripwiseColors.primary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: TripwiseColors.primary.withOpacity(0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: TripwiseColors.primary.withOpacity(0.18),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 21,
-                  height: 21,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.96),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          _MascotEye(width: 3, height: 4.2),
-                          SizedBox(width: 3),
-                          _MascotEye(width: 3, height: 4.2),
-                        ],
-                      ),
-                      const SizedBox(height: 2.4),
-                      Container(
-                        width: 8,
-                        height: 3,
-                        decoration: const BoxDecoration(
-                          color: TripwiseColors.primary,
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(6),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: TripwiseColors.secondaryContainer,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 21,
+                    height: 21,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.96),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 6,
-                      color: Colors.white,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            _MascotEye(width: 3, height: 4.2),
+                            SizedBox(width: 3),
+                            _MascotEye(width: 3, height: 4.2),
+                          ],
+                        ),
+                        const SizedBox(height: 2.4),
+                        Container(
+                          width: 8,
+                          height: 3,
+                          decoration: const BoxDecoration(
+                            color: TripwiseColors.primary,
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(6),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: TripwiseColors.secondaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 6,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
