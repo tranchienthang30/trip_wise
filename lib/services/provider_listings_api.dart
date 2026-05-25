@@ -83,6 +83,7 @@ class ProviderListingsApi {
     double? pricePerNight,
     String? roomType,
     List<String>? amenities,
+    Map<String, dynamic>? imageUpload,
   }) async {
     final data = <String, dynamic>{
       if (title != null) 'title': title,
@@ -96,6 +97,7 @@ class ProviderListingsApi {
       if (pricePerNight != null) 'pricePerNight': pricePerNight,
       if (roomType != null) 'roomType': roomType,
       if (amenities != null) 'amenities': amenities,
+      if (imageUpload != null) 'imageUpload': imageUpload,
     };
 
     return _mutate(method: 'PATCH', path: '/provider/listings/$id', data: data);

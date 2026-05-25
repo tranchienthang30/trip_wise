@@ -137,21 +137,6 @@ class _TripPlannerDashboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'My Plans',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF181C22),
-                  letterSpacing: -1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Your upcoming journeys and past adventures curated in one place.',
-                style: TextStyle(fontSize: 18, color: Color(0xFF3F4752)),
-              ),
-              const SizedBox(height: 24),
               _buildSearchBar(context),
               const SizedBox(height: 32),
               _buildContent(context),

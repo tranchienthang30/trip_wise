@@ -130,13 +130,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'My Trips',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 _buildTabs(data),
                 const SizedBox(height: 20),
                 if (_isLoading && data == null)
@@ -315,6 +308,8 @@ class _TripListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCancellationPending = item.isCancellationPending;
+
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLow,
@@ -349,71 +344,80 @@ class _TripListCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _StatusChip(label: item.statusLabel, status: item.status),
+                    if (!isCancellationPending) ...[
+                      const SizedBox(width: 8),
+                      _StatusChip(label: item.statusLabel, status: item.status),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TripwiseColors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.dateLabel,
-                  style: const TextStyle(
-                    color: TripwiseColors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.amountLabel,
-                        style: const TextStyle(
-                          color: TripwiseColors.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: onMessage,
-                      tooltip: 'Message provider',
-                      style: IconButton.styleFrom(
-                        foregroundColor: TripwiseColors.primary,
-                        backgroundColor: TripwiseColors.surfaceContainerLowest,
-                        side: const BorderSide(
-                          color: TripwiseColors.outlineVariant,
-                        ),
-                      ),
-                      icon: const Icon(Icons.chat_bubble_outline_rounded),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: onOpen,
-                      style: TripwiseButtonStyles.outlined(
-                        radius: 10,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        foregroundColor: TripwiseColors.primary,
-                        borderColor: TripwiseColors.primary,
-                      ),
-                      child: const Text('Details'),
-                    ),
-                  ],
-                ),
-                if (item.isCancellationPending) ...[
+                if (isCancellationPending) ...[
                   const SizedBox(height: 8),
-                  const _CancellationPendingNote(),
+                  const Text(
+                    'Waiting for admin cancellation',
+                    style: TextStyle(
+                      color: TripwiseColors.onPrimaryFixedVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: TripwiseColors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.dateLabel,
+                    style: const TextStyle(
+                      color: TripwiseColors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.amountLabel,
+                          style: const TextStyle(
+                            color: TripwiseColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: onMessage,
+                        tooltip: 'Message provider',
+                        style: IconButton.styleFrom(
+                          foregroundColor: TripwiseColors.primary,
+                          backgroundColor: TripwiseColors.surfaceContainerLowest,
+                          side: const BorderSide(
+                            color: TripwiseColors.outlineVariant,
+                          ),
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline_rounded),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: onOpen,
+                        style: TripwiseButtonStyles.outlined(
+                          radius: 10,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          foregroundColor: TripwiseColors.primary,
+                          borderColor: TripwiseColors.primary,
+                        ),
+                        child: const Text('Details'),
+                      ),
+                    ],
+                  ),
                 ],
               ],
             ),

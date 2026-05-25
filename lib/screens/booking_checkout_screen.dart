@@ -158,6 +158,26 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       initialDateRange: currentRange,
       helpText: 'Select booking dates',
       saveText: 'Apply',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: TripwiseColors.primary,
+              onPrimary: TripwiseColors.onPrimary,
+              secondary: TripwiseColors.primaryFixedDim,
+              onSecondary: TripwiseColors.onPrimaryFixed,
+              surface: TripwiseColors.surfaceContainerLowest,
+            ),
+            datePickerTheme: const DatePickerThemeData(
+              rangeSelectionBackgroundColor: TripwiseColors.primaryFixedDim,
+              rangeSelectionOverlayColor: WidgetStatePropertyAll(
+                Colors.transparent,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked == null) return;
 
@@ -1078,6 +1098,12 @@ class _GuestStepper extends StatelessWidget {
         ),
         IconButton.filledTonal(
           onPressed: value <= min ? null : () => onChanged(value - 1),
+          style: IconButton.styleFrom(
+            backgroundColor: TripwiseColors.primaryFixedDim,
+            foregroundColor: TripwiseColors.primary,
+            disabledBackgroundColor: TripwiseColors.surfaceContainerHigh,
+            disabledForegroundColor: TripwiseColors.outline,
+          ),
           icon: const Icon(Icons.remove_rounded),
         ),
         SizedBox(
@@ -1092,6 +1118,10 @@ class _GuestStepper extends StatelessWidget {
         ),
         IconButton.filledTonal(
           onPressed: () => onChanged(value + 1),
+          style: IconButton.styleFrom(
+            backgroundColor: TripwiseColors.primary,
+            foregroundColor: TripwiseColors.onPrimary,
+          ),
           icon: const Icon(Icons.add_rounded),
         ),
       ],

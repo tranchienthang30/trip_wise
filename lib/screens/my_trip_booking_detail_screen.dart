@@ -211,7 +211,9 @@ class _BookingDetailBody extends StatelessWidget {
       _DetailTileData(
         icon: Icons.receipt_long_rounded,
         label: 'Booking ID',
-        value: detail.bookingId,
+        value: detail.bookingId.length > 4
+            ? detail.bookingId.substring(0, 4)
+            : detail.bookingId,
       ),
     ];
 

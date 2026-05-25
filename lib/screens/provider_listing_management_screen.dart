@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,7 @@ class _ProviderListingManagementScreenState
   String _status = 'all';
   ProviderListingsResponse? _data;
   bool _isLoading = true;
+  int? _actionListingId;
   String? _error;
   Timer? _searchDebounce;
 
@@ -91,7 +93,6 @@ class _ProviderListingManagementScreenState
   Widget build(BuildContext context) {
     final data = _data;
     final items = data?.items ?? const <ProviderListingSummary>[];
-    final featured = data?.featured;
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
@@ -105,6 +106,7 @@ class _ProviderListingManagementScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+<<<<<<< HEAD
                 Row(
                   children: [
                     Expanded(
@@ -144,6 +146,9 @@ class _ProviderListingManagementScreenState
                 ),
                 const SizedBox(height: 12),
                 _buildStatusTabs(data),
+=======
+                _buildSearchAndFilterBar(data),
+>>>>>>> 31ec7c5 (Fix UI provider listing)
                 const SizedBox(height: 20),
                 if (_isLoading && data == null)
                   const Center(
@@ -158,14 +163,7 @@ class _ProviderListingManagementScreenState
                   if (_error != null)
                     _InlineError(message: _error!, onRetry: _loadListings),
                   if (_error != null) const SizedBox(height: 12),
-                  if (featured != null) ...[
-                    _FeaturedListingCard(listing: featured),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildListingCollection(
-                    featuredId: featured?.id,
-                    items: items,
-                  ),
+                  _buildListingCollection(items: items),
                 ],
               ],
             ),
@@ -183,55 +181,82 @@ class _ProviderListingManagementScreenState
     );
   }
 
-  Widget _buildStatusTabs(ProviderListingsResponse? data) {
+  Widget _buildSearchAndFilterBar(ProviderListingsResponse? data) {
     final counts = data?.counts;
 
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: _tabs
-              .take(2)
-              .map(
-                (tab) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: tab.status == _tabs.first.status ? 8 : 0,
-                    ),
-                    child: _ListingStatusFilterTile(
-                      icon: _statusIcon(tab.status),
-                      label: tab.label,
-                      value: counts?.valueFor(tab.status) ?? 0,
-                      accentColor: _statusAccent(tab.status),
-                      isSelected: _status == tab.status,
-                      onTap: () => _selectStatus(tab.status),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
+        Expanded(
+          child: TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search your listings...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: TripwiseColors.surfaceContainerLow,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: _tabs
-              .skip(2)
-              .map(
-                (tab) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: tab.status == _tabs[2].status ? 8 : 0,
-                    ),
-                    child: _ListingStatusFilterTile(
-                      icon: _statusIcon(tab.status),
-                      label: tab.label,
-                      value: counts?.valueFor(tab.status) ?? 0,
-                      accentColor: _statusAccent(tab.status),
-                      isSelected: _status == tab.status,
-                      onTap: () => _selectStatus(tab.status),
-                    ),
+        const SizedBox(width: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: TripwiseColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: TripwiseColors.outlineVariant),
+          ),
+          child: PopupMenuButton<String>(
+            tooltip: 'Filter status',
+            onSelected: _selectStatus,
+            icon: Icon(
+              Icons.filter_alt_rounded,
+              color: _status == 'all'
+                  ? TripwiseColors.onSurfaceVariant
+                  : TripwiseColors.primary,
+            ),
+            itemBuilder: (context) {
+              return _tabs.map((tab) {
+                final isSelected = _status == tab.status;
+                final count = counts?.valueFor(tab.status) ?? 0;
+                return PopupMenuItem<String>(
+                  value: tab.status,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _statusIcon(tab.status),
+                        size: 18,
+                        color: isSelected
+                            ? TripwiseColors.primary
+                            : TripwiseColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${tab.label} ($count)',
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: TripwiseColors.primary,
+                        ),
+                    ],
                   ),
-                ),
-              )
-              .toList(),
+                );
+              }).toList();
+            },
+          ),
         ),
       ],
     );
@@ -241,6 +266,94 @@ class _ProviderListingManagementScreenState
     if (_status == status) return;
     setState(() => _status = status);
     _loadListings();
+  }
+
+  Future<void> _handleListingAction(
+    ProviderListingSummary item,
+    _ListingCardAction action,
+  ) async {
+    if (_actionListingId != null) return;
+    if (action == _ListingCardAction.edit) {
+      await context.push(item.editRoute);
+      if (!mounted) return;
+      await _loadListings();
+      return;
+    }
+    if (action == _ListingCardAction.analytics) {
+      await context.push(item.analyticsRoute);
+      if (!mounted) return;
+      await _loadListings();
+      return;
+    }
+
+    if (action == _ListingCardAction.delete) {
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Delete listing'),
+            content: Text('Delete "${item.title}"? This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: TripwiseColors.error),
+                child: const Text('Delete'),
+              ),
+            ],
+          );
+        },
+      );
+      if (shouldDelete != true) return;
+      setState(() => _actionListingId = item.id);
+      try {
+        await _api.deleteListing(item.id);
+        if (!mounted) return;
+        _showSnack('Listing deleted.');
+        await _loadListings();
+      } catch (error) {
+        if (!mounted) return;
+        _showSnack(error.toString(), isError: true);
+      } finally {
+        if (mounted) setState(() => _actionListingId = null);
+      }
+      return;
+    }
+
+    final targetStatus = action == _ListingCardAction.activate
+        ? 'active'
+        : 'inactive';
+    setState(() => _actionListingId = item.id);
+    try {
+      await _api.updateListing(id: item.id, status: targetStatus);
+      if (!mounted) return;
+      _showSnack(
+        targetStatus == 'inactive'
+            ? 'Listing moved to inactive.'
+            : 'Listing submitted for review.',
+      );
+      await _loadListings();
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _actionListingId = null);
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor:
+              isError ? TripwiseColors.error : TripwiseColors.primary,
+        ),
+      );
   }
 
   IconData _statusIcon(String status) {
@@ -257,25 +370,9 @@ class _ProviderListingManagementScreenState
     }
   }
 
-  Color _statusAccent(String status) {
-    switch (status) {
-      case 'pending':
-        return TripwiseColors.secondary;
-      case 'inactive':
-        return TripwiseColors.onSurfaceVariant;
-      case 'active':
-      case 'all':
-      default:
-        return TripwiseColors.primary;
-    }
-  }
-
   Widget _buildListingCollection({
-    required int? featuredId,
     required List<ProviderListingSummary> items,
   }) {
-    final rows = items.where((item) => item.id != featuredId).toList();
-
     if (items.isEmpty) {
       return Container(
         width: double.infinity,
@@ -284,7 +381,7 @@ class _ProviderListingManagementScreenState
           color: TripwiseColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: TripwiseColors.outlineVariant.withOpacity(0.35),
+            color: TripwiseColors.outlineVariant.withValues(alpha: 0.35),
             width: 1.5,
           ),
         ),
@@ -311,14 +408,16 @@ class _ProviderListingManagementScreenState
       );
     }
 
-    if (rows.isEmpty) return const SizedBox.shrink();
-
     return Column(
-      children: rows
+      children: items
           .map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _ListingRowCard(item: item),
+              child: _ListingRowCard(
+                item: item,
+                isBusy: _actionListingId == item.id,
+                onActionSelected: (action) => _handleListingAction(item, action),
+              ),
             ),
           )
           .toList(),
@@ -360,16 +459,14 @@ class _ProviderListingManagementScreenState
   }
 }
 
-class _ListingStatusFilterTile extends StatelessWidget {
-  const _ListingStatusFilterTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.accentColor,
-    required this.isSelected,
-    required this.onTap,
+class _ListingRowCard extends StatelessWidget {
+  const _ListingRowCard({
+    required this.item,
+    required this.onActionSelected,
+    this.isBusy = false,
   });
 
+<<<<<<< HEAD
   final IconData icon;
   final String label;
   final int value;
@@ -587,20 +684,31 @@ class _FeaturedListingCard extends StatelessWidget {
 class _ListingRowCard extends StatelessWidget {
   const _ListingRowCard({required this.item});
 
+=======
+>>>>>>> 31ec7c5 (Fix UI provider listing)
   final ProviderListingSummary item;
+  final ValueChanged<_ListingCardAction> onActionSelected;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
+    final shortTitle = _compactTitle(item.title);
+
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: TripwiseColors.outlineVariant.withValues(alpha: 0.7),
+        ),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
+<<<<<<< HEAD
             child: Image.network(
               item.imageUrl,
               width: 84,
@@ -613,18 +721,26 @@ class _ListingRowCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: const Icon(Icons.image_not_supported_rounded),
               ),
+=======
+            child: _ListingImagePreview(
+              imageUrl: item.imageUrl,
+              width: 92,
+              height: 92,
+>>>>>>> 31ec7c5 (Fix UI provider listing)
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
-                        item.title,
+                        shortTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -633,11 +749,21 @@ class _ListingRowCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _StatusBadge(status: item.statusLabel, raw: item.status),
+                    const SizedBox(width: 4),
+                    if (isBusy)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      _ListingCardMenu(
+                        item: item,
+                        onSelected: onActionSelected,
+                      ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 1),
                 Text(
                   item.location,
                   maxLines: 1,
@@ -647,51 +773,27 @@ class _ListingRowCard extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 1),
                 Text(
-                  '${item.category} - ${item.roomType}',
+                  '${item.category} • ${item.roomType}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: TripwiseColors.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Row(
                   children: [
+                    _StatusBadge(status: item.statusLabel, raw: item.status),
+                    const Spacer(),
                     Text(
                       item.priceLabel,
                       style: const TextStyle(
                         color: TripwiseColors.primary,
                         fontWeight: FontWeight.w800,
                       ),
-                    ),
-                    const Spacer(),
-                    OutlinedButton(
-                      onPressed: () => context.push(item.editRoute),
-                      style: TripwiseButtonStyles.outlined(
-                        radius: 8,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        foregroundColor: TripwiseColors.primary,
-                        borderColor: TripwiseColors.primary,
-                      ),
-                      child: const Text('Edit'),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () => context.push(item.analyticsRoute),
-                      style: TripwiseButtonStyles.outlined(
-                        radius: 8,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        foregroundColor: TripwiseColors.onSurfaceVariant,
-                        borderColor: TripwiseColors.outlineVariant,
-                      ),
-                      child: const Text('Analytics'),
                     ),
                   ],
                 ),
@@ -702,6 +804,169 @@ class _ListingRowCard extends StatelessWidget {
       ),
     );
   }
+
+  String _compactTitle(String title) {
+    final words = title
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.length <= 2) return title.trim();
+    return '${words[0]} ${words[1]}';
+  }
+}
+
+class _ListingImagePreview extends StatelessWidget {
+  const _ListingImagePreview({
+    required this.imageUrl,
+    required this.width,
+    required this.height,
+  });
+
+  final String imageUrl;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl.trim();
+    if (url.isEmpty) {
+      return _fallback();
+    }
+    if (url.startsWith('data:image')) {
+      final commaIdx = url.indexOf(',');
+      if (commaIdx <= 0) return _fallback();
+      try {
+        final bytes = base64Decode(url.substring(commaIdx + 1));
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        );
+      } catch (_) {
+        return _fallback();
+      }
+    }
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _fallback(),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      width: width,
+      height: height,
+      color: TripwiseColors.surfaceContainer,
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_not_supported_outlined),
+    );
+  }
+}
+
+class _ListingCardMenu extends StatelessWidget {
+  const _ListingCardMenu({
+    required this.item,
+    required this.onSelected,
+  });
+
+  final ProviderListingSummary item;
+  final ValueChanged<_ListingCardAction> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_ListingCardAction>(
+      tooltip: 'Listing actions',
+      onSelected: onSelected,
+      padding: EdgeInsets.zero,
+      child: const SizedBox(
+        width: 18,
+        height: 18,
+        child: Icon(
+          Icons.more_vert_rounded,
+          size: 16,
+          color: TripwiseColors.onSurfaceVariant,
+        ),
+      ),
+      itemBuilder: (context) => [
+        const PopupMenuItem<_ListingCardAction>(
+          value: _ListingCardAction.edit,
+          child: _MenuLabel(
+            icon: Icons.edit_outlined,
+            label: 'Edit listing',
+          ),
+        ),
+        const PopupMenuItem<_ListingCardAction>(
+          value: _ListingCardAction.analytics,
+          child: _MenuLabel(
+            icon: Icons.analytics_outlined,
+            label: 'View analytics',
+          ),
+        ),
+        if (item.status == 'inactive')
+          const PopupMenuItem<_ListingCardAction>(
+            value: _ListingCardAction.activate,
+            child: _MenuLabel(
+              icon: Icons.publish_rounded,
+              label: 'Set active (review)',
+            ),
+          )
+        else
+          const PopupMenuItem<_ListingCardAction>(
+            value: _ListingCardAction.deactivate,
+            child: _MenuLabel(
+              icon: Icons.visibility_off_outlined,
+              label: 'Set inactive',
+            ),
+          ),
+        const PopupMenuDivider(height: 8),
+        const PopupMenuItem<_ListingCardAction>(
+          value: _ListingCardAction.delete,
+          child: _MenuLabel(
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete listing',
+            danger: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuLabel extends StatelessWidget {
+  const _MenuLabel({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? TripwiseColors.error : TripwiseColors.onSurface;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: color)),
+      ],
+    );
+  }
+}
+
+enum _ListingCardAction {
+  edit,
+  analytics,
+  activate,
+  deactivate,
+  delete,
 }
 
 class _StatusBadge extends StatelessWidget {

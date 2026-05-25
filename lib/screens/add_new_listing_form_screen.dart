@@ -1,12 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
-import '../services/provider_listings_api.dart';
+import '../services/provider_listing_draft_store.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -19,7 +17,6 @@ class AddNewListingFormScreen extends StatefulWidget {
 }
 
 class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
-  final ProviderListingsApi _api = ProviderListingsApi();
   final ImagePicker _imagePicker = ImagePicker();
 
   final TextEditingController _titleController = TextEditingController();
@@ -85,33 +82,32 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final listing = await _api.createListing(
-        title: title,
-        category: _category,
-        location: location,
-        description: _descriptionController.text.trim(),
-        roomsCount: _roomsCount,
-        maxGuests: _safeInt(_maxGuestsController.text, 2),
-        bedrooms: _safeInt(_bedroomsController.text, 1),
-        bathrooms: _safeInt(_bathroomsController.text, 1),
-        pricePerNight: _safeDouble(_priceController.text, 200),
-        amenities: _amenities.toList(),
-        imageUpload: {
-          'fileName': _listingImage!.name,
-          'mimeType': _inferMimeType(_listingImage!.name),
-          'dataBase64': base64Encode(_listingImageBytes!),
-        },
+      ProviderListingDraftStore.save(
+        ProviderListingDraftData(
+          title: title,
+          category: _category,
+          location: location,
+          description: _descriptionController.text.trim(),
+          roomsCount: _roomsCount,
+          maxGuests: _safeInt(_maxGuestsController.text, 2),
+          bedrooms: _safeInt(_bedroomsController.text, 1),
+          bathrooms: _safeInt(_bathroomsController.text, 1),
+          pricePerNight: _safeDouble(_priceController.text, 200),
+          amenities: _amenities.toList(),
+          imageFileName: _listingImage!.name,
+          imageMimeType: _inferMimeType(_listingImage!.name),
+          imageBytes: _listingImageBytes!,
+        ),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Listing submitted for admin review.'),
+          content: Text('Draft prepared. Continue to Save Changes to persist.'),
           backgroundColor: TripwiseColors.primary,
         ),
       );
-      context.go(
-        '/provider_listing_edit?id=${listing.id}&title=${Uri.encodeComponent(listing.title)}',
-      );
+      await context.push('/provider_listing_edit?mode=create');
+      if (!mounted) return;
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -161,22 +157,14 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
+<<<<<<< HEAD
         padding: TripwiseInsets.screen,
+=======
+        padding: const EdgeInsets.all(16),
+>>>>>>> 31ec7c5 (Fix UI provider listing)
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Create New Listing',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Submit a new property for admin review in a few steps.',
-              style: TextStyle(color: TripwiseColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 24),
             _buildSectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,28 +174,28 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     label: 'Property Name',
                     hint: 'e.g. Sunset Peak Luxury Villa',
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   _buildDropdown(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   _buildTextField(
                     controller: _locationController,
                     label: 'Location',
                     hint: 'City, country or full address',
                     icon: Icons.location_on_rounded,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   _buildTextField(
                     controller: _descriptionController,
                     label: 'Description',
                     hint: 'Tell travelers what makes your space unique...',
-                    maxLines: 4,
+                    maxLines: 3,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   _buildImagePicker(),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildSectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +204,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     'Rooms & Pricing',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(child: _buildRoomsCounter()),
@@ -231,7 +219,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -265,7 +253,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildSectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +262,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     'Essential Amenities',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -290,14 +278,14 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _publish,
                 style: TripwiseButtonStyles.primaryElevated(
                   radius: 14,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
                 child: _isSubmitting
                     ? const SizedBox(
@@ -324,14 +312,6 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                       ),
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Approved listings appear in Trip Search after admin review.',
-              style: TextStyle(
-                fontSize: 12,
-                color: TripwiseColors.onSurfaceVariant,
-              ),
-            ),
           ],
         ),
       ),
@@ -344,10 +324,10 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
   Widget _buildSectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: child,
     );
@@ -365,7 +345,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
@@ -381,7 +361,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
-              vertical: 14,
+              vertical: 12,
             ),
           ),
         ),
@@ -407,7 +387,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
-              height: 180,
+              height: 150,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: TripwiseColors.outlineVariant),
@@ -430,12 +410,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                                 size: 36,
                                 color: TripwiseColors.primary,
                               ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         const Text(
                           'Add a clear cover photo',
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         const Text(
                           'JPG, PNG, or WEBP up to 5MB',
                           style: TextStyle(
@@ -486,11 +466,16 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: categories.contains(_category)
               ? _category
               : categories.first,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: TripwiseColors.onSurface,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: TripwiseColors.surfaceContainerLow,
@@ -500,12 +485,21 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
-              vertical: 14,
+              vertical: 12,
             ),
           ),
           items: categories
               .map(
-                (value) => DropdownMenuItem(value: value, child: Text(value)),
+                (value) => DropdownMenuItem(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               )
               .toList(),
           onChanged: (value) {
@@ -526,7 +520,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
           'Number of Rooms',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
             color: TripwiseColors.surfaceContainerLow,
@@ -540,21 +534,39 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     setState(() => _roomsCount--);
                   }
                 },
+<<<<<<< HEAD
                 icon: const Icon(Icons.remove_rounded),
+=======
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 36,
+                  height: 36,
+                ),
+                icon: const Icon(Icons.remove, size: 18),
+>>>>>>> 31ec7c5 (Fix UI provider listing)
               ),
               Expanded(
                 child: Text(
                   '$_roomsCount',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
                   ),
                 ),
               ),
               IconButton(
                 onPressed: () => setState(() => _roomsCount++),
+<<<<<<< HEAD
                 icon: const Icon(Icons.add_rounded),
+=======
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 36,
+                  height: 36,
+                ),
+                icon: const Icon(Icons.add, size: 18),
+>>>>>>> 31ec7c5 (Fix UI provider listing)
               ),
             ],
           ),
@@ -581,6 +593,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         size: 16,
         color: selected ? TripwiseColors.onPrimary : null,
       ),
+      showCheckmark: false,
       label: Text(label),
       selectedColor: TripwiseColors.primary,
       checkmarkColor: TripwiseColors.onPrimary,
