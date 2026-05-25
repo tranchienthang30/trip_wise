@@ -1,0 +1,820 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../constants/colors.dart';
+import '../models/my_trip_detail.dart';
+import '../services/my_trips_api.dart';
+import '../widgets/shared_taskbars.dart';
+import '../widgets/shared_top_bars.dart';
+
+class MyTripBookingDetailScreen extends StatefulWidget {
+  const MyTripBookingDetailScreen({
+    super.key,
+    required this.bookingItemId,
+  });
+
+  final String bookingItemId;
+
+  @override
+  State<MyTripBookingDetailScreen> createState() =>
+      _MyTripBookingDetailScreenState();
+}
+
+class _MyTripBookingDetailScreenState
+    extends State<MyTripBookingDetailScreen> {
+  final MyTripsApi _api = MyTripsApi();
+
+  late Future<MyTripDetail> _future;
+  MyTripDetail? _detail;
+  bool _isCancelling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _future = _api.fetchTripDetail(widget.bookingItemId);
+    _future.then((detail) {
+      if (!mounted) return;
+      setState(() => _detail = detail);
+    }).catchError((_) {});
+  }
+
+  void _retry() {
+    setState(() {
+      _detail = null;
+      _load();
+    });
+  }
+
+  Future<void> _refreshDetail() async {
+    _retry();
+    try {
+      await _future;
+    } catch (_) {}
+  }
+
+  Future<void> _requestCancel() async {
+    final detail = _detail;
+    if (detail == null ||
+        !detail.canCancel ||
+        detail.isCancellationPending ||
+        _isCancelling) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request cancellation?'),
+        content: Text(
+          detail.cancelDeadlineLabel == null
+              ? 'Admin will review this cancellation before refunding your wallet.'
+              : 'Admin will review this cancellation before refunding your wallet. Deadline: ${detail.cancelDeadlineLabel}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep booking'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TripwiseButtonStyles.primaryElevated(radius: 8),
+            child: const Text('Request cancel'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      final message = await _api.cancelTrip(detail.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: TripwiseColors.primary,
+        ),
+      );
+      _retry();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
+  }
+
+  Future<void> _openProviderChat() async {
+    final detail = _detail;
+    final orderId = detail?.id.trim() ?? '';
+    final query = orderId.isEmpty
+        ? 'mode=user'
+        : 'mode=user&orderId=${Uri.encodeQueryComponent(orderId)}';
+    await context.push('/direct_messaging?$query');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: TripwiseColors.surface,
+      appBar: PlannerAppBar(
+        backRoute: '/my_trips',
+        titleText: 'Booking Details',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/my_trips');
+          }
+        },
+      ),
+      body: FutureBuilder<MyTripDetail>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _DetailErrorView(error: snapshot.error, onRetry: _retry);
+          }
+          final detail = snapshot.data!;
+          return _BookingDetailBody(
+            detail: detail,
+            isCancelling: _isCancelling,
+            onRefresh: _refreshDetail,
+            onRequestCancel: _requestCancel,
+            onMessageProvider: _openProviderChat,
+          );
+        },
+      ),
+      bottomNavigationBar: const PlannerTaskbar(
+        currentTab: PlannerTaskbarTab.myTrips,
+      ),
+    );
+  }
+}
+
+class _BookingDetailBody extends StatelessWidget {
+  const _BookingDetailBody({
+    required this.detail,
+    required this.isCancelling,
+    required this.onRefresh,
+    required this.onRequestCancel,
+    required this.onMessageProvider,
+  });
+
+  final MyTripDetail detail;
+  final bool isCancelling;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onRequestCancel;
+  final VoidCallback onMessageProvider;
+
+  @override
+  Widget build(BuildContext context) {
+    final detailTiles = [
+      _DetailTileData(
+        icon: Icons.login_rounded,
+        label: detail.startDateTitle,
+        value: detail.startDateLabel,
+      ),
+      _DetailTileData(
+        icon: Icons.logout_rounded,
+        label: detail.endDateTitle,
+        value: detail.endDateLabel,
+      ),
+      _DetailTileData(
+        icon: Icons.group_rounded,
+        label: detail.quantityTitle,
+        value: detail.quantityLabel,
+      ),
+      if (detail.serviceType == 'hotel')
+        _DetailTileData(
+          icon: Icons.nights_stay_rounded,
+          label: 'Nights',
+          value: detail.nightsLabel,
+        ),
+      if (detail.hasTicketCode)
+        _DetailTileData(
+          icon: Icons.confirmation_number_rounded,
+          label: 'Ticket code',
+          value: detail.ticketCode,
+        ),
+      _DetailTileData(
+        icon: Icons.receipt_long_rounded,
+        label: 'Booking ID',
+        value: detail.bookingId,
+      ),
+    ];
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HeroImage(url: detail.imageUrl),
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        detail.title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        detail.subtitle,
+                        style: const TextStyle(
+                          color: TripwiseColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _StatusChip(label: detail.statusLabel, status: detail.status),
+              ],
+            ),
+            if (detail.locationLabel.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.place_rounded,
+                    color: TripwiseColors.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      detail.locationLabel,
+                      style: const TextStyle(
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 18),
+            _SummaryStrip(detail: detail),
+            const SizedBox(height: 24),
+            const _SectionTitle('Trip details'),
+            const SizedBox(height: 10),
+            _DetailTileWrap(items: detailTiles),
+            const SizedBox(height: 24),
+            const _SectionTitle('Payment'),
+            const SizedBox(height: 10),
+            _PaymentCard(detail: detail),
+            const SizedBox(height: 24),
+            const _SectionTitle('Cancellation'),
+            const SizedBox(height: 10),
+            _CancellationCard(
+              detail: detail,
+              isCancelling: isCancelling,
+              onRequestCancel: onRequestCancel,
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onMessageProvider,
+                style: TripwiseButtonStyles.outlined(
+                  radius: 8,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  foregroundColor: TripwiseColors.primary,
+                  borderColor: TripwiseColors.primary,
+                ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                label: const Text(
+                  'Message provider',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryStrip extends StatelessWidget {
+  const _SummaryStrip({required this.detail});
+
+  final MyTripDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SummaryItem(
+              label: 'Dates',
+              value: detail.dateLabel,
+              icon: Icons.calendar_month_rounded,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 40,
+            color: TripwiseColors.onPrimary.withValues(alpha: 0.24),
+          ),
+          Expanded(
+            child: _SummaryItem(
+              label: 'Total',
+              value: detail.totalAmountLabel,
+              icon: Icons.payments_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryItem extends StatelessWidget {
+  const _SummaryItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: TripwiseColors.onPrimary, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: TripwiseColors.onPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: TripwiseColors.onPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentCard extends StatelessWidget {
+  const _PaymentCard({required this.detail});
+
+  final MyTripDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          _MoneyRow(
+            label: detail.pricePerUnitTitle,
+            value: detail.pricePerUnitLabel,
+          ),
+          const SizedBox(height: 10),
+          _MoneyRow(label: detail.quantityTitle, value: detail.quantityLabel),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          _MoneyRow(
+            label: 'Total paid',
+            value: detail.totalAmountLabel,
+            isTotal: true,
+          ),
+          const SizedBox(height: 10),
+          _MoneyRow(label: 'Booked on', value: detail.bookingCreatedAtLabel),
+        ],
+      ),
+    );
+  }
+}
+
+class _CancellationCard extends StatelessWidget {
+  const _CancellationCard({
+    required this.detail,
+    required this.isCancelling,
+    required this.onRequestCancel,
+  });
+
+  final MyTripDetail detail;
+  final bool isCancelling;
+  final VoidCallback onRequestCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showCancelButton =
+        detail.canCancel && !detail.isCancellationPending;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: detail.isCancellationPending
+            ? TripwiseColors.primaryFixed
+            : TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: detail.isCancellationPending
+              ? TripwiseColors.primaryFixedDim
+              : TripwiseColors.outlineVariant,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                detail.isCancellationPending
+                    ? Icons.hourglass_top_rounded
+                    : Icons.assignment_return_rounded,
+                color: detail.isCancellationPending
+                    ? TripwiseColors.onPrimaryFixedVariant
+                    : TripwiseColors.error,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  detail.cancellationPolicyLabel,
+                  style: TextStyle(
+                    color: detail.isCancellationPending
+                        ? TripwiseColors.onPrimaryFixedVariant
+                        : TripwiseColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (showCancelButton) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: isCancelling ? null : onRequestCancel,
+                style: TripwiseButtonStyles.destructiveOutlined(
+                  radius: 8,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: isCancelling
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cancel_schedule_send_rounded, size: 18),
+                label: Text(
+                  isCancelling ? 'Sending request' : 'Request cancellation',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailTileWrap extends StatelessWidget {
+  const _DetailTileWrap({required this.items});
+
+  final List<_DetailTileData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: tileWidth < 156 ? constraints.maxWidth : tileWidth,
+                child: _DetailTile(data: item),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DetailTile extends StatelessWidget {
+  const _DetailTile({required this.data});
+
+  final _DetailTileData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 104),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(data.icon, color: TripwiseColors.primary, size: 20),
+          const SizedBox(height: 10),
+          Text(
+            data.label,
+            style: const TextStyle(
+              color: TripwiseColors.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            data.value,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: TripwiseColors.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailTileData {
+  const _DetailTileData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class _MoneyRow extends StatelessWidget {
+  const _MoneyRow({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isTotal
+                  ? TripwiseColors.onSurface
+                  : TripwiseColors.onSurfaceVariant,
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: isTotal
+                  ? TripwiseColors.primary
+                  : TripwiseColors.onSurface,
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+    );
+  }
+}
+
+class _HeroImage extends StatelessWidget {
+  const _HeroImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: url.trim().isEmpty
+            ? const _ImageFallback(icon: Icons.image_outlined)
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const _ImageFallback(icon: Icons.broken_image_outlined),
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const _ImageFallback(
+                    icon: Icons.image_outlined,
+                    showSpinner: true,
+                  );
+                },
+              ),
+      ),
+    );
+  }
+}
+
+class _ImageFallback extends StatelessWidget {
+  const _ImageFallback({
+    required this.icon,
+    this.showSpinner = false,
+  });
+
+  final IconData icon;
+  final bool showSpinner;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: TripwiseColors.surfaceContainer,
+      alignment: Alignment.center,
+      child: showSpinner
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icon, color: TripwiseColors.onSurfaceVariant, size: 34),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.status});
+
+  final String label;
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color background;
+    final Color foreground;
+    if (status == 'cancelled') {
+      background = TripwiseColors.error.withValues(alpha: 0.1);
+      foreground = TripwiseColors.error;
+    } else {
+      background = TripwiseColors.primaryFixed;
+      foreground = TripwiseColors.onPrimaryFixedVariant;
+    }
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: foreground,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailErrorView extends StatelessWidget {
+  const _DetailErrorView({required this.error, required this.onRetry});
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 44,
+              color: TripwiseColors.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Couldn't load booking",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString() ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: TripwiseButtonStyles.primaryElevated(radius: 8),
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

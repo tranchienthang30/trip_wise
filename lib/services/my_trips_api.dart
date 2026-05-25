@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/my_trip_detail.dart';
 import '../models/my_trips.dart';
 import 'api_client.dart';
 
@@ -21,6 +22,25 @@ class MyTripsApi {
       throw StateError('Empty response from /my-trips');
     }
     return MyTripsResponse.fromJson(data);
+  }
+
+  Future<MyTripDetail> fetchTripDetail(String bookingItemId) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/my-trips/$bookingItemId',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /my-trips/$bookingItemId');
+      }
+      return MyTripDetail.fromJson(data);
+    } on DioException catch (e) {
+      final response = e.response?.data;
+      if (response is Map && response['message'] is String) {
+        throw StateError(response['message'] as String);
+      }
+      throw StateError('Could not load booking details. Please try again.');
+    }
   }
 
   Future<String> cancelTrip(String bookingItemId) async {

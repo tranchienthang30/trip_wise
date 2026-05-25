@@ -186,37 +186,88 @@ class _ProviderListingManagementScreenState
   Widget _buildStatusTabs(ProviderListingsResponse? data) {
     final counts = data?.counts;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _tabs.map((tab) {
-        final isSelected = _status == tab.status;
-        final count = counts?.valueFor(tab.status) ?? 0;
-
-        return ChoiceChip(
-          selected: isSelected,
-          label: Text('${tab.label} ($count)'),
-          onSelected: (_) {
-            if (_status == tab.status) return;
-            setState(() => _status = tab.status);
-            _loadListings();
-          },
-          selectedColor: TripwiseColors.primary,
-          labelStyle: TextStyle(
-            color: isSelected
-                ? TripwiseColors.onPrimary
-                : TripwiseColors.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-          backgroundColor: TripwiseColors.surfaceContainerLow,
-          side: BorderSide(
-            color: isSelected
-                ? TripwiseColors.primary
-                : TripwiseColors.outlineVariant,
-          ),
-        );
-      }).toList(),
+    return Column(
+      children: [
+        Row(
+          children: _tabs
+              .take(2)
+              .map(
+                (tab) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: tab.status == _tabs.first.status ? 8 : 0,
+                    ),
+                    child: _ListingStatusFilterTile(
+                      icon: _statusIcon(tab.status),
+                      label: tab.label,
+                      value: counts?.valueFor(tab.status) ?? 0,
+                      accentColor: _statusAccent(tab.status),
+                      isSelected: _status == tab.status,
+                      onTap: () => _selectStatus(tab.status),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: _tabs
+              .skip(2)
+              .map(
+                (tab) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: tab.status == _tabs[2].status ? 8 : 0,
+                    ),
+                    child: _ListingStatusFilterTile(
+                      icon: _statusIcon(tab.status),
+                      label: tab.label,
+                      value: counts?.valueFor(tab.status) ?? 0,
+                      accentColor: _statusAccent(tab.status),
+                      isSelected: _status == tab.status,
+                      onTap: () => _selectStatus(tab.status),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
+  }
+
+  void _selectStatus(String status) {
+    if (_status == status) return;
+    setState(() => _status = status);
+    _loadListings();
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'active':
+        return Icons.public_rounded;
+      case 'pending':
+        return Icons.hourglass_top_rounded;
+      case 'inactive':
+        return Icons.visibility_off_rounded;
+      case 'all':
+      default:
+        return Icons.grid_view_rounded;
+    }
+  }
+
+  Color _statusAccent(String status) {
+    switch (status) {
+      case 'pending':
+        return TripwiseColors.secondary;
+      case 'inactive':
+        return TripwiseColors.onSurfaceVariant;
+      case 'active':
+      case 'all':
+      default:
+        return TripwiseColors.primary;
+    }
   }
 
   Widget _buildListingCollection({
@@ -309,6 +360,117 @@ class _ProviderListingManagementScreenState
   }
 }
 
+class _ListingStatusFilterTile extends StatelessWidget {
+  const _ListingStatusFilterTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accentColor,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final int value;
+  final Color accentColor;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor =
+        isSelected ? TripwiseColors.onPrimary : TripwiseColors.onSurface;
+    final supportingColor = isSelected
+        ? TripwiseColors.onPrimary
+        : TripwiseColors.onSurfaceVariant;
+    final iconBackground = isSelected
+        ? TripwiseColors.primaryContainer
+        : TripwiseColors.surfaceContainerLow;
+    final iconColor = isSelected ? TripwiseColors.primary : accentColor;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      constraints: const BoxConstraints(minHeight: 74),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? TripwiseColors.primary
+            : TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isSelected
+              ? TripwiseColors.primary
+              : TripwiseColors.outlineVariant,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: TripwiseColors.primary.withOpacity(0.16),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(
+                              color: supportingColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(
+                              color: foregroundColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FeaturedListingCard extends StatelessWidget {
   const _FeaturedListingCard({required this.listing});
 
@@ -376,7 +538,7 @@ class _FeaturedListingCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${listing.location} • ${listing.tierLabel}',
+                  '${listing.location} - ${listing.tierLabel}',
                   style: const TextStyle(
                     color: TripwiseColors.onSurfaceVariant,
                     fontSize: 13,
@@ -487,7 +649,7 @@ class _ListingRowCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.category} • ${item.roomType}',
+                  '${item.category} - ${item.roomType}',
                   style: const TextStyle(
                     color: TripwiseColors.onSurfaceVariant,
                     fontSize: 12,

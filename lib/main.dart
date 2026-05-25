@@ -16,6 +16,7 @@ import 'screens/add_new_listing_form_screen.dart';
 import 'screens/add_payment_screen.dart';
 import 'screens/hotel_search_filter_screen.dart';
 import 'screens/initial_registration_screen.dart';
+import 'screens/my_trip_booking_detail_screen.dart';
 import 'screens/my_trips_screen.dart';
 import 'screens/booking_checkout_screen.dart';
 import 'screens/direct_messaging_screen.dart';
@@ -71,6 +72,7 @@ const Set<String> _plannerOnlyRoutes = {
   '/trip_planner_dashboard',
   '/trip_planner_timeline',
   '/plan_new_trip_form',
+  '/my_trip_booking_detail',
   '/my_trips',
   '/booking_checkout',
   '/payment_success',
@@ -109,6 +111,7 @@ final GoRouter _router = GoRouter(
     );
     final isPlannerOnlyRoute =
         _plannerOnlyRoutes.contains(state.matchedLocation) ||
+        state.matchedLocation.startsWith('/my_trip_booking_detail/') ||
         state.matchedLocation.startsWith('/service_details/') ||
         state.matchedLocation.startsWith('/reviews/');
 
@@ -197,6 +200,12 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => MyTripsScreen(
         initialStatus: state.uri.queryParameters['status'],
         focusBookingId: state.uri.queryParameters['bookingId'],
+      ),
+    ),
+    GoRoute(
+      path: '/my_trip_booking_detail/:id',
+      builder: (context, state) => MyTripBookingDetailScreen(
+        bookingItemId: state.pathParameters['id']!,
       ),
     ),
     GoRoute(
