@@ -102,7 +102,7 @@ class _HomeBodyState extends State<_HomeBody> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: TripwiseInsets.screen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

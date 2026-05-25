@@ -94,12 +94,12 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
       backgroundColor: const Color(0xFFF8F9FF),
       appBar: _buildAppBar(context),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
+        padding: TripwiseInsets.screenWithBottomAction,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 768),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              padding: EdgeInsets.zero,
               child: Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
@@ -130,14 +130,14 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     _buildTextField(
                       label: 'Trip Name',
                       hint: 'e.g., Adventure in Tokyo',
-                      icon: Icons.edit_square,
+                      icon: Icons.edit_note_rounded,
                       controller: _tripNameController,
                     ),
                     const SizedBox(height: 24),
                     _buildTextField(
                       label: 'Destination',
                       hint: 'Search a city, country...',
-                      icon: Icons.location_on,
+                      icon: Icons.location_on_rounded,
                       controller: _destinationController,
                     ),
                     const SizedBox(height: 24),
@@ -147,7 +147,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                           child: _buildTextField(
                             label: 'Start Date',
                             hint: 'YYYY-MM-DD',
-                            icon: Icons.calendar_today,
+                            icon: Icons.calendar_today_rounded,
                             controller: _startDateController,
                           ),
                         ),
@@ -156,7 +156,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                           child: _buildTextField(
                             label: 'End Date',
                             hint: 'YYYY-MM-DD',
-                            icon: Icons.event,
+                            icon: Icons.event_rounded,
                             controller: _endDateController,
                           ),
                         ),
@@ -183,7 +183,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
       shadowColor: const Color(0xFF005F9F).withOpacity(0.06),
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF005F9F)),
+        icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF005F9F)),
         onPressed: () => context.go('/trip_planner_dashboard'),
       ),
       title: const Text(
@@ -277,7 +277,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                   color: Color(0xFFD1E4FF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.group_add, color: Color(0xFF005F9F)),
+                child: const Icon(Icons.group_add_rounded, color: Color(0xFF005F9F)),
               ),
               const SizedBox(width: 16),
               Column(
@@ -378,7 +378,7 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                           children: const [
                             Text('Create Trip', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             SizedBox(width: 8),
-                            Icon(Icons.arrow_forward),
+                            Icon(Icons.arrow_forward_rounded),
                           ],
                         ),
                       ),

@@ -70,7 +70,7 @@ class SecurityPrivacyScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -81,24 +81,24 @@ class SecurityPrivacyScreen extends StatelessWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        padding: TripwiseInsets.screen,
         children: [
           const _SectionTitle(
-            icon: Icons.lock_outline,
+            icon: Icons.lock_rounded,
             title: 'Security Settings',
           ),
           const SizedBox(height: 12),
           ..._securityItems.map((item) => _PolicyTile(item: item)),
           const SizedBox(height: 24),
           const _SectionTitle(
-            icon: Icons.privacy_tip_outlined,
+            icon: Icons.privacy_tip_rounded,
             title: 'Privacy Settings',
           ),
           const SizedBox(height: 12),
           ..._privacyItems.map((item) => _PolicyTile(item: item)),
           const SizedBox(height: 24),
           const _SectionTitle(
-            icon: Icons.storage_outlined,
+            icon: Icons.storage_rounded,
             title: 'Data & Permissions',
           ),
           const SizedBox(height: 12),

@@ -55,12 +55,12 @@ class _EliteUpgradeConfirmationScreenState
       backgroundColor: const Color(0xFFF8F9FF),
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
+        padding: TripwiseInsets.screenWithBottomAction,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              padding: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -143,7 +143,7 @@ class _EliteUpgradeConfirmationScreenState
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.stars, color: Colors.white, size: 36),
+                  child: const Icon(Icons.stars_rounded, color: Colors.white, size: 36),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -257,13 +257,13 @@ class _EliteUpgradeConfirmationScreenState
             ],
           ),
           const SizedBox(height: 32),
-          _buildFeatureItem(Icons.percent, '8% Reduced Commission', 'Keep more of your hard-earned revenue.'),
+          _buildFeatureItem(Icons.percent_rounded, '8% Reduced Commission', 'Keep more of your hard-earned revenue.'),
           const SizedBox(height: 16),
-          _buildFeatureItem(Icons.support_agent, '24/7 Dedicated Concierge', 'Priority support whenever you need it.'),
+          _buildFeatureItem(Icons.support_agent_rounded, '24/7 Dedicated Concierge', 'Priority support whenever you need it.'),
           const SizedBox(height: 16),
-          _buildFeatureItem(Icons.verified, 'Verified Premium Badge', 'Build instant trust with elite clients.'),
+          _buildFeatureItem(Icons.verified_rounded, 'Verified Premium Badge', 'Build instant trust with elite clients.'),
           const SizedBox(height: 16),
-          _buildFeatureItem(Icons.bolt, 'Priority Search Placement', 'Appear at the top of client searches.'),
+          _buildFeatureItem(Icons.bolt_rounded, 'Priority Search Placement', 'Appear at the top of client searches.'),
         ],
       ),
     );
@@ -320,7 +320,7 @@ class _EliteUpgradeConfirmationScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, color: Colors.white, size: 48),
+          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 48),
           const SizedBox(height: 16),
           const Text('Ready to Upgrade?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 8),
@@ -429,23 +429,23 @@ class _EliteUpgradeConfirmationScreenState
         currentIndex: 3, // Plans
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
+            icon: Icon(Icons.dashboard_rounded),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.payments),
+            icon: Icon(Icons.payments_rounded),
             label: 'Earnings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
+            icon: Icon(Icons.calendar_today_rounded),
             label: 'Bookings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.stars),
+            icon: Icon(Icons.stars_rounded),
             label: 'Plans',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person_rounded),
             label: 'Account',
           ),
         ],

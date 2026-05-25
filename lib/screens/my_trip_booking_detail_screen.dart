@@ -219,7 +219,7 @@ class _BookingDetailBody extends StatelessWidget {
       onRefresh: onRefresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+        padding: TripwiseInsets.screen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -693,16 +693,16 @@ class _HeroImage extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 16 / 9,
         child: url.trim().isEmpty
-            ? const _ImageFallback(icon: Icons.image_outlined)
+            ? const _ImageFallback(icon: Icons.image_rounded)
             : Image.network(
                 url,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    const _ImageFallback(icon: Icons.broken_image_outlined),
+                    const _ImageFallback(icon: Icons.broken_image_rounded),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return const _ImageFallback(
-                    icon: Icons.image_outlined,
+                    icon: Icons.image_rounded,
                     showSpinner: true,
                   );
                 },

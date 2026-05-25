@@ -189,7 +189,7 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
       backgroundColor: TripwiseColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          padding: TripwiseInsets.screen,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

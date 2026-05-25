@@ -133,7 +133,7 @@ class _TripPlannerDashboardScreenState
         onRefresh: _load,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: TripwiseInsets.screen,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -164,7 +164,7 @@ class _TripPlannerDashboardScreenState
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'create_trip_fab',
         onPressed: () => context.push('/plan_new_trip_form'),
-        icon: const Icon(Icons.add, size: 28),
+        icon: const Icon(Icons.add_rounded, size: 28),
         label: const Text(
           'Create New Trip',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -187,11 +187,11 @@ class _TripPlannerDashboardScreenState
         readOnly: true,
         onTap: () => context.push('/add_location_search'),
         decoration: const InputDecoration(
-          icon: Icon(Icons.search, color: Color(0xFF3F4752)),
+          icon: Icon(Icons.search_rounded, color: Color(0xFF3F4752)),
           hintText: 'Search hotels, flights, or attractions',
           hintStyle: TextStyle(color: Color(0xFFBFC7D4)),
           border: InputBorder.none,
-          suffixIcon: Icon(Icons.mic, color: Color(0xFF3F4752)),
+          suffixIcon: Icon(Icons.mic_rounded, color: Color(0xFF3F4752)),
         ),
       ),
     );
@@ -326,7 +326,7 @@ class _TripPlannerDashboardScreenState
                   Row(
                     children: [
                       const Icon(
-                        Icons.calendar_today,
+                        Icons.calendar_today_rounded,
                         size: 16,
                         color: Color(0xFF3F4752),
                       ),
@@ -453,7 +453,7 @@ class _TripPlannerDashboardScreenState
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.add_location_alt,
+                Icons.add_location_alt_rounded,
                 color: Color(0xFF005F9F),
                 size: 32,
               ),

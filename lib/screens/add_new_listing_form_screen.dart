@@ -161,7 +161,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: TripwiseInsets.screen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -193,7 +193,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     controller: _locationController,
                     label: 'Location',
                     hint: 'City, country or full address',
-                    icon: Icons.location_on,
+                    icon: Icons.location_on_rounded,
                   ),
                   const SizedBox(height: 14),
                   _buildTextField(
@@ -279,12 +279,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _amenityChip('WiFi', Icons.wifi),
-                      _amenityChip('Pool', Icons.pool),
-                      _amenityChip('Parking', Icons.local_parking),
-                      _amenityChip('A/C', Icons.ac_unit),
-                      _amenityChip('Breakfast', Icons.free_breakfast),
-                      _amenityChip('Gym', Icons.fitness_center),
+                      _amenityChip('WiFi', Icons.wifi_rounded),
+                      _amenityChip('Pool', Icons.pool_rounded),
+                      _amenityChip('Parking', Icons.local_parking_rounded),
+                      _amenityChip('A/C', Icons.ac_unit_rounded),
+                      _amenityChip('Breakfast', Icons.free_breakfast_rounded),
+                      _amenityChip('Gym', Icons.fitness_center_rounded),
                     ],
                   ),
                 ],
@@ -319,7 +319,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                             ),
                           ),
                           SizedBox(width: 10),
-                          Icon(Icons.rocket_launch, size: 20),
+                          Icon(Icons.rocket_launch_rounded, size: 20),
                         ],
                       ),
               ),
@@ -540,7 +540,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     setState(() => _roomsCount--);
                   }
                 },
-                icon: const Icon(Icons.remove),
+                icon: const Icon(Icons.remove_rounded),
               ),
               Expanded(
                 child: Text(
@@ -554,7 +554,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
               ),
               IconButton(
                 onPressed: () => setState(() => _roomsCount++),
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add_rounded),
               ),
             ],
           ),

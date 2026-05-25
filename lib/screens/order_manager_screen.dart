@@ -105,15 +105,12 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
         onRefresh: _loadOrders,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 120),
+          padding: TripwiseInsets.screenWithBottomAction,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1024),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 32,
-                ),
+                padding: EdgeInsets.zero,
                 child: SizedBox(
                   width: double.infinity,
                   child: Column(
@@ -285,7 +282,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     final orders = _data?.orders ?? const <ProviderOrder>[];
     if (orders.isEmpty) {
       return _buildMessageState(
-        icon: Icons.receipt_long_outlined,
+        icon: Icons.receipt_long_rounded,
         title: 'No orders found',
         subtitle:
             'There are no ${_selectedStatus.replaceAll('_', ' ')} orders right now.',
@@ -675,7 +672,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                   ),
           ),
           child: avatarProvider == null
-              ? const Icon(Icons.person, color: Color(0xFF3F4752))
+              ? const Icon(Icons.person_rounded, color: Color(0xFF3F4752))
               : null,
         ),
         const SizedBox(width: 16),
@@ -744,7 +741,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
           child: isPremium
               ? const Row(
                   children: [
-                    Icon(Icons.contact_support),
+                    Icon(Icons.contact_support_rounded),
                     SizedBox(width: 8),
                     Text(
                       'Contact',
@@ -752,7 +749,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                     ),
                   ],
                 )
-              : const Icon(Icons.chat_bubble),
+              : const Icon(Icons.chat_bubble_rounded),
         ),
       ],
     );

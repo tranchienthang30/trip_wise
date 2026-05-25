@@ -156,7 +156,7 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
           return SafeArea(
             top: false,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              padding: TripwiseInsets.screen,
               children: [
                 _SearchInput(
                   controller: _searchController,

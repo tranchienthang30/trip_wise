@@ -115,7 +115,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       ),
       body: ListView.separated(
         controller: _scroll,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        padding: TripwiseInsets.screen,
         itemCount: _reviews.length + 2,
         separatorBuilder: (_, i) =>
             SizedBox(height: i == 0 ? 20 : 14),

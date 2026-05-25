@@ -242,7 +242,7 @@ class _InventoryPricingScreenState extends State<InventoryPricingScreen> {
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        padding: TripwiseInsets.screen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -82,7 +82,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
         onRefresh: _load,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
+          padding: TripwiseInsets.screen,
           child: _isLoading && data == null
               ? const Padding(
                   padding: EdgeInsets.only(top: 120),
@@ -177,7 +177,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
                 title: 'Total Views',
                 value: '${data.kpis.totalViews}',
                 change: _delta(data.kpis.viewsDeltaPct),
-                icon: Icons.visibility,
+                icon: Icons.visibility_rounded,
                 positive: data.kpis.viewsDeltaPct >= 0,
               ),
             ),
@@ -187,7 +187,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
                 title: 'Bookings',
                 value: '${data.kpis.bookings}',
                 change: _delta(data.kpis.bookingsDeltaPct),
-                icon: Icons.calendar_today,
+                icon: Icons.calendar_today_rounded,
                 positive: data.kpis.bookingsDeltaPct >= 0,
               ),
             ),
@@ -201,7 +201,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
                 title: 'Revenue',
                 value: '\$${data.kpis.revenue.toStringAsFixed(0)}',
                 change: _delta(data.kpis.revenueDeltaPct),
-                icon: Icons.trending_up,
+                icon: Icons.trending_up_rounded,
                 positive: data.kpis.revenueDeltaPct >= 0,
               ),
             ),
@@ -211,7 +211,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
                 title: 'Avg Rating',
                 value: data.kpis.averageRating.toStringAsFixed(1),
                 change: _delta(data.kpis.ratingDelta),
-                icon: Icons.star,
+                icon: Icons.star_rounded,
                 positive: data.kpis.ratingDelta >= 0,
               ),
             ),
@@ -471,7 +471,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
         padding: const EdgeInsets.only(top: 120),
         child: Column(
           children: [
-            const Icon(Icons.analytics_outlined, size: 48),
+            const Icon(Icons.analytics_rounded, size: 48),
             const SizedBox(height: 12),
             Text(
               _error ?? 'Unable to load analytics',

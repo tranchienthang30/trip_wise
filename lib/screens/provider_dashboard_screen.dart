@@ -59,7 +59,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         onRefresh: _load,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+          padding: TripwiseInsets.screen,
           child: _buildBody(context),
         ),
       ),
@@ -284,7 +284,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             ),
             child: const Row(
               children: [
-                Icon(Icons.add_business, color: Colors.white, size: 28),
+                Icon(Icons.add_business_rounded, color: Colors.white, size: 28),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -296,7 +296,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.white),
+                Icon(Icons.chevron_right_rounded, color: Colors.white),
               ],
             ),
           ),
@@ -480,13 +480,13 @@ class _ActivityIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     IconData icon;
     if (type == 'payout') {
-      icon = Icons.account_balance_wallet_outlined;
+      icon = Icons.account_balance_wallet_rounded;
     } else if (type == 'review') {
-      icon = Icons.reviews_outlined;
+      icon = Icons.reviews_rounded;
     } else if (type == 'booking') {
-      icon = Icons.calendar_today_outlined;
+      icon = Icons.calendar_today_rounded;
     } else {
-      icon = Icons.notifications_outlined;
+      icon = Icons.notifications_rounded;
     }
 
     Color color;

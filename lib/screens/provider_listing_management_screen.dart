@@ -101,7 +101,7 @@ class _ProviderListingManagementScreenState
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            padding: TripwiseInsets.screen,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -122,7 +122,7 @@ class _ProviderListingManagementScreenState
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.refresh),
+                          : const Icon(Icons.refresh_rounded),
                     ),
                   ],
                 ),
@@ -132,7 +132,7 @@ class _ProviderListingManagementScreenState
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
                     hintText: 'Search your listings...',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
@@ -174,7 +174,7 @@ class _ProviderListingManagementScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/add_new_listing_form'),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Add Listing'),
       ),
       bottomNavigationBar: const ProviderTaskbar(
@@ -291,7 +291,7 @@ class _ProviderListingManagementScreenState
         child: const Column(
           children: [
             Icon(
-              Icons.add_business,
+              Icons.add_business_rounded,
               size: 48,
               color: TripwiseColors.onSurfaceVariant,
             ),
@@ -504,7 +504,7 @@ class _FeaturedListingCard extends StatelessWidget {
                 height: 180,
                 color: TripwiseColors.surfaceContainer,
                 alignment: Alignment.center,
-                child: const Icon(Icons.image_not_supported_outlined),
+                child: const Icon(Icons.image_not_supported_rounded),
               ),
             ),
           ),
@@ -555,7 +555,7 @@ class _FeaturedListingCard extends StatelessWidget {
                           foregroundColor: TripwiseColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
-                        icon: const Icon(Icons.edit, size: 16),
+                        icon: const Icon(Icons.edit_rounded, size: 16),
                         label: const Text('Edit Listing'),
                       ),
                     ),
@@ -569,7 +569,7 @@ class _FeaturedListingCard extends StatelessWidget {
                           foregroundColor: TripwiseColors.onSurfaceVariant,
                           borderColor: TripwiseColors.outlineVariant,
                         ),
-                        icon: const Icon(Icons.analytics_outlined, size: 16),
+                        icon: const Icon(Icons.analytics_rounded, size: 16),
                         label: const Text('Analytics'),
                       ),
                     ),
@@ -611,7 +611,7 @@ class _ListingRowCard extends StatelessWidget {
                 height: 84,
                 color: TripwiseColors.surfaceContainer,
                 alignment: Alignment.center,
-                child: const Icon(Icons.image_not_supported_outlined),
+                child: const Icon(Icons.image_not_supported_rounded),
               ),
             ),
           ),

@@ -105,7 +105,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
       ),
       body: ListView.separated(
         controller: _scroll,
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        padding: TripwiseInsets.screen,
         itemCount: _items.length + 2,
         separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 16 : 8),
         itemBuilder: (context, i) {

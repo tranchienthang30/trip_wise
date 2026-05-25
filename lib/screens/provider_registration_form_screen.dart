@@ -72,7 +72,7 @@ class _ProviderRegistrationFormScreenState
       appBar: const PlannerAppBar(backRoute: '/profile_registration'),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: TripwiseInsets.screen,
           child: Form(
             key: _formKey,
             child: Column(
@@ -231,7 +231,7 @@ class _ProviderRegistrationFormScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
-                        Icons.info_outline,
+                        Icons.info_rounded,
                         color: TripwiseColors.primary,
                         size: 18,
                       ),
@@ -442,7 +442,7 @@ class _ProviderRegistrationFormScreenState
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.add_a_photo_outlined,
+                                  Icons.add_a_photo_rounded,
                                   size: 30,
                                   color: TripwiseColors.outline,
                                 ),

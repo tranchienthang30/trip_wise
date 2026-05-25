@@ -1,10 +1,9 @@
-﻿import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/admin_cancellation.dart';
 import '../services/admin_api.dart';
-import '../services/auth_session_store.dart';
+import '../widgets/shared_taskbars.dart';
 
 class AdminRefundsScreen extends StatefulWidget {
   const AdminRefundsScreen({super.key});
@@ -112,12 +111,6 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await AuthSessionStore.instance.logout();
-    if (!mounted) return;
-    context.go('/register');
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -138,52 +131,12 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
             fontWeight: FontWeight.w900,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/admin_provider_approvals'),
-            tooltip: 'Provider applications',
-            icon: const Icon(
-              Icons.verified_user_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.go('/admin_listing_approvals'),
-            tooltip: 'Listing approvals',
-            icon: const Icon(
-              Icons.hotel_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.go('/admin_provider_payouts'),
-            tooltip: 'Provider payouts',
-            icon: const Icon(
-              Icons.payments_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: _isLoading ? null : _load,
-            tooltip: 'Refresh',
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: _signOut,
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout_rounded, color: TripwiseColors.error),
-          ),
-          const SizedBox(width: 12),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          padding: TripwiseInsets.screen,
           children: [
             Text(
               'Refund confirmations',
@@ -231,6 +184,9 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
             ],
           ],
         ),
+      ),
+      bottomNavigationBar: const AdminTaskbar(
+        currentTab: AdminTaskbarTab.refunds,
       ),
     );
   }
@@ -375,7 +331,7 @@ class _RefundRequestTile extends StatelessWidget {
           ),
           if (request.cancelDeadline != null)
             _InfoLine(
-              icon: Icons.timer_outlined,
+              icon: Icons.timer_rounded,
               label: 'Deadline',
               value: _shortDate(request.cancelDeadline!),
             ),

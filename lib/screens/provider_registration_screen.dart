@@ -65,7 +65,7 @@ class _ProviderRegistrationScreenState
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        padding: TripwiseInsets.screen,
         child: Form(
           key: _formKey,
           child: Column(
@@ -143,7 +143,7 @@ class _ProviderRegistrationScreenState
                 children: [
                   Expanded(
                     child: _UploadCard(
-                      icon: Icons.badge_outlined,
+                      icon: Icons.badge_rounded,
                       title: 'Government ID',
                       subtitle: 'Passport, ID card, or driver license',
                       onTap: () => _showNotice(
@@ -154,7 +154,7 @@ class _ProviderRegistrationScreenState
                   const SizedBox(width: 16),
                   Expanded(
                     child: _UploadCard(
-                      icon: Icons.description_outlined,
+                      icon: Icons.description_rounded,
                       title: 'Business proof',
                       subtitle: 'License, certificate, or tax document',
                       onTap: () => _showNotice(

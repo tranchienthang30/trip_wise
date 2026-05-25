@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../models/admin_provider_payout.dart';
 import '../services/admin_api.dart';
-import '../services/auth_session_store.dart';
+import '../widgets/shared_taskbars.dart';
 
 class AdminProviderPayoutsScreen extends StatefulWidget {
   const AdminProviderPayoutsScreen({super.key});
@@ -156,12 +155,6 @@ class _AdminProviderPayoutsScreenState
     }
   }
 
-  Future<void> _signOut() async {
-    await AuthSessionStore.instance.logout();
-    if (!mounted) return;
-    context.go('/register');
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -178,52 +171,12 @@ class _AdminProviderPayoutsScreenState
             fontWeight: FontWeight.w900,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/admin_provider_approvals'),
-            tooltip: 'Provider applications',
-            icon: const Icon(
-              Icons.verified_user_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.go('/admin_listing_approvals'),
-            tooltip: 'Listing approvals',
-            icon: const Icon(
-              Icons.hotel_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.go('/admin_refunds'),
-            tooltip: 'Refund confirmations',
-            icon: const Icon(
-              Icons.assignment_return_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: _isLoading ? null : _load,
-            tooltip: 'Refresh',
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: TripwiseColors.primary,
-            ),
-          ),
-          IconButton(
-            onPressed: _signOut,
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout_rounded, color: TripwiseColors.error),
-          ),
-          const SizedBox(width: 12),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          padding: TripwiseInsets.screen,
           children: [
             Text(
               'Provider escrow payouts',
@@ -292,6 +245,9 @@ class _AdminProviderPayoutsScreenState
             ],
           ],
         ),
+      ),
+      bottomNavigationBar: const AdminTaskbar(
+        currentTab: AdminTaskbarTab.payouts,
       ),
     );
   }

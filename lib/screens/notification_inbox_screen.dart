@@ -179,7 +179,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
           IconButton(
             tooltip: 'Notification settings',
             icon: const Icon(
-              Icons.settings_outlined,
+              Icons.settings_rounded,
               color: TripwiseColors.primary,
             ),
             onPressed: () => context.push('/notifications'),
@@ -192,7 +192,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
         child: ListView.separated(
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          padding: TripwiseInsets.screen,
           itemCount: _items.length + 2,
           separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 14 : 8),
           itemBuilder: (context, i) {
@@ -255,7 +255,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
           child: Column(
             children: [
               Icon(
-                Icons.notifications_off_outlined,
+                Icons.notifications_off_rounded,
                 size: 44,
                 color: TripwiseColors.onSurfaceVariant.withOpacity(0.6),
               ),

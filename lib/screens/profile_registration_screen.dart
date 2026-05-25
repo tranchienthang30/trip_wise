@@ -177,7 +177,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                       const SizedBox(height: 16),
                       if (_error != null)
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          padding: TripwiseInsets.horizontal,
                           child: _InlineError(
                             message: _error!,
                             onRetry: _loadProfile,
@@ -201,7 +201,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   Widget _buildHeader(ProfileData data) {
     final avatarProvider = tripwiseImageProvider(data.user.image);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: TripwiseInsets.horizontal,
       child: Column(
         children: [
           Stack(
@@ -225,7 +225,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   backgroundImage: avatarProvider,
                   child: avatarProvider == null
                       ? const Icon(
-                          Icons.person,
+                          Icons.person_rounded,
                           size: 42,
                           color: TripwiseColors.onSurfaceVariant,
                         )
@@ -254,7 +254,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                             ),
                           )
                         : const Icon(
-                            Icons.edit,
+                            Icons.edit_rounded,
                             color: TripwiseColors.onSecondary,
                             size: 16,
                           ),
@@ -323,7 +323,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         provider.ctaRoute.trim() == '/provider_registration_form';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: TripwiseInsets.horizontal,
       child: Container(
         decoration: BoxDecoration(
           color: TripwiseColors.primaryContainer,
@@ -399,7 +399,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               icon: Icon(
                 provider.isRegistered
                     ? Icons.dashboard_rounded
-                    : Icons.arrow_forward,
+                    : Icons.arrow_forward_rounded,
                 size: 16,
               ),
               label: Text(
@@ -427,7 +427,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         : TripwiseColors.primary;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: TripwiseInsets.horizontal,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeInOut,
@@ -467,7 +467,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
-                          Icons.description,
+                          Icons.description_rounded,
                           color: TripwiseColors.primary,
                           size: 20,
                         ),
@@ -549,23 +549,23 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
       ),
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: TripwiseInsets.horizontal,
       child: Column(
         children: [
           _buildMenuItemButton(
-            icon: Icons.notifications_active,
+            icon: Icons.notifications_active_rounded,
             label: 'Notifications',
             onTap: () => context.push('/notifications'),
           ),
           Divider(height: 1, color: TripwiseColors.surfaceContainer),
           _buildMenuItemButton(
-            icon: Icons.help,
+            icon: Icons.help_rounded,
             label: 'Help Center',
             onTap: () => context.push('/help_center'),
           ),
           Divider(height: 1, color: TripwiseColors.surfaceContainer),
           _buildMenuItemButton(
-            icon: Icons.logout,
+            icon: Icons.logout_rounded,
             label: 'Sign Out',
             isDestructive: true,
             onTap: _handleSignOut,
@@ -619,7 +619,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                 ),
               ),
               Icon(
-                Icons.chevron_right,
+                Icons.chevron_right_rounded,
                 size: 20,
                 color: isDestructive
                     ? TripwiseColors.error
@@ -635,7 +635,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.only(top: 140, left: 24, right: 24),
+        padding: const EdgeInsets.fromLTRB(TripwiseSpacing.xl, 140, TripwiseSpacing.xl, 0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

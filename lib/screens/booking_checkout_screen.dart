@@ -257,7 +257,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           color: TripwiseColors.onSurface,
           onPressed: () => context.pop(),
         ),
@@ -316,7 +316,12 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         children: [
           if (_error != null)
             Container(
-              margin: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              margin: const EdgeInsets.fromLTRB(
+                TripwiseSpacing.xl,
+                0,
+                TripwiseSpacing.xl,
+                TripwiseSpacing.lg,
+              ),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: TripwiseColors.errorContainer,
@@ -325,7 +330,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.info_outline,
+                    Icons.info_rounded,
                     color: TripwiseColors.onErrorContainer,
                   ),
                   const SizedBox(width: 8),
@@ -351,7 +356,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: TripwiseInsets.section,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -383,13 +388,13 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: TripwiseInsets.horizontal,
             child: _buildPricing(summary.pricing),
           ),
           const SizedBox(height: 24),
           Container(
             color: TripwiseColors.surfaceContainerLow,
-            padding: const EdgeInsets.all(24),
+            padding: TripwiseInsets.section,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -428,7 +433,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: TripwiseInsets.section,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -444,7 +449,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: TripwiseInsets.horizontal,
             child: Row(
               children: [
                 Checkbox(
@@ -464,7 +469,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
           ),
           const SizedBox(height: 18),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: TripwiseInsets.horizontal,
             child: SizedBox(
               width: double.infinity,
               height: 54,
@@ -674,14 +679,14 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     IconData icon;
     switch (option.key) {
       case 'wallet':
-        icon = Icons.account_balance_wallet_outlined;
+        icon = Icons.account_balance_wallet_rounded;
         break;
       case 'paypal':
-        icon = Icons.payment_outlined;
+        icon = Icons.payment_rounded;
         break;
       case 'card':
       default:
-        icon = Icons.credit_card;
+        icon = Icons.credit_card_rounded;
     }
 
     return Padding(

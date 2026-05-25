@@ -91,7 +91,7 @@ class PlannerAssistantHeaderButton extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.auto_awesome,
+                      Icons.auto_awesome_rounded,
                       size: 6,
                       color: Colors.white,
                     ),

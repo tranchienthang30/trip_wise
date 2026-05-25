@@ -126,7 +126,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            padding: TripwiseInsets.screen,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -224,7 +224,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         child: Column(
           children: [
             const Icon(
-              Icons.luggage_outlined,
+              Icons.luggage_rounded,
               size: 38,
               color: TripwiseColors.onSurfaceVariant,
             ),
@@ -506,7 +506,7 @@ class _TripImage extends StatelessWidget {
         color: TripwiseColors.surfaceContainer,
         alignment: Alignment.center,
         child: const Icon(
-          Icons.image_outlined,
+          Icons.image_rounded,
           color: TripwiseColors.onSurfaceVariant,
         ),
       );
@@ -520,7 +520,7 @@ class _TripImage extends StatelessWidget {
         color: TripwiseColors.surfaceContainer,
         alignment: Alignment.center,
         child: const Icon(
-          Icons.broken_image_outlined,
+          Icons.broken_image_rounded,
           color: TripwiseColors.onSurfaceVariant,
         ),
       ),
@@ -546,7 +546,7 @@ class _InlineError extends StatelessWidget {
       child: Row(
         children: [
           const Icon(
-            Icons.info_outline,
+            Icons.info_rounded,
             color: TripwiseColors.onErrorContainer,
           ),
           const SizedBox(width: 10),

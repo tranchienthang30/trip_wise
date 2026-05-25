@@ -220,7 +220,7 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
           : _error != null && detail == null
           ? _buildErrorState()
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: TripwiseInsets.screen,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -260,13 +260,13 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                   _buildTextField(
                     controller: _locationController,
                     label: 'Location',
-                    icon: Icons.location_on,
+                    icon: Icons.location_on_rounded,
                   ),
                   const SizedBox(height: 12),
                   _buildTextField(
                     controller: _priceController,
                     label: 'Price per night',
-                    icon: Icons.attach_money,
+                    icon: Icons.attach_money_rounded,
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
@@ -389,13 +389,13 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: imageUrl.isEmpty
-            ? const Center(child: Icon(Icons.image, size: 44))
+            ? const Center(child: Icon(Icons.image_rounded, size: 44))
             : Image.network(
                 imageUrl,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    const Center(child: Icon(Icons.image_not_supported)),
+                    const Center(child: Icon(Icons.image_not_supported_rounded)),
               ),
       ),
     );

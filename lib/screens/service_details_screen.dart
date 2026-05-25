@@ -300,7 +300,7 @@ class _DetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      padding: TripwiseInsets.screen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

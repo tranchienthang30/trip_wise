@@ -63,6 +63,48 @@ class TripwiseColors {
   static const Color onBackground = Color(0xFF181c22);
 }
 
+class TripwiseSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double xxxl = 32;
+}
+
+class TripwiseInsets {
+  static const EdgeInsets screen = EdgeInsets.fromLTRB(
+    TripwiseSpacing.xl,
+    TripwiseSpacing.sm,
+    TripwiseSpacing.xl,
+    TripwiseSpacing.xxxl,
+  );
+  static const EdgeInsets screenWithBottomAction = EdgeInsets.fromLTRB(
+    TripwiseSpacing.xl,
+    TripwiseSpacing.sm,
+    TripwiseSpacing.xl,
+    120,
+  );
+  static const EdgeInsets screenWithFloatingAction = EdgeInsets.fromLTRB(
+    TripwiseSpacing.xl,
+    TripwiseSpacing.sm,
+    TripwiseSpacing.xl,
+    96,
+  );
+  static const EdgeInsets horizontal = EdgeInsets.symmetric(
+    horizontal: TripwiseSpacing.xl,
+  );
+  static const EdgeInsets section = EdgeInsets.fromLTRB(
+    TripwiseSpacing.xl,
+    TripwiseSpacing.xxl,
+    TripwiseSpacing.xl,
+    TripwiseSpacing.xxl,
+  );
+  static const EdgeInsets card = EdgeInsets.all(14);
+  static const EdgeInsets panel = EdgeInsets.all(16);
+}
+
 class TripwiseButtonStyles {
   static const EdgeInsets _defaultPadding =
       EdgeInsets.symmetric(horizontal: 24, vertical: 14);

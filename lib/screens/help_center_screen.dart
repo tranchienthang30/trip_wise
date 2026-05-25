@@ -46,7 +46,7 @@ class HelpCenterScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -57,7 +57,7 @@ class HelpCenterScreen extends StatelessWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        padding: TripwiseInsets.screen,
         children: [
           Text(
             'Frequently Asked Questions',

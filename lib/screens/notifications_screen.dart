@@ -85,7 +85,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -129,13 +129,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: TripwiseInsets.screen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionHeader(
               'Notification Channels',
-              Icons.notifications_active,
+              Icons.notifications_active_rounded,
             ),
             const SizedBox(height: 16),
             _buildSimpleToggle(
@@ -155,7 +155,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 32),
 
-            _buildSectionHeader('Trip & Travel', Icons.travel_explore),
+            _buildSectionHeader('Trip & Travel', Icons.travel_explore_rounded),
             const SizedBox(height: 16),
             _buildSimpleToggle(
               title: 'Trip Reminders',
@@ -174,7 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 32),
 
-            _buildSectionHeader('Social & Messages', Icons.message),
+            _buildSectionHeader('Social & Messages', Icons.message_rounded),
             const SizedBox(height: 16),
             _buildSimpleToggle(
               title: 'Messages',
@@ -210,7 +210,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           color: TripwiseColors.onPrimary,
                         ),
                       )
-                    : const Icon(Icons.save),
+                    : const Icon(Icons.save_rounded),
                 label: Text(
                   _saving ? 'Saving...' : 'Save Preferences',
                   style: const TextStyle(

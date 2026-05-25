@@ -33,7 +33,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
     _FilterChipData(label: 'Filters', icon: Icons.tune_rounded),
     _FilterChipData(label: 'Price'),
     _FilterChipData(label: 'Rating'),
-    _FilterChipData(label: 'Popularity', trailingIcon: Icons.expand_more),
+    _FilterChipData(label: 'Popularity', trailingIcon: Icons.expand_more_rounded),
   ];
 
   static const List<_HotelImageCardData> _hotelCards = [
@@ -494,7 +494,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
                   ),
                   const SizedBox(width: 10),
                   _MiniInfoPill(
-                    icon: Icons.account_balance_wallet_outlined,
+                    icon: Icons.account_balance_wallet_rounded,
                     label: '$price / night',
                     color: TripwiseColors.primary,
                   ),
@@ -603,7 +603,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 28),
             ),
             icon: Icon(
-              _isMapView ? Icons.view_agenda_outlined : Icons.map_outlined,
+              _isMapView ? Icons.view_agenda_rounded : Icons.map_rounded,
               size: 18,
             ),
             label: Text(
@@ -622,7 +622,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 132),
+          padding: TripwiseInsets.screenWithBottomAction,
           children: [
             _Header(
               propertyCount: _visiblePropertyCount,

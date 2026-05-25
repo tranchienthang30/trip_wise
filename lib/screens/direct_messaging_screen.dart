@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/colors.dart';
 import '../models/direct_message.dart';
 import '../services/chat_api.dart';
 import '../services/direct_messages_api.dart';
@@ -337,7 +338,12 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
 
   Widget _buildBackBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        TripwiseSpacing.xl,
+        18,
+        TripwiseSpacing.xl,
+        0,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -380,11 +386,11 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       child: Column(
         children: [
           const SizedBox(height: 32),
-          _buildNavItem(Icons.dashboard, 'DASH', false, '/provider_dashboard'),
+          _buildNavItem(Icons.dashboard_rounded, 'DASH', false, '/provider_dashboard'),
           const SizedBox(height: 32),
-          _buildNavItem(Icons.calendar_month, 'BOOK', false, '/order_manager'),
+          _buildNavItem(Icons.calendar_month_rounded, 'BOOK', false, '/order_manager'),
           const SizedBox(height: 32),
-          _buildNavItem(Icons.chat, 'CHAT', true, '/direct_messaging'),
+          _buildNavItem(Icons.chat_rounded, 'CHAT', true, '/direct_messaging'),
         ],
       ),
     );
@@ -464,7 +470,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       onRefresh: _loadConversation,
       child: ListView(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        padding: TripwiseInsets.screen,
         children: children,
       ),
     );
@@ -524,7 +530,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                 ? Icon(
                     _isLocalAssistantMode
                         ? Icons.smart_toy_rounded
-                        : Icons.person,
+                        : Icons.person_rounded,
                     color: const Color(0xFF64748B),
                   )
                 : null,
@@ -559,11 +565,11 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
           ),
           if (!_isLocalAssistantMode) ...[
             IconButton(
-              icon: const Icon(Icons.call, color: Color(0xFF64748B)),
+              icon: const Icon(Icons.call_rounded, color: Color(0xFF64748B)),
               onPressed: () {},
             ),
             IconButton(
-              icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+              icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
               onPressed: () {},
             ),
           ],
@@ -696,7 +702,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                   ),
                   const SizedBox(width: 4),
                   const Icon(
-                    Icons.done_all,
+                    Icons.done_all_rounded,
                     size: 12,
                     color: Color(0xFF004779),
                   ),
@@ -713,7 +719,12 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     final enabled = !_isLoading && _conversation != null && !_isSending;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(
+        TripwiseSpacing.xl,
+        TripwiseSpacing.lg,
+        TripwiseSpacing.xl,
+        TripwiseSpacing.xxxl,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.9),
         boxShadow: [
@@ -737,7 +748,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.add, color: Color(0xFF004779)),
+                  icon: const Icon(Icons.add_rounded, color: Color(0xFF004779)),
                   onPressed: enabled ? () {} : null,
                 ),
               ),
@@ -804,7 +815,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.send, color: Colors.white, size: 20),
+                      : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                   onPressed: enabled ? _sendMessage : null,
                 ),
               ),

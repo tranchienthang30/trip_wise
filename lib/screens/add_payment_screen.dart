@@ -121,7 +121,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+              padding: TripwiseInsets.screenWithBottomAction,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

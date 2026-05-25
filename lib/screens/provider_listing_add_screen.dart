@@ -119,7 +119,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                   decoration: InputDecoration(
                     labelText: 'Location',
                     hintText: 'Enter location',
-                    prefixIcon: const Icon(Icons.location_on),
+                    prefixIcon: const Icon(Icons.location_on_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -155,7 +155,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                   decoration: InputDecoration(
                     labelText: 'Price per night',
                     hintText: 'Enter price (e.g., 299)',
-                    prefixIcon: const Icon(Icons.attach_money),
+                    prefixIcon: const Icon(Icons.attach_money_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

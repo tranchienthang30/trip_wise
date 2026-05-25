@@ -83,7 +83,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close_rounded),
           color: TripwiseColors.onSurface,
           onPressed: () {
             final bookingId = widget.bookingId;
@@ -144,7 +144,7 @@ class _PaymentSuccessContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: TripwiseInsets.screen,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -168,7 +168,7 @@ class _PaymentSuccessContent extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Icon(
-                  _isConfirmed ? Icons.check_circle : Icons.schedule_rounded,
+                  _isConfirmed ? Icons.check_circle_rounded : Icons.schedule_rounded,
                   size: 56,
                   color: TripwiseColors.primary,
                 ),
@@ -400,7 +400,7 @@ class _ImageFallback extends StatelessWidget {
     return Container(
       color: TripwiseColors.surfaceContainer,
       child: const Center(
-        child: Icon(Icons.landscape, size: 48, color: Colors.white30),
+        child: Icon(Icons.landscape_rounded, size: 48, color: Colors.white30),
       ),
     );
   }
@@ -438,7 +438,7 @@ class _PaymentErrorView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.receipt_long_outlined,
+                Icons.receipt_long_rounded,
                 color: TripwiseColors.primary,
                 size: 48,
               ),

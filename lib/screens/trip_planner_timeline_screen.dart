@@ -144,7 +144,7 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
       onRefresh: _load,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+        padding: TripwiseInsets.screenWithFloatingAction,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

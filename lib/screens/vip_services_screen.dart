@@ -107,7 +107,12 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     }
     if (data == null) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 180, 24, 24),
+      padding: const EdgeInsets.fromLTRB(
+        TripwiseSpacing.xl,
+        180,
+        TripwiseSpacing.xl,
+        TripwiseSpacing.xxl,
+      ),
         child: Center(
           child: Column(
             children: [
@@ -135,7 +140,12 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
       children: [
         _buildHeroSection(data.hero),
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+          padding: const EdgeInsets.fromLTRB(
+            TripwiseSpacing.xl,
+            48,
+            TripwiseSpacing.xl,
+            TripwiseSpacing.xxl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -303,7 +313,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
   Widget _checkItem(String text) {
     return Row(
       children: [
-        const Icon(Icons.check_circle, color: Color(0xFF005F9F), size: 20),
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF005F9F), size: 20),
         const SizedBox(width: 12),
         Text(
           text,
@@ -326,14 +336,14 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
           Positioned(
             top: -20,
             right: -20,
-            child: Icon(Icons.workspace_premium, size: 120, color: Colors.white.withOpacity(0.1)),
+            child: Icon(Icons.workspace_premium_rounded, size: 120, color: Colors.white.withOpacity(0.1)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.star, color: Color(0xFFAB3500)),
+                  const Icon(Icons.star_rounded, color: Color(0xFFAB3500)),
                   const SizedBox(width: 12),
                   Text(
                     plan.name,
@@ -421,9 +431,9 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
   }
 
   IconData _promotionIcon(String icon) {
-    if (icon == 'rocket') return Icons.rocket_launch;
-    if (icon == 'featured') return Icons.featured_play_list;
-    return Icons.campaign;
+    if (icon == 'rocket') return Icons.rocket_launch_rounded;
+    if (icon == 'featured') return Icons.featured_play_list_rounded;
+    return Icons.campaign_rounded;
   }
 
   Widget _buildPromoteListingsSection(List<ProviderVipPromotion> promotions) {
@@ -650,11 +660,11 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         },
         items: [
           const BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_outlined),
+            icon: Icon(Icons.dashboard_rounded),
             label: 'Dashboard',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
+            icon: Icon(Icons.list_alt_rounded),
             label: 'Listings',
           ),
           BottomNavigationBarItem(
@@ -664,12 +674,12 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
                 color: const Color(0xFFD1E4FF),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(Icons.workspace_premium, color: Color(0xFF005F9F)),
+              child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF005F9F)),
             ),
             label: 'VIP Services',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.payments_outlined),
+            icon: Icon(Icons.payments_rounded),
             label: 'Finance',
           ),
         ],

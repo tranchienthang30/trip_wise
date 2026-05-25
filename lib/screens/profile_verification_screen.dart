@@ -194,7 +194,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
                       errorBuilder: (context, error, stackTrace) =>
                           const Center(
                             child: Icon(
-                              Icons.broken_image_outlined,
+                              Icons.broken_image_rounded,
                               size: 36,
                               color: TripwiseColors.outline,
                             ),
@@ -236,7 +236,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         onRefresh: _loadVerification,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+          padding: TripwiseInsets.screen,
           child: _isLoading && verification == null
               ? const Padding(
                   padding: EdgeInsets.only(top: 140),
@@ -454,7 +454,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.add_a_photo_outlined,
+                  Icons.add_a_photo_rounded,
                   size: 30,
                   color: TripwiseColors.outline,
                 ),
@@ -481,7 +481,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
           color: TripwiseColors.surfaceContainerLow,
           child: const Center(
             child: Icon(
-              Icons.broken_image_outlined,
+              Icons.broken_image_rounded,
               size: 34,
               color: TripwiseColors.outline,
             ),
@@ -509,7 +509,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
               color: TripwiseColors.surfaceContainerLow,
               child: const Center(
                 child: Icon(
-                  Icons.broken_image_outlined,
+                  Icons.broken_image_rounded,
                   size: 34,
                   color: TripwiseColors.outline,
                 ),
