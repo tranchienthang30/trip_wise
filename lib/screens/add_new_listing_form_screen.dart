@@ -157,11 +157,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       backgroundColor: TripwiseColors.surface,
       appBar: const ProviderAppBar(),
       body: SingleChildScrollView(
-<<<<<<< HEAD
-        padding: TripwiseInsets.screen,
-=======
         padding: const EdgeInsets.all(16),
->>>>>>> 31ec7c5 (Fix UI provider listing)
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -534,16 +530,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                     setState(() => _roomsCount--);
                   }
                 },
-<<<<<<< HEAD
-                icon: const Icon(Icons.remove_rounded),
-=======
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints.tightFor(
                   width: 36,
                   height: 36,
                 ),
                 icon: const Icon(Icons.remove, size: 18),
->>>>>>> 31ec7c5 (Fix UI provider listing)
               ),
               Expanded(
                 child: Text(
@@ -557,16 +549,12 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
               ),
               IconButton(
                 onPressed: () => setState(() => _roomsCount++),
-<<<<<<< HEAD
-                icon: const Icon(Icons.add_rounded),
-=======
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints.tightFor(
                   width: 36,
                   height: 36,
                 ),
                 icon: const Icon(Icons.add, size: 18),
->>>>>>> 31ec7c5 (Fix UI provider listing)
               ),
             ],
           ),

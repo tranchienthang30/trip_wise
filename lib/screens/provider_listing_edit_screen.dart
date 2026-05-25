@@ -327,11 +327,7 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
           : _error != null && detail == null
           ? _buildErrorState()
           : SingleChildScrollView(
-<<<<<<< HEAD
-              padding: TripwiseInsets.screen,
-=======
               padding: const EdgeInsets.all(16),
->>>>>>> 31ec7c5 (Fix UI provider listing)
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -494,12 +490,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
         ),
       ),
       child: ClipRRect(
-<<<<<<< HEAD
-        borderRadius: BorderRadius.circular(16),
-        child: imageUrl.isEmpty
-            ? const Center(child: Icon(Icons.image_rounded, size: 44))
-            : Image.network(
-=======
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           fit: StackFit.expand,
@@ -525,7 +515,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               )
             else
               Image.network(
->>>>>>> 31ec7c5 (Fix UI provider listing)
                 imageUrl,
                 width: double.infinity,
                 fit: BoxFit.cover,
