@@ -2,13 +2,23 @@ import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../models/payment_success.dart';
 
 /// Renders the e-ticket PDF for a confirmed (or pending) booking. The
 /// platform share sheet picks the destination — Files, AirDrop, email, etc.
 Future<Uint8List> buildETicketPdfBytes(PaymentSuccess data) async {
-  final doc = pw.Document(title: 'Tripwise E-Ticket ${data.bookingCode}');
+  // Default PDF fonts are Helvetica/ASCII-only and crash on any non-Latin
+  // glyph (e.g. Vietnamese diacritics in destination names). Noto Sans
+  // covers the full Latin Extended range, Vietnamese, CJK, etc.
+  final regular = await PdfGoogleFonts.notoSansRegular();
+  final bold = await PdfGoogleFonts.notoSansBold();
+
+  final doc = pw.Document(
+    title: 'Tripwise E-Ticket ${data.bookingCode}',
+    theme: pw.ThemeData.withFont(base: regular, bold: bold),
+  );
 
   doc.addPage(
     pw.Page(

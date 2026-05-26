@@ -66,8 +66,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         bytes: bytes,
         filename: 'tripwise-eticket-$identifier.pdf',
       );
-    } catch (_) {
-      _showSnackBar('Could not generate e-ticket.');
+    } catch (e) {
+      _showSnackBar('Could not generate e-ticket: $e');
     }
   }
 
