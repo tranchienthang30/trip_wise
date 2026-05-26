@@ -179,7 +179,10 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
             Icons.arrow_back_ios_new_rounded,
             color: TripwiseColors.primary,
           ),
-          onPressed: () => context.pop(),
+          // Defense-in-depth: a cold-start notification tap lands here with
+          // an empty stack (router uses `go`), so pop() would throw.
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/home'),
         ),
         title: const Text(
           'Notifications',

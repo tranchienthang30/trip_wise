@@ -140,15 +140,21 @@ class _SystemBackRouteScope extends StatelessWidget {
 }
 
 /// Navigates to a notification's `action_route`. Rejects anything that is not
-/// an in-app absolute path (action_route safety). `go` (not `push`) so a tap
-/// lands the user *on* the target rather than stacked on a random screen.
+/// an in-app absolute path (action_route safety).
+///
+/// Cold start (router not mounted yet): defer; the post-frame flush in
+/// `MyApp.build` uses `go` so the destination lands as the root entry.
+/// Warm tap (router mounted): `push` so the user's existing nav stack is
+/// preserved and the destination screen's back button returns them to where
+/// they were. Using `go` here destroys the stack and causes "nothing to pop"
+/// crashes in deep-link target screens.
 void handleDeepLink(String? route) {
   if (route == null || route.isEmpty || !route.startsWith('/')) return;
   if (rootNavigatorKey.currentContext == null) {
     _pendingDeepLink = route; // router not ready yet — defer
     return;
   }
-  _router.go(route);
+  _router.push(route);
 }
 
 final GoRouter _router = GoRouter(
