@@ -23,19 +23,4 @@ class PaymentsApi {
 
     return PaymentSuccess.fromJson(data);
   }
-
-  Uri ticketUri(String downloadUrl) {
-    final trimmed = downloadUrl.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return Uri.parse(trimmed);
-    }
-
-    final base = Uri.parse(ApiClient.instance.dio.options.baseUrl);
-    if (trimmed.startsWith('/')) {
-      return base.replace(path: trimmed, query: null);
-    }
-
-    final basePath = base.path.endsWith('/') ? base.path : '${base.path}/';
-    return base.replace(path: '$basePath$trimmed', query: null);
-  }
 }

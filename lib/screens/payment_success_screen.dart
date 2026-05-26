@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:printing/printing.dart';
 
 import '../constants/colors.dart';
 import '../models/payment_success.dart';
 import '../services/payments_api.dart';
+import '../utils/eticket_pdf.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
   const PaymentSuccessScreen({
@@ -53,18 +54,20 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   }
 
   Future<void> _downloadTicket(PaymentSuccess data) async {
-    if (data.ticket.downloadUrl.isEmpty) {
+    if (data.bookingCode.isEmpty && data.bookingId.isEmpty) {
       _showSnackBar('E-ticket is not available yet.');
       return;
     }
-
-    final opened = await launchUrl(
-      _api.ticketUri(data.ticket.downloadUrl),
-      mode: LaunchMode.externalApplication,
-    );
-
-    if (!opened) {
-      _showSnackBar('Could not open e-ticket.');
+    try {
+      final bytes = await buildETicketPdfBytes(data);
+      final identifier =
+          data.bookingCode.isNotEmpty ? data.bookingCode : data.bookingId;
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'tripwise-eticket-$identifier.pdf',
+      );
+    } catch (_) {
+      _showSnackBar('Could not generate e-ticket.');
     }
   }
 
