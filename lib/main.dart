@@ -106,6 +106,39 @@ String? _systemBackTargetFor(String path) {
   return landingRoute;
 }
 
+Widget _withSystemBack(GoRouterState state, Widget child) {
+  return _SystemBackRouteScope(path: state.uri.path, child: child);
+}
+
+class _SystemBackRouteScope extends StatelessWidget {
+  const _SystemBackRouteScope({required this.path, required this.child});
+
+  final String path;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final targetRoute = _systemBackTargetFor(path);
+
+    return PopScope(
+      canPop: targetRoute == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        final currentPath =
+            _router.routerDelegate.currentConfiguration.uri.path;
+        final target = _systemBackTargetFor(currentPath);
+        if (target == null) {
+          SystemNavigator.pop();
+          return;
+        }
+        _router.go(target);
+      },
+      child: child,
+    );
+  }
+}
+
 /// Navigates to a notification's `action_route`. Rejects anything that is not
 /// an in-app absolute path (action_route safety). `go` (not `push`) so a tap
 /// lands the user *on* the target rather than stacked on a random screen.
@@ -158,34 +191,45 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/register',
-      builder: (context, state) => const InitialRegistrationScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const InitialRegistrationScreen()),
     ),
     GoRoute(
       path: '/admin_provider_approvals',
-      builder: (context, state) => const AdminProviderApprovalsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AdminProviderApprovalsScreen()),
     ),
     GoRoute(
       path: '/admin_provider_payouts',
-      builder: (context, state) => const AdminProviderPayoutsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AdminProviderPayoutsScreen()),
     ),
     GoRoute(
       path: '/admin_refunds',
-      builder: (context, state) => const AdminRefundsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AdminRefundsScreen()),
     ),
     GoRoute(
       path: '/admin_listing_approvals',
-      builder: (context, state) => const AdminListingApprovalsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AdminListingApprovalsScreen()),
     ),
-    GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+    GoRoute(
+      path: '/home',
+      builder: (context, state) => _withSystemBack(state, const HomeScreen()),
+    ),
     GoRoute(
       path: '/search_filter',
       builder: (context, state) {
         final q = state.uri.queryParameters;
-        return HotelSearchFilterScreen(
-          initialQuery: q['query'] ?? '',
-          startDate: q['startDate'],
-          endDate: q['endDate'],
-          guests: q['guests'],
+        return _withSystemBack(
+          state,
+          HotelSearchFilterScreen(
+            initialQuery: q['query'] ?? '',
+            startDate: q['startDate'],
+            endDate: q['endDate'],
+            guests: q['guests'],
+          ),
         );
       },
     ),
@@ -193,60 +237,77 @@ final GoRouter _router = GoRouter(
       path: '/add_location_search',
       builder: (context, state) {
         final q = state.uri.queryParameters;
-        return AddLocationSearchScreen(
-          initialCategory: q['category'] ?? 'all',
-          initialQuery: q['query'] ?? '',
-          startDate: q['startDate'],
-          endDate: q['endDate'],
-          guests: q['guests'],
+        return _withSystemBack(
+          state,
+          AddLocationSearchScreen(
+            initialCategory: q['category'] ?? 'all',
+            initialQuery: q['query'] ?? '',
+            startDate: q['startDate'],
+            endDate: q['endDate'],
+            guests: q['guests'],
+          ),
         );
       },
     ),
     GoRoute(
       path: '/trip_planner_dashboard',
-      builder: (context, state) => const TripPlannerDashboardScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const TripPlannerDashboardScreen()),
     ),
     GoRoute(
       path: '/trip_planner_timeline',
-      builder: (context, state) =>
-          TripPlannerTimelineScreen(tripId: state.uri.queryParameters['id']),
+      builder: (context, state) => _withSystemBack(
+        state,
+        TripPlannerTimelineScreen(tripId: state.uri.queryParameters['id']),
+      ),
     ),
     GoRoute(
       path: '/plan_new_trip_form',
-      builder: (context, state) => const PlanNewTripFormScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const PlanNewTripFormScreen()),
     ),
     GoRoute(
       path: '/my_trips',
-      builder: (context, state) => MyTripsScreen(
-        initialStatus: state.uri.queryParameters['status'],
-        focusBookingId: state.uri.queryParameters['bookingId'],
+      builder: (context, state) => _withSystemBack(
+        state,
+        MyTripsScreen(
+          initialStatus: state.uri.queryParameters['status'],
+          focusBookingId: state.uri.queryParameters['bookingId'],
+        ),
       ),
     ),
     GoRoute(
       path: '/my_trip_booking_detail/:id',
-      builder: (context, state) => MyTripBookingDetailScreen(
-        bookingItemId: state.pathParameters['id']!,
+      builder: (context, state) => _withSystemBack(
+        state,
+        MyTripBookingDetailScreen(bookingItemId: state.pathParameters['id']!),
       ),
     ),
     GoRoute(
       path: '/booking_checkout',
-      builder: (context, state) => BookingCheckoutScreen(
-        hotelId: state.uri.queryParameters['hotelId'],
-        roomId: state.uri.queryParameters['roomId'],
-        startDate: state.uri.queryParameters['startDate'],
-        endDate: state.uri.queryParameters['endDate'],
-        guests: state.uri.queryParameters['guests'],
+      builder: (context, state) => _withSystemBack(
+        state,
+        BookingCheckoutScreen(
+          hotelId: state.uri.queryParameters['hotelId'],
+          roomId: state.uri.queryParameters['roomId'],
+          startDate: state.uri.queryParameters['startDate'],
+          endDate: state.uri.queryParameters['endDate'],
+          guests: state.uri.queryParameters['guests'],
+        ),
       ),
     ),
     GoRoute(
       path: '/service_details/:id',
       builder: (context, state) {
         final q = state.uri.queryParameters;
-        return ServiceDetailsScreen(
-          hotelId: int.parse(state.pathParameters['id']!),
-          startDate: q['startDate'],
-          endDate: q['endDate'],
-          guests: q['guests'],
+        return _withSystemBack(
+          state,
+          ServiceDetailsScreen(
+            hotelId: int.parse(state.pathParameters['id']!),
+            startDate: q['startDate'],
+            endDate: q['endDate'],
+            guests: q['guests'],
+          ),
         );
       },
     ),
@@ -254,158 +315,178 @@ final GoRouter _router = GoRouter(
       path: '/reviews/:id',
       builder: (context, state) {
         final q = state.uri.queryParameters;
-        return ReviewsScreen(
-          hotelId: int.parse(state.pathParameters['id']!),
-          hotelName: q['name'] ?? 'this place',
-          averageRating: double.tryParse(q['rating'] ?? '') ?? 0,
-          reviewCount: int.tryParse(q['count'] ?? '') ?? 0,
+        return _withSystemBack(
+          state,
+          ReviewsScreen(
+            hotelId: int.parse(state.pathParameters['id']!),
+            hotelName: q['name'] ?? 'this place',
+            averageRating: double.tryParse(q['rating'] ?? '') ?? 0,
+            reviewCount: int.tryParse(q['count'] ?? '') ?? 0,
+          ),
         );
       },
     ),
     GoRoute(
       path: '/add_payment',
-      builder: (context, state) => const AddPaymentScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AddPaymentScreen()),
     ),
     GoRoute(
       path: '/payment_success',
-      builder: (context, state) => PaymentSuccessScreen(
-        bookingId: state.uri.queryParameters['bookingId'],
-        paymentId: state.uri.queryParameters['paymentId'],
+      builder: (context, state) => _withSystemBack(
+        state,
+        PaymentSuccessScreen(
+          bookingId: state.uri.queryParameters['bookingId'],
+          paymentId: state.uri.queryParameters['paymentId'],
+        ),
       ),
     ),
     GoRoute(
       path: '/wallet_loyalty',
-      builder: (context, state) => const WalletLoyaltyScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const WalletLoyaltyScreen()),
     ),
     GoRoute(
       path: '/wallet_transactions',
-      builder: (context, state) => const WalletTransactionsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const WalletTransactionsScreen()),
     ),
     GoRoute(
       path: '/profile_registration',
-      builder: (context, state) => const ProfileRegistrationScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProfileRegistrationScreen()),
     ),
     GoRoute(
       path: '/profile_verification',
-      builder: (context, state) => const ProfileVerificationScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProfileVerificationScreen()),
     ),
     GoRoute(
       path: '/provider_finance',
-      builder: (context, state) => const ProviderFinancePayoutScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderFinancePayoutScreen()),
     ),
     GoRoute(
       path: '/provider_registration',
-      builder: (context, state) => const ProviderRegistrationFormScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderRegistrationFormScreen()),
     ),
     GoRoute(
       path: '/provider_dashboard',
-      builder: (context, state) => const ProviderDashboardScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderDashboardScreen()),
     ),
     GoRoute(
       path: '/provider_listings',
-      builder: (context, state) => const ProviderListingManagementScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderListingManagementScreen()),
     ),
     GoRoute(
       path: '/add_new_listing_form',
-      builder: (context, state) => const AddNewListingFormScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const AddNewListingFormScreen()),
     ),
     GoRoute(
       path: '/order_manager',
-      builder: (context, state) => const OrderManagerScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const OrderManagerScreen()),
     ),
     GoRoute(
       path: '/direct_messaging',
-      builder: (context, state) => DirectMessagingScreen(
-        conversationId: state.uri.queryParameters['conversationId'],
-        orderId: state.uri.queryParameters['orderId'],
-        mode: state.uri.queryParameters['mode'],
+      builder: (context, state) => _withSystemBack(
+        state,
+        DirectMessagingScreen(
+          conversationId: state.uri.queryParameters['conversationId'],
+          orderId: state.uri.queryParameters['orderId'],
+          mode: state.uri.queryParameters['mode'],
+        ),
       ),
     ),
     GoRoute(
       path: '/vip_services',
-      builder: (context, state) => const VipServicesScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const VipServicesScreen()),
     ),
     GoRoute(
       path: '/elite_upgrade_confirmation',
-      builder: (context, state) => const EliteUpgradeConfirmationScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const EliteUpgradeConfirmationScreen()),
     ),
     GoRoute(
       path: '/security_privacy',
-      builder: (context, state) => const SecurityPrivacyScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const SecurityPrivacyScreen()),
     ),
     GoRoute(
       path: '/notifications',
-      builder: (context, state) => const NotificationsScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const NotificationsScreen()),
     ),
     GoRoute(
       path: '/notification_inbox',
-      builder: (context, state) => const NotificationInboxScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const NotificationInboxScreen()),
     ),
     GoRoute(
       path: '/help_center',
-      builder: (context, state) => const HelpCenterScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const HelpCenterScreen()),
     ),
     GoRoute(
       path: '/provider_listing_edit',
       builder: (context, state) {
         final listingId = state.uri.queryParameters['id'];
         final listingTitle = state.uri.queryParameters['title'];
-        return ProviderListingEditScreen(
-          listingId: listingId,
-          listingTitle: listingTitle,
+        return _withSystemBack(
+          state,
+          ProviderListingEditScreen(
+            listingId: listingId,
+            listingTitle: listingTitle,
+          ),
         );
       },
     ),
     GoRoute(
       path: '/provider_listing_add',
-      builder: (context, state) => const ProviderListingAddScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderListingAddScreen()),
     ),
     GoRoute(
       path: '/provider_analytics',
       builder: (context, state) {
         final listingId = state.uri.queryParameters['id'];
         final listingTitle = state.uri.queryParameters['title'];
-        return ProviderAnalyticsScreen(
-          listingId: listingId,
-          listingTitle: listingTitle,
+        return _withSystemBack(
+          state,
+          ProviderAnalyticsScreen(
+            listingId: listingId,
+            listingTitle: listingTitle,
+          ),
         );
       },
     ),
     GoRoute(
       path: '/add_activity',
-      builder: (context, state) => AddActivityScreen(
-        tripId: state.uri.queryParameters['tripId'],
-        dayIndex: int.tryParse(state.uri.queryParameters['dayIndex'] ?? ''),
+      builder: (context, state) => _withSystemBack(
+        state,
+        AddActivityScreen(
+          tripId: state.uri.queryParameters['tripId'],
+          dayIndex: int.tryParse(state.uri.queryParameters['dayIndex'] ?? ''),
+        ),
       ),
     ),
     GoRoute(
       path: '/inventory_pricing',
-      builder: (context, state) => const InventoryPricingScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const InventoryPricingScreen()),
     ),
     GoRoute(
       path: '/provider_registration_form',
-      builder: (context, state) => const ProviderRegistrationFormScreen(),
+      builder: (context, state) =>
+          _withSystemBack(state, const ProviderRegistrationFormScreen()),
     ),
   ],
 );
-
-final BackButtonDispatcher _backButtonDispatcher =
-    _TripwiseBackButtonDispatcher();
-
-class _TripwiseBackButtonDispatcher extends RootBackButtonDispatcher {
-  @override
-  Future<bool> didPopRoute() async {
-    final didPop = await super.didPopRoute();
-    if (didPop) return true;
-
-    final currentPath = _router.routerDelegate.currentConfiguration.uri.path;
-    final targetRoute = _systemBackTargetFor(currentPath);
-    if (targetRoute == null) return false;
-
-    _router.go(targetRoute);
-    return true;
-  }
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -452,10 +533,7 @@ class MyApp extends StatelessWidget {
       title: 'Tripwise',
       theme: TripwiseTheme.light,
       debugShowCheckedModeBanner: false,
-      routeInformationProvider: _router.routeInformationProvider,
-      routeInformationParser: _router.routeInformationParser,
-      routerDelegate: _router.routerDelegate,
-      backButtonDispatcher: _backButtonDispatcher,
+      routerConfig: _router,
     );
   }
 }
