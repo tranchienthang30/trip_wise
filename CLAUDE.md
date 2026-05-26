@@ -53,8 +53,23 @@ All screens consume the central `TripwiseTheme.light` and `TripwiseColors` — d
 
 Intentionally simple: `StatefulWidget` + `setState`. No Provider/Riverpod/Bloc. Keep new screens in this shape unless the user explicitly asks to introduce a state library.
 
+## Knowledge base phase (current focus)
+
+The codebase up to this point was vibe-coded by agents — the user and their teammate have not personally written or read most of it. We are now entering a **knowledge base building phase**: the goal is for the user and their teammate to deeply understand what the project does and how it does it.
+
+- A `knowledge_base/` directory exists at the repo root for this purpose.
+- Any time during a conversation you uncover knowledge that would be useful for a teammate getting up to speed (how a feature works, why something was built a certain way, design choices, gotchas, data flow, screen-to-API mapping, etc.) AND that knowledge isn't already captured there, **write it to a suitable file in `knowledge_base/`**.
+- Organize by topic, one file per feature/area. Suggested filenames (create as needed, don't pre-create empties):
+  - `NOTIFICATION.md`, `WALLET.md`, `SERVICE_DETAILS.md`, `TRIP_PLANNER.md`, `INVENTORY_PRICING.md`, `PROVIDER_*.md`, `ADMIN_*.md`, etc. — one per feature/screen group
+  - `GENERAL.md` — cross-cutting facts (project layout, conventions used across features)
+  - `DESIGN_CHOICE.md` — non-obvious decisions and the reasoning behind them
+  - `BACKEND.md` — endpoints, server wiring, contracts
+- Prefer **updating an existing file over creating a new one** when the topic fits. Keep entries factual and reference concrete file paths / line numbers so the teammate can jump into the code.
+- This is additive to your normal work — do not block on it, but treat it as a standing instruction for the project.
+
 ## Known gotchas
 
 - `lib/main.dart`'s `home:` currently points at one specific screen (e.g. `ProviderFinancePayoutScreen`) for ad-hoc preview during development — treat it as a dev harness, not the product entry point.
 - `test/widget_test.dart` is the default Flutter counter-app template and does not match the real `MyApp`; it will fail if run. `flutter test` is effectively unverified until tests are rewritten.
 - `IMPLEMENTATION_SUMMARY.md` / `SCREENS_IMPLEMENTATION.md` are historical design notes — they may drift from the actual code as screens are added. Trust `lib/` over those docs.
+
