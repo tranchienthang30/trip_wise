@@ -58,14 +58,17 @@ class NotificationPage {
     required this.total,
     required this.unreadCount,
     required this.hasMore,
-    required this.nextOffset,
+    required this.nextCursor,
   });
 
   final List<AppNotification> items;
   final int total;
   final int unreadCount;
   final bool hasMore;
-  final int nextOffset;
+
+  /// Cursor for the next page (= the last item's `createdAt`). Null when the
+  /// feed is exhausted. Pass back as `before` on the next fetch.
+  final String? nextCursor;
 
   factory NotificationPage.fromJson(Map<String, dynamic> json) =>
       NotificationPage(
@@ -75,7 +78,7 @@ class NotificationPage {
         total: (json['total'] as num?)?.toInt() ?? 0,
         unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
         hasMore: json['hasMore'] as bool? ?? false,
-        nextOffset: (json['nextOffset'] as num?)?.toInt() ?? 0,
+        nextCursor: json['nextCursor'] as String?,
       );
 }
 

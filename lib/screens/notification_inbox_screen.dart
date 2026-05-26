@@ -18,28 +18,36 @@ class NotificationInboxScreen extends StatefulWidget {
 
 class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
   static const _pageSize = 12;
+  static const _timeRefreshInterval = Duration(seconds: 60);
 
   final NotificationApi _api = NotificationApi();
   final ScrollController _scroll = ScrollController();
   final List<AppNotification> _items = [];
 
-  int _offset = 0;
+  String? _cursor;
   int _total = 0;
   int _unreadCount = 0;
   bool _hasMore = true;
   bool _loading = false;
   bool _markingAll = false;
   Object? _error;
+  Timer? _timeTicker;
 
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
     _loadMore();
+    // Rebuild every minute so client-side `timeLabel` ("Just now" → "1m ago")
+    // stays current without a full feed refetch.
+    _timeTicker = Timer.periodic(_timeRefreshInterval, (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _timeTicker?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     super.dispose();
@@ -61,11 +69,11 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
       _error = null;
     });
     try {
-      final page = await _api.fetchFeed(limit: _pageSize, offset: _offset);
+      final page = await _api.fetchFeed(limit: _pageSize, before: _cursor);
       if (!mounted) return;
       setState(() {
         _items.addAll(page.items);
-        _offset = page.nextOffset;
+        _cursor = page.nextCursor;
         _hasMore = page.hasMore;
         _total = page.total;
         _unreadCount = page.unreadCount;
@@ -83,7 +91,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
   Future<void> _refresh() async {
     setState(() {
       _items.clear();
-      _offset = 0;
+      _cursor = null;
       _hasMore = true;
       _error = null;
     });
@@ -113,25 +121,37 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
   Future<void> _onTapNotification(int index) async {
     final n = _items[index];
     if (!n.read) {
+      final wasUnread = n;
       setState(() {
         _items[index] = n.copyWith(read: true);
         if (_unreadCount > 0) _unreadCount -= 1;
       });
-      // The local update already reflects the change; sync the server in
-      // the background and ignore transient failures.
-      unawaited(_markReadSilently(n.id));
+      // Optimistic; reconcile on failure so client/server don't drift.
+      unawaited(_markReadSilently(n.id, wasUnread));
     }
     final route = n.actionRoute;
-    if (route != null && route.isNotEmpty && mounted) {
-      context.push(route);
+    // Same `startsWith('/')` safety net as handleDeepLink in main.dart: the
+    // server must only emit in-app GoRouter paths. Use `go` (not `push`) so
+    // inbox-tap deep-links behave like tray-tap deep-links — replace, not
+    // stack.
+    if (route != null && route.startsWith('/') && mounted) {
+      context.go(route);
     }
   }
 
-  Future<void> _markReadSilently(String id) async {
+  Future<void> _markReadSilently(String id, AppNotification previous) async {
     try {
       await _api.markRead(id);
     } catch (_) {
-      // Non-critical: optimistic UI already updated.
+      if (!mounted) return;
+      // Roll back: the server didn't accept the read, so don't lie to the user.
+      final idx = _items.indexWhere((n) => n.id == id);
+      if (idx >= 0) {
+        setState(() {
+          _items[idx] = previous;
+          _unreadCount += 1;
+        });
+      }
     }
   }
 

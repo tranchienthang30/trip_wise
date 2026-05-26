@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/notification_feed.dart';
 import '../services/notifications_api.dart';
+import '../services/push_messaging_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -19,6 +20,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Object? _error;
   bool _loading = true;
   bool _saving = false;
+  bool _pushBlocked = false;
 
   @override
   void initState() {
@@ -32,10 +34,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _error = null;
     });
     try {
-      final prefs = await _api.fetchPreferences();
+      final results = await Future.wait([
+        _api.fetchPreferences(),
+        PushMessagingService.isPushBlocked(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _prefs = prefs;
+        _prefs = results[0] as NotificationPreferences;
+        _pushBlocked = results[1] as bool;
         _loading = false;
       });
     } catch (e) {
@@ -138,12 +144,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               Icons.notifications_active_rounded,
             ),
             const SizedBox(height: 16),
+            if (_pushBlocked) ...[
+              _buildBlockedBanner(),
+              const SizedBox(height: 12),
+            ],
             _buildSimpleToggle(
               title: 'Push Notifications',
-              subtitle: 'Receive notifications on your device',
+              subtitle: _pushBlocked
+                  ? 'Blocked at the system level — see banner above'
+                  : 'Receive notifications on your device',
               value: prefs.push,
-              onChanged: (v) =>
-                  setState(() => _prefs = prefs.copyWith(push: v)),
+              // Disable the toggle when the OS has revoked permission: flipping
+              // it on in-app does nothing while the system says no.
+              onChanged: _pushBlocked
+                  ? null
+                  : (v) => setState(() => _prefs = prefs.copyWith(push: v)),
             ),
             const SizedBox(height: 12),
             _buildSimpleToggle(
@@ -257,8 +272,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
   }) {
+    final disabled = onChanged == null;
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: TripwiseColors.outlineVariant),
@@ -276,13 +292,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: TripwiseColors.onSurface,
+                    color: disabled
+                        ? TripwiseColors.onSurfaceVariant
+                        : TripwiseColors.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: TripwiseColors.onSurfaceVariant,
                   ),
@@ -293,6 +311,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlockedBanner() {
+    return Container(
+      decoration: BoxDecoration(
+        color: TripwiseColors.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.notifications_off_rounded,
+            color: TripwiseColors.error,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Notifications blocked',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: TripwiseColors.onErrorContainer,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your device has blocked Tripwise notifications. '
+                  'Open system settings to allow them — the in-app toggles '
+                  'won\'t take effect until you do.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: TripwiseColors.onErrorContainer,
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

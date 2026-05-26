@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../constants/icons.dart';
 import '../services/notifications_api.dart';
+import '../services/push_messaging_service.dart';
 import 'planner_assistant_chat.dart';
 
 class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -171,14 +174,34 @@ class NotificationBellButton extends StatefulWidget {
   State<NotificationBellButton> createState() => _NotificationBellButtonState();
 }
 
-class _NotificationBellButtonState extends State<NotificationBellButton> {
+class _NotificationBellButtonState extends State<NotificationBellButton>
+    with WidgetsBindingObserver {
   final NotificationApi _api = NotificationApi();
   int _unread = 0;
+  StreamSubscription<IncomingPushPayload>? _pushSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Bump the badge the moment a foreground push lands, instead of waiting
+    // for the next mount or inbox-pop. (#4)
+    _pushSub = PushMessagingService.onForegroundPush.listen((_) => _loadUnread());
     _loadUnread();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pushSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Resume from background → counts may be stale (push handler ran in a
+    // separate isolate). Refresh.
+    if (state == AppLifecycleState.resumed) _loadUnread();
   }
 
   Future<void> _loadUnread() async {

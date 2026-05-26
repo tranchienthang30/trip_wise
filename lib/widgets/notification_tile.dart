@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/notification_feed.dart';
+import '../utils/relative_time.dart';
 
 class NotificationTile extends StatelessWidget {
   const NotificationTile({
@@ -98,13 +99,22 @@ class NotificationTile extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 6),
-                    Text(
-                      notification.timeLabel,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: TripwiseColors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Builder(builder: (_) {
+                      // Recompute from `createdAt` on every rebuild so an
+                      // inbox-screen 60s timer can age "Just now" → "1m ago"
+                      // without refetching. Falls back to the server-formatted
+                      // `timeLabel` when `createdAt` is missing/unparseable.
+                      final live = relativeTimeLabel(notification.createdAt);
+                      final label =
+                          live.isNotEmpty ? live : notification.timeLabel;
+                      return Text(
+                        label,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: TripwiseColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),

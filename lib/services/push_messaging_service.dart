@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +9,40 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// type/title/body/action_route/notification_id) so we render it ourselves
 /// in every app state with [flutter_local_notifications] and always have the
 /// deep-link route. iOS/web are intentionally out of scope.
+
+/// Domain-friendly view of an incoming foreground push. Mirrors the server's
+/// data-message payload keys (`push.service.ts` → `sendPushToUser`).
+class IncomingPushPayload {
+  IncomingPushPayload({
+    required this.type,
+    required this.title,
+    required this.body,
+    required this.actionRoute,
+    required this.notificationId,
+  });
+
+  final String type;
+  final String title;
+  final String body;
+  final String? actionRoute;
+  final String? notificationId;
+
+  factory IncomingPushPayload.fromRemoteMessage(RemoteMessage m) {
+    final d = m.data;
+    String? str(Object? v) {
+      if (v is String && v.trim().isNotEmpty) return v;
+      return null;
+    }
+
+    return IncomingPushPayload(
+      type: str(d['type']) ?? 'SYSTEM',
+      title: str(d['title']) ?? (m.notification?.title ?? ''),
+      body: str(d['body']) ?? (m.notification?.body ?? ''),
+      actionRoute: str(d['action_route']),
+      notificationId: str(d['notification_id']),
+    );
+  }
+}
 
 const AndroidNotificationChannel _channel = AndroidNotificationChannel(
   'tripwise_default',
@@ -70,9 +106,32 @@ class PushMessagingService {
       FlutterLocalNotificationsPlugin();
   static bool _ready = false;
 
+  /// Fires whenever a foreground push is received. Consumers (e.g. the bell
+  /// badge, an open chat screen) subscribe to react without re-fetching the
+  /// inbox. Broadcast so multiple listeners can coexist. Empty on platforms
+  /// where push is unsupported.
+  static final StreamController<IncomingPushPayload> _onForegroundPush =
+      StreamController<IncomingPushPayload>.broadcast();
+  static Stream<IncomingPushPayload> get onForegroundPush =>
+      _onForegroundPush.stream;
+
   static bool get _supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   static bool get isSupported => _supported;
+
+  /// True when the OS-level permission for notifications is denied (Android
+  /// 13+ POST_NOTIFICATIONS). Returns false on unsupported platforms — there
+  /// is no banner UX to block in those cases. Used by the Preferences screen
+  /// to surface a "blocked at the system level" banner.
+  static Future<bool> isPushBlocked() async {
+    if (!_supported) return false;
+    try {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.denied;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// One-time setup. [onDeepLink] receives the tapped notification's
   /// `action_route` (a GoRouter path) and is responsible for navigating.
@@ -101,8 +160,13 @@ class PushMessagingService {
     // fine — the app keeps working, banners just won't appear.
     await FirebaseMessaging.instance.requestPermission();
 
-    // Foreground: the OS does NOT auto-display data messages — render one.
-    FirebaseMessaging.onMessage.listen((m) => _showLocal(_plugin, m));
+    // Foreground: the OS does NOT auto-display data messages — render one,
+    // and emit the payload so live subscribers (bell badge, open screens)
+    // can react without polling.
+    FirebaseMessaging.onMessage.listen((m) {
+      _showLocal(_plugin, m);
+      _onForegroundPush.add(IncomingPushPayload.fromRemoteMessage(m));
+    });
 
     // Tapped a tray notification while the app was alive (backgrounded).
     FirebaseMessaging.onMessageOpenedApp.listen(

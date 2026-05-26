@@ -13,10 +13,13 @@ class NotificationApiException implements Exception {
 }
 
 class NotificationApi {
-  Future<NotificationPage> fetchFeed({int limit = 10, int offset = 0}) async {
+  Future<NotificationPage> fetchFeed({int limit = 10, String? before}) async {
     final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
       '/notifications',
-      queryParameters: {'limit': limit, 'offset': offset},
+      queryParameters: {
+        'limit': limit,
+        if (before != null && before.isNotEmpty) 'before': before,
+      },
     );
     final data = response.data;
     if (data == null) {
