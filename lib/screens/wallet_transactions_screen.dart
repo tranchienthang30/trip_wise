@@ -92,7 +92,11 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
             Icons.arrow_back_ios_new_rounded,
             color: TripwiseColors.primary,
           ),
-          onPressed: () => context.pop(),
+          // Notification taps reach this screen via `router.go()`, which
+          // replaces the stack — `pop()` would then throw "nothing to pop".
+          // Fall back to Wallet (the logical parent) when there's no history.
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/wallet_loyalty'),
         ),
         title: const Text(
           'Transactions',
