@@ -83,8 +83,8 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
         actionLabel: isTopUp ? 'Top up' : 'Withdraw',
         cardLabel: '${card.brand} •• ${card.last4}',
         availableLabel: isTopUp
-            ? '${formatVnd(card.balance)} on card'
-            : '${formatVnd(data.balance)} in wallet',
+            ? '${formatUsd(card.balance)} on card'
+            : '${formatUsd(data.balance)} in wallet',
         available: available,
         onSubmit: (amount) async {
           try {
@@ -143,7 +143,7 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _PrimaryWalletCard(
-              balance: formatVnd(data.balance),
+              balance: formatUsd(data.balance),
               onTopUp: () => _openMoneySheet(isTopUp: true),
               onWithdraw: () => _openMoneySheet(isTopUp: false),
             ),
@@ -155,7 +155,7 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
             const SizedBox(height: 24),
             _LoyaltyPointsCard(
               points: data.loyaltyPoints,
-              completedInvoiceVnd: data.completedInvoiceVnd,
+              completedInvoiceUsd: data.completedInvoiceUsd,
               pointsRatePercent: data.pointsRatePercent,
             ),
             const SizedBox(height: 24),
@@ -419,7 +419,7 @@ class _FundingCardChip extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${formatVnd(card!.balance)} available on card',
+                        '${formatUsd(card!.balance)} available on card',
                         style: textTheme.bodySmall?.copyWith(
                           color: TripwiseColors.onSurfaceVariant,
                         ),
@@ -451,12 +451,12 @@ class _FundingCardChip extends StatelessWidget {
 class _LoyaltyPointsCard extends StatelessWidget {
   const _LoyaltyPointsCard({
     required this.points,
-    required this.completedInvoiceVnd,
+    required this.completedInvoiceUsd,
     required this.pointsRatePercent,
   });
 
   final int points;
-  final double completedInvoiceVnd;
+  final double completedInvoiceUsd;
   final double pointsRatePercent;
 
   @override
@@ -535,7 +535,7 @@ class _LoyaltyPointsCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Completed invoices: ${formatVnd(completedInvoiceVnd)}',
+                    'Completed invoices: ${formatUsd(completedInvoiceUsd)}',
                     style: textTheme.bodyMedium?.copyWith(
                       color: TripwiseColors.onSurfaceVariant,
                       fontWeight: FontWeight.w800,
@@ -645,7 +645,7 @@ class _MoneySheet extends StatefulWidget {
 
 class _MoneySheetState extends State<_MoneySheet> {
   final TextEditingController _controller = TextEditingController();
-  static const List<int> _presets = [100000, 200000, 500000, 1000000];
+  static const List<int> _presets = [100, 200, 500, 1000];
 
   bool _submitting = false;
   String? _error;
@@ -743,9 +743,9 @@ class _MoneySheetState extends State<_MoneySheet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final p in _presets)
+              for (final p in _presets.where((p) => p <= widget.available))
                 ActionChip(
-                  label: Text(formatVnd(p.toDouble())),
+                  label: Text(formatUsd(p.toDouble())),
                   onPressed: _submitting
                       ? null
                       : () => setState(() {

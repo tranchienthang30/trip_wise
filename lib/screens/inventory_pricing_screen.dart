@@ -464,7 +464,7 @@ class _CalendarCard extends StatelessWidget {
                 day: cell.day,
                 priceLabel: status == _DayStatus.closed
                     ? 'Closed'
-                    : formatVndCompact(cell.price),
+                    : formatUsdCompact(cell.price),
                 status: status,
                 isSelected: cell.day == selectedDay,
                 // Closed days are selectable too, so a provider can re-open one.
@@ -1170,7 +1170,7 @@ class _AnalyticsCard extends StatelessWidget {
           ),
           _StatBlock(
             label: 'REVENUE FORECAST',
-            value: formatVnd(analytics.revenueForecast),
+            value: formatUsd(analytics.revenueForecast),
             valueColor: TripwiseColors.primary,
             extra: Row(
               mainAxisSize: MainAxisSize.min,

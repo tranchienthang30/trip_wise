@@ -91,9 +91,9 @@ class WalletTransactionTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final visual = _methodVisual();
     final status = _statusVisual();
-    final isCredit = transaction.amountVnd > 0;
-    final sign = transaction.amountVnd < 0 ? '-' : '+';
-    final amountText = '$sign${formatVnd(transaction.amountVnd.abs())}';
+    final isCredit = transaction.amountUsd > 0;
+    final sign = transaction.amountUsd < 0 ? '-' : '+';
+    final amountText = '$sign${formatUsd(transaction.amountUsd.abs())}';
     return Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,

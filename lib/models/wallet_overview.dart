@@ -4,9 +4,9 @@
     required this.balance,
     required this.currency,
     required this.loyaltyPoints,
-    required this.completedInvoiceVnd,
+    required this.completedInvoiceUsd,
     required this.pointsRatePercent,
-    required this.pointsValueVnd,
+    required this.pointsValueUsd,
     required this.tier,
     required this.cards,
     required this.transactions,
@@ -16,9 +16,9 @@
   final double balance;
   final String currency;
   final int loyaltyPoints;
-  final double completedInvoiceVnd;
+  final double completedInvoiceUsd;
   final double pointsRatePercent;
-  final double pointsValueVnd;
+  final double pointsValueUsd;
   final WalletTier tier;
   final List<WalletCard> cards;
   final List<WalletTransaction> transactions;
@@ -32,6 +32,8 @@
   }
 
   factory WalletOverview.fromJson(Map<String, dynamic> json) {
+    // Backend wire-format still uses legacy *Vnd keys post the VND→USD
+    // migration (2026-05-25). Values are USD; only the JSON keys are stale.
     return WalletOverview(
       user: json['user'] == null
           ? null
@@ -39,11 +41,11 @@
       balance: (json['balance'] as num?)?.toDouble() ?? 0,
       currency: json['currency'] as String? ?? 'USD',
       loyaltyPoints: (json['loyaltyPoints'] as num?)?.toInt() ?? 0,
-      completedInvoiceVnd:
+      completedInvoiceUsd:
           (json['completedInvoiceVnd'] as num?)?.toDouble() ?? 0,
       pointsRatePercent:
           ((json['pointsRate'] as num?)?.toDouble() ?? 0.01) * 100,
-      pointsValueVnd: (json['pointsValueVnd'] as num?)?.toDouble() ?? 0,
+      pointsValueUsd: (json['pointsValueVnd'] as num?)?.toDouble() ?? 0,
       tier: WalletTier.fromJson(
         (json['tier'] as Map<String, dynamic>?) ?? const {},
       ),
@@ -126,7 +128,7 @@ class WalletTransaction {
     required this.title,
     required this.subtitle,
     required this.method,
-    required this.amountVnd,
+    required this.amountUsd,
     required this.status,
   });
 
@@ -134,7 +136,7 @@ class WalletTransaction {
   final String title;
   final String subtitle;
   final String method;
-  final double amountVnd;
+  final double amountUsd;
   final String status;
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) =>
@@ -143,7 +145,8 @@ class WalletTransaction {
         title: json['title'] as String? ?? 'Payment',
         subtitle: json['subtitle'] as String? ?? '',
         method: json['method'] as String? ?? 'UNKNOWN',
-        amountVnd: (json['amountVnd'] as num?)?.toDouble() ?? 0,
+        // Backend still emits `amountVnd`; value is USD.
+        amountUsd: (json['amountVnd'] as num?)?.toDouble() ?? 0,
         status: json['status'] as String? ?? 'UNKNOWN',
       );
 }

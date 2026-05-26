@@ -1,5 +1,3 @@
-String formatVnd(double? amount) => formatUsd(amount);
-
 String formatUsd(double? amount) {
   if (amount == null) return '-';
   return '\$${formatInt(amount)}';
@@ -15,8 +13,6 @@ String formatInt(num value) {
   }
   return buf.toString();
 }
-
-String formatVndCompact(double? amount) => formatUsdCompact(amount);
 
 /// Short USD for tight spots (calendar cells), e.g. `$4.8K`, `$950`, `$1.2M`.
 String formatUsdCompact(double? amount) {

@@ -64,7 +64,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     if (data == null) return;
     final price = data.priceFrom == null
         ? ''
-        : '\nFrom ${formatVnd(data.priceFrom)} / night';
+        : '\nFrom ${formatUsd(data.priceFrom)} / night';
     await Share.share(
       'Check out ${data.name} on Tripwise.\n${data.address}$price',
       subject: data.name,
@@ -177,7 +177,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               existingBooking.canCancel &&
               existingBooking.bookingItemId.isNotEmpty;
           return _BookingBar(
-            price: data == null ? '—' : formatVnd(data.priceFrom),
+            price: data == null ? '—' : formatUsd(data.priceFrom),
             freeCancellation: data?.policies.freeCancellation ?? false,
             ctaLabel: isCancellationPending
                 ? 'Cancel pending'
