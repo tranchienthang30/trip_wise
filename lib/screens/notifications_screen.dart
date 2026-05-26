@@ -160,14 +160,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ? null
                   : (v) => setState(() => _prefs = prefs.copyWith(push: v)),
             ),
-            const SizedBox(height: 12),
-            _buildSimpleToggle(
-              title: 'Email Notifications',
-              subtitle: 'Receive updates via email',
-              value: prefs.email,
-              onChanged: (v) =>
-                  setState(() => _prefs = prefs.copyWith(email: v)),
-            ),
             const SizedBox(height: 32),
 
             _buildSectionHeader('Trip & Travel', Icons.travel_explore_rounded),

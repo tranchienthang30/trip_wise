@@ -171,14 +171,51 @@ Every server-side event that calls `createNotification()`:
 | `adminCancellations.review` (approve) | BOOKING | "Cancellation approved" | `/wallet_loyalty` | booking owner |
 | `devices.testPushHandler` (POST `/devices/test-push`) | SYSTEM | "Test notification" | `/notification_inbox` | actor (debug helper) |
 
-Triggers that **don't yet exist** but probably should at some point:
-- Welcome / verification email on register
-- Trip reminders (day-before / day-of / hour-before) — despite the `tripReminders` pref
-- Provider-side: new order arrived, payout completed, listing approved/rejected
-- Review prompt after trip completion
-- Failed payment / failed top-up (the success paths notify; failures don't)
-- Cancellation deadline approaching
-- Promo / re-engagement (the `promotions` pref is wired but no campaign sender)
+#### Coverage gaps (what's missing — analysis 2026-05-26)
+
+**Email transport: not implemented at all.** No SMTP/Sendgrid/Resend/etc. dep, no `sendEmail` function, no template system. `prefs.email` is persisted but never read. Either build it or strip the flag.
+
+**No scheduler / background worker.** No `node-cron`, `agenda`, `bull`, or equivalent. Every notification today is fired synchronously off a request handler. Several preference flags assume a scheduler exists (notably `tripReminders`) — the flags are vestigial without it.
+
+**High-value, low-cost gaps** (event already happens in code; just no `createNotification` call):
+- **Provider notified on new booking** — `checkout.service.ts:446` notifies the customer but not `listing.providerId`. Combined with the existing `orders.updateOrderStatus`, this means providers have no signal that an order arrived.
+- **Failed top-up / withdraw / payment / checkout** — success paths notify, failure paths are silent.
+- **Listing approved/rejected** — admin reviews listings; the provider whose listing was reviewed isn't told.
+- **Provider application approved/rejected** — same pattern.
+- **Profile verification approved/rejected** — the verification screen exists; result doesn't flow back.
+
+**High-value, needs-new-infra gaps** (scheduled jobs):
+- **Trip starts tomorrow / today** — the entire reason `tripReminders` exists. Today the flag does nothing.
+- **Activity starting in 1 hour** — timeline items have a `time` field, perfect signal.
+- **Cancellation deadline approaching** — `BookingItem.cancellation_deadline` exists; users can silently lose refund eligibility.
+- **"How was your stay? Leave a review"** — drives review volume, fires N days after trip completion.
+
+A single `node-cron` setup + a `scheduler.service.ts` would unlock all four. Maybe ~100 lines.
+
+**Medium-value gaps**:
+- Welcome notif on register
+- VIP plan expiry / downgrade (today only the upgrade notifies)
+- Payout request approved / paid (provider finance flow exists; no notif)
+- Daily provider summary ("3 new bookings yesterday")
+
+**Account/security gaps** — these typically use email as the primary channel, so they're blocked on the missing email transport:
+- Email verification (no flow at all)
+- Password reset (no flow at all)
+- New-device login alert
+- Password-changed confirmation
+- Suspicious-activity alert
+
+**Marketing / re-engagement** — the `promotions` flag has no consumer. Needs campaign tooling (author + target + schedule), not just a transport. Out of scope for the prototype:
+- Promotional pushes
+- Abandoned-checkout reminder
+- Personalized recommendations
+- Re-engagement after N days inactive
+
+**The four most embarrassing gaps right now**:
+1. Providers receive no notifications at all for actions they need to react to (new bookings, listing approvals, payouts).
+2. `tripReminders` preference is a lie — toggling it does nothing because no scheduler runs.
+3. Failure paths are silent — only successes notify.
+4. `prefs.email` is dead weight — no email transport exists.
 
 ### 4. Preference enforcement — ⚠️ partial
 

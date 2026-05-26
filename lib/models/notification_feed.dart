@@ -98,7 +98,6 @@ class NotificationSummary {
 class NotificationPreferences {
   NotificationPreferences({
     required this.push,
-    required this.email,
     required this.tripReminders,
     required this.bookingUpdates,
     required this.messages,
@@ -106,7 +105,6 @@ class NotificationPreferences {
   });
 
   final bool push;
-  final bool email;
   final bool tripReminders;
   final bool bookingUpdates;
   final bool messages;
@@ -114,7 +112,6 @@ class NotificationPreferences {
 
   NotificationPreferences copyWith({
     bool? push,
-    bool? email,
     bool? tripReminders,
     bool? bookingUpdates,
     bool? messages,
@@ -122,7 +119,6 @@ class NotificationPreferences {
   }) =>
       NotificationPreferences(
         push: push ?? this.push,
-        email: email ?? this.email,
         tripReminders: tripReminders ?? this.tripReminders,
         bookingUpdates: bookingUpdates ?? this.bookingUpdates,
         messages: messages ?? this.messages,
@@ -131,7 +127,6 @@ class NotificationPreferences {
 
   Map<String, dynamic> toJson() => {
         'push': push,
-        'email': email,
         'tripReminders': tripReminders,
         'bookingUpdates': bookingUpdates,
         'messages': messages,
@@ -141,7 +136,6 @@ class NotificationPreferences {
   factory NotificationPreferences.fromJson(Map<String, dynamic> json) =>
       NotificationPreferences(
         push: json['push'] as bool? ?? true,
-        email: json['email'] as bool? ?? true,
         tripReminders: json['tripReminders'] as bool? ?? true,
         bookingUpdates: json['bookingUpdates'] as bool? ?? true,
         messages: json['messages'] as bool? ?? true,
