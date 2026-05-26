@@ -174,7 +174,10 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                   onSelect: _selectCategory,
                 ),
                 const SizedBox(height: 24),
-                if (data.destinations.isNotEmpty) ...[
+                // Destinations are generic location suggestions and only make
+                // sense on the unfiltered ("All") tab. Hiding them on category
+                // tabs keeps results focused on the chosen category.
+                if (_category == 'all' && data.destinations.isNotEmpty) ...[
                   const _SearchSectionHeader(
                     title: 'Popular Destinations',
                     subtitle: 'Suggestions pulled from real location data',
