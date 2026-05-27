@@ -18,11 +18,9 @@ class _AdminProviderPayoutsScreenState
   final AdminApi _api = AdminApi();
   final Set<String> _payingProviderIds = {};
 
-  String _period = 'monthly';
   AdminProviderPayoutsResponse? _data;
   bool _isLoading = true;
   bool _isProcessingAll = false;
-  bool _isSeedingTest = false;
   String? _error;
 
   @override
@@ -37,7 +35,7 @@ class _AdminProviderPayoutsScreenState
       _error = null;
     });
     try {
-      final data = await _api.fetchProviderPayouts(period: _period);
+      final data = await _api.fetchProviderPayouts();
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -56,7 +54,7 @@ class _AdminProviderPayoutsScreenState
     if (_payingProviderIds.contains(provider.providerId)) return;
     setState(() => _payingProviderIds.add(provider.providerId));
     try {
-      await _api.payProvider(providerId: provider.providerId, period: _period);
+      await _api.payProvider(providerId: provider.providerId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -91,10 +89,7 @@ class _AdminProviderPayoutsScreenState
 
     try {
       for (final provider in providers) {
-        await _api.payProvider(
-          providerId: provider.providerId,
-          period: _period,
-        );
+        await _api.payProvider(providerId: provider.providerId);
         successCount += 1;
       }
       if (!mounted) return;
@@ -120,38 +115,6 @@ class _AdminProviderPayoutsScreenState
       await _load();
     } finally {
       if (mounted) setState(() => _isProcessingAll = false);
-    }
-  }
-
-  Future<void> _seedTestEscrow() async {
-    if (_isSeedingTest) return;
-
-    setState(() => _isSeedingTest = true);
-    try {
-      final result = await _api.createTestEscrow(
-        email: 'thang3@gmail.com',
-        amount: 100000,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Created test escrow ${result['providerNetAmount'] ?? ''} for thang3@gmail.com.',
-          ),
-          backgroundColor: TripwiseColors.primary,
-        ),
-      );
-      await _load();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString()),
-          backgroundColor: TripwiseColors.error,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isSeedingTest = false);
     }
   }
 
@@ -186,24 +149,11 @@ class _AdminProviderPayoutsScreenState
             ),
             const SizedBox(height: 8),
             Text(
-              'User payments stay in the admin wallet until you release the net amount to each provider.',
+              'User payments stay in the admin wallet until an admin releases the net amount to each provider.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: TripwiseColors.onSurfaceVariant,
                 height: 1.4,
               ),
-            ),
-            const SizedBox(height: 16),
-            SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 'weekly', label: Text('Weekly')),
-                ButtonSegment(value: 'monthly', label: Text('Monthly')),
-              ],
-              selected: {_period},
-              onSelectionChanged: (selection) async {
-                setState(() => _period = selection.first);
-                await _load();
-              },
             ),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
@@ -220,11 +170,6 @@ class _AdminProviderPayoutsScreenState
                 isProcessing: _isProcessingAll,
                 enabled: data.providers.isNotEmpty,
                 onPressed: _processAllPayouts,
-              ),
-              const SizedBox(height: 10),
-              _SeedTestButton(
-                isLoading: _isSeedingTest,
-                onPressed: _seedTestEscrow,
               ),
               const SizedBox(height: 14),
               if (data.providers.isEmpty)
@@ -287,33 +232,7 @@ class _ProcessNowButton extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.flash_on_rounded),
-        label: Text(isProcessing ? 'Processing payouts...' : 'Process now'),
-      ),
-    );
-  }
-}
-
-class _SeedTestButton extends StatelessWidget {
-  const _SeedTestButton({required this.isLoading, required this.onPressed});
-
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: OutlinedButton.icon(
-        onPressed: isLoading ? null : onPressed,
-        icon: isLoading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.add_card_rounded),
-        label: Text(isLoading ? 'Creating test escrow...' : 'Create test escrow'),
+        label: Text(isProcessing ? 'Releasing payouts...' : 'Release all payouts'),
       ),
     );
   }
@@ -452,7 +371,7 @@ class _EmptyPayouts extends StatelessWidget {
       padding: EdgeInsets.only(top: 90),
       child: Center(
         child: Text(
-          'No held provider payouts for this period.',
+          'No held provider payouts are waiting for release.',
           style: TextStyle(
             color: TripwiseColors.onSurfaceVariant,
             fontWeight: FontWeight.w700,

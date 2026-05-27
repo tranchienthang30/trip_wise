@@ -29,81 +29,103 @@ class PlannerAssistantHeaderButton extends StatelessWidget {
           child: InkWell(
             onTap: () => showPlannerAssistantSheet(context),
             borderRadius: BorderRadius.circular(999),
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFBEE1FF), TripwiseColors.primary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: TripwiseColors.primary.withOpacity(0.18),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 21,
-                    height: 21,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.96),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            _MascotEye(width: 3, height: 4.2),
-                            SizedBox(width: 3),
-                            _MascotEye(width: 3, height: 4.2),
-                          ],
-                        ),
-                        const SizedBox(height: 2.4),
-                        Container(
-                          width: 8,
-                          height: 3,
-                          decoration: const BoxDecoration(
-                            color: TripwiseColors.primary,
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(6),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: TripwiseColors.secondaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 6,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: const _PlannerAssistantMascot(size: 34),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PlannerAssistantMascot extends StatelessWidget {
+  const _PlannerAssistantMascot({
+    required this.size,
+    this.showSparkle = true,
+    this.shadow = true,
+  });
+
+  final double size;
+  final bool showSparkle;
+  final bool shadow;
+
+  @override
+  Widget build(BuildContext context) {
+    final faceSize = size * 0.62;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFBEE1FF), TripwiseColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: shadow
+            ? [
+                BoxShadow(
+                  color: TripwiseColors.primary.withOpacity(0.18),
+                  blurRadius: size * 0.3,
+                  offset: Offset(0, size * 0.12),
+                ),
+              ]
+            : null,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: faceSize,
+            height: faceSize,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.96),
+              shape: BoxShape.circle,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _MascotEye(width: size * 0.09, height: size * 0.12),
+                    SizedBox(width: size * 0.09),
+                    _MascotEye(width: size * 0.09, height: size * 0.12),
+                  ],
+                ),
+                SizedBox(height: size * 0.07),
+                Container(
+                  width: size * 0.24,
+                  height: size * 0.09,
+                  decoration: const BoxDecoration(
+                    color: TripwiseColors.primary,
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(99),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showSparkle)
+            Positioned(
+              top: size * 0.06,
+              right: size * 0.06,
+              child: Container(
+                width: size * 0.29,
+                height: size * 0.29,
+                decoration: const BoxDecoration(
+                  color: TripwiseColors.secondaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: size * 0.18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -273,10 +295,11 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
               color: Colors.white.withOpacity(0.18),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.smart_toy_rounded,
-              color: Colors.white,
-              size: 28,
+            child: const Center(
+              child: _PlannerAssistantMascot(
+                size: 38,
+                shadow: false,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -496,14 +519,16 @@ class _MessageBubble extends StatelessWidget {
             Container(
               width: 30,
               height: 30,
-              decoration: const BoxDecoration(
-                color: TripwiseColors.primaryFixed,
+              decoration: BoxDecoration(
+                color: TripwiseColors.primary.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.smart_toy_rounded,
-                size: 16,
-                color: TripwiseColors.primary,
+              child: const Center(
+                child: _PlannerAssistantMascot(
+                  size: 24,
+                  showSparkle: false,
+                  shadow: false,
+                ),
               ),
             ),
             const SizedBox(width: 8),

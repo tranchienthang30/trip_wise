@@ -108,13 +108,10 @@ class AdminApi {
     }
   }
 
-  Future<AdminProviderPayoutsResponse> fetchProviderPayouts({
-    required String period,
-  }) async {
+  Future<AdminProviderPayoutsResponse> fetchProviderPayouts() async {
     try {
       final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
         '/admin/provider-payouts',
-        queryParameters: {'period': period},
       );
       final data = response.data;
       if (data == null) {
@@ -128,14 +125,10 @@ class AdminApi {
     }
   }
 
-  Future<void> payProvider({
-    required String providerId,
-    required String period,
-  }) async {
+  Future<void> payProvider({required String providerId}) async {
     try {
       await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/admin/provider-payouts/$providerId/pay',
-        data: {'period': period},
       );
     } on DioException catch (error) {
       throw AdminApiException(_messageFromDio(error));
@@ -168,27 +161,6 @@ class AdminApi {
         '/admin/cancellations/$bookingItemId/review',
         data: {'decision': approve ? 'APPROVED' : 'REJECTED'},
       );
-    } on DioException catch (error) {
-      throw AdminApiException(_messageFromDio(error));
-    }
-  }
-
-  Future<Map<String, dynamic>> createTestEscrow({
-    required String email,
-    required int amount,
-  }) async {
-    try {
-      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
-        '/admin/provider-payouts/test-escrow',
-        data: {'email': email, 'amount': amount},
-      );
-      final data = response.data;
-      if (data == null) {
-        throw const AdminApiException(
-          'Empty response from /admin/provider-payouts/test-escrow',
-        );
-      }
-      return data;
     } on DioException catch (error) {
       throw AdminApiException(_messageFromDio(error));
     }
