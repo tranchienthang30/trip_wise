@@ -250,7 +250,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FF),
           appBar: _isProviderMode
-              ? const ProviderAppBar()
+              ? const ProviderAppBar(backRoute: '/order_manager')
               : const PlannerAppBar(backRoute: '/my_trips'),
           body: Row(
             children: [
@@ -310,59 +310,18 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     }
 
     if (_conversation == null) {
-      return Column(
-        children: [
-          _buildBackBar(),
-          const Expanded(
-            child: Center(
-              child: Text(
-                'No conversations yet',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
+      return const Center(
+        child: Text(
+          'No conversations yet',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w700,
           ),
-        ],
+        ),
       );
     }
 
-    return Column(
-      children: [
-        _buildBackBar(),
-        Expanded(child: _buildChatList()),
-      ],
-    );
-  }
-
-  Widget _buildBackBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        TripwiseSpacing.xl,
-        18,
-        TripwiseSpacing.xl,
-        0,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go(_isProviderMode ? '/order_manager' : '/my_trips');
-            }
-          },
-          icon: const Icon(Icons.arrow_back_rounded),
-          label: const Text('Back'),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF004779),
-            textStyle: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      ),
-    );
+    return _buildChatList();
   }
 
   Widget _buildSideNav() {
