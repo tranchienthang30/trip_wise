@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -60,14 +62,51 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
   Future<void> _uploadDocument(ProfileVerificationDocumentType type) async {
     if (_uploadingType != null) return;
 
+    // Show dialog to choose between camera and gallery
+    final selectedSource = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Image Source'),
+        content: const Text('Would you like to take a photo or select from gallery?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            child: const Text('Camera'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            child: const Text('Gallery'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedSource == null) return;
+
     final messenger = ScaffoldMessenger.of(context);
     try {
       final file = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: selectedSource,
         imageQuality: 80,
         maxWidth: 1400,
       );
-      if (file == null) return;
+      if (file == null) {
+        return;
+      }
+
+      // Verify file exists before cropping
+      final fileExists = await File(file.path).exists();
+      if (!fileExists) {
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Image file not found. Please try again.'),
+              backgroundColor: TripwiseColors.error,
+            ),
+          );
+        }
+        return;
+      }
 
       final croppedFile = await _cropDocumentImage(file.path);
       if (croppedFile == null) return;
@@ -105,38 +144,37 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     return ImageCropper().cropImage(
       sourcePath: sourcePath,
       maxWidth: 1400,
-      maxHeight: 1400,
+      maxHeight: 1050,
       compressFormat: ImageCompressFormat.jpg,
       compressQuality: 80,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Crop document',
-          toolbarColor: Colors.white,
+          toolbarColor: Colors.transparent,
           toolbarWidgetColor: TripwiseColors.primary,
           statusBarLight: true,
           navBarLight: true,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
+          initAspectRatio: CropAspectRatioPreset.ratio4x3,
+          lockAspectRatio: true,
+          hideBottomControls: true,
+          showCropGrid: true,
+          cropGridColumnCount: 2,
+          cropGridRowCount: 2,
+          cropGridColor: TripwiseColors.primary,
           aspectRatioPresets: const [
-            CropAspectRatioPreset.original,
             CropAspectRatioPreset.ratio4x3,
-            CropAspectRatioPreset.square,
           ],
         ),
         IOSUiSettings(
-          title: 'Crop document',
-          doneButtonTitle: 'Done',
-          cancelButtonTitle: 'Cancel',
+          minimumAspectRatio: 4 / 3,
           aspectRatioPresets: const [
-            CropAspectRatioPreset.original,
             CropAspectRatioPreset.ratio4x3,
-            CropAspectRatioPreset.square,
           ],
+          hidesNavigationBar: true,
         ),
         WebUiSettings(
           context: context,
           presentStyle: WebPresentStyle.dialog,
-          size: const CropperSize(width: 520, height: 520),
+          size: const CropperSize(width: 520, height: 390),
         ),
       ],
     );
