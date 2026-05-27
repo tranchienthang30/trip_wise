@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'constants/theme.dart';
 import 'services/auth_session_store.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
+import 'widgets/in_app_push_banner.dart';
 import 'screens/admin_provider_approvals_screen.dart';
 import 'screens/admin_listing_approvals_screen.dart';
 import 'screens/admin_provider_payouts_screen.dart';
@@ -522,8 +525,39 @@ void main() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  StreamSubscription<IncomingPushPayload>? _pushSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // In-app banner for foreground pushes. push_messaging_service.dart no
+    // longer renders the OS tray notification when the app is foregrounded —
+    // the banner is shown here instead so the user gets in-app feedback
+    // without an interruptive system heads-up.
+    _pushSub = PushMessagingService.onForegroundPush.listen((payload) {
+      final navigator = rootNavigatorKey.currentState;
+      if (navigator == null) return;
+      showInAppPushBanner(
+        navigator: navigator,
+        payload: payload,
+        onTap: () => handleDeepLink(payload.actionRoute),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _pushSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

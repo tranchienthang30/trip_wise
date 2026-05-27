@@ -160,11 +160,12 @@ class PushMessagingService {
     // fine — the app keeps working, banners just won't appear.
     await FirebaseMessaging.instance.requestPermission();
 
-    // Foreground: the OS does NOT auto-display data messages — render one,
-    // and emit the payload so live subscribers (bell badge, open screens)
-    // can react without polling.
+    // Foreground: skip the OS tray notification entirely — the in-app banner
+    // (see InAppPushBanner / main.dart) renders the alert inside the app so
+    // the user isn't distracted by a system heads-up while they're actively
+    // using Tripwise. Background / killed-state still fire the OS tray via
+    // firebaseMessagingBackgroundHandler above.
     FirebaseMessaging.onMessage.listen((m) {
-      _showLocal(_plugin, m);
       _onForegroundPush.add(IncomingPushPayload.fromRemoteMessage(m));
     });
 
