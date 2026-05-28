@@ -19,6 +19,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
 
   ProviderVipData? _data;
   Object? _error;
+  String? _selectingPromotionId;
 
   @override
   void initState() {
@@ -41,7 +42,13 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     }
   }
 
-  Future<void> _selectPromotion(String promotionId, String title) async {
+  Future<void> _selectPromotion(
+    String promotionId,
+    String title, {
+    required bool isSelected,
+  }) async {
+    if (_selectingPromotionId != null) return;
+    setState(() => _selectingPromotionId = promotionId);
     try {
       final data = await _api.selectPromotion(promotionId);
       if (!mounted) return;
@@ -50,7 +57,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('$title selected.'),
+            content: Text(isSelected ? '$title removed.' : '$title selected.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -64,6 +71,8 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+    } finally {
+      if (mounted) setState(() => _selectingPromotionId = null);
     }
   }
 
@@ -107,12 +116,12 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     }
     if (data == null) {
       return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        TripwiseSpacing.xl,
-        180,
-        TripwiseSpacing.xl,
-        TripwiseSpacing.xxl,
-      ),
+        padding: const EdgeInsets.fromLTRB(
+          TripwiseSpacing.xl,
+          180,
+          TripwiseSpacing.xl,
+          TripwiseSpacing.xxl,
+        ),
         child: Center(
           child: Column(
             children: [
@@ -168,9 +177,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         image: DecorationImage(
-          image: NetworkImage(
-            hero.imageUrl,
-          ),
+          image: NetworkImage(hero.imageUrl),
           fit: BoxFit.cover,
         ),
       ),
@@ -236,7 +243,10 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     );
   }
 
-  Widget _buildUpgradePlanSection(BuildContext context, List<ProviderVipPlan> plans) {
+  Widget _buildUpgradePlanSection(
+    BuildContext context,
+    List<ProviderVipPlan> plans,
+  ) {
     final standard = _findPlan(plans, 'standard');
     final elite = _findPlan(plans, 'elite');
 
@@ -255,10 +265,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         const SizedBox(height: 4),
         const Text(
           'Select the tier that fits your growth ambitions.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF3F4752),
-          ),
+          style: TextStyle(fontSize: 16, color: Color(0xFF3F4752)),
         ),
         const SizedBox(height: 32),
         if (standard != null) _buildStandardPlan(standard),
@@ -281,7 +288,11 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         children: [
           Text(
             plan.name,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF181C22),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -302,7 +313,11 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
             ),
             child: Text(
               plan.ctaLabel,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF181C22),
+              ),
             ),
           ),
         ],
@@ -313,11 +328,19 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
   Widget _checkItem(String text) {
     return Row(
       children: [
-        const Icon(Icons.check_circle_rounded, color: Color(0xFF005F9F), size: 20),
+        const Icon(
+          Icons.check_circle_rounded,
+          color: Color(0xFF005F9F),
+          size: 20,
+        ),
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF181C22)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF181C22),
+          ),
         ),
       ],
     );
@@ -336,7 +359,11 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
           Positioned(
             top: -20,
             right: -20,
-            child: Icon(Icons.workspace_premium_rounded, size: 120, color: Colors.white.withOpacity(0.1)),
+            child: Icon(
+              Icons.workspace_premium_rounded,
+              size: 120,
+              color: Colors.white.withOpacity(0.1),
+            ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,14 +374,22 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
                   const SizedBox(width: 12),
                   Text(
                     plan.name,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFAB3500), letterSpacing: 1.5),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFFAB3500),
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 plan.description,
-                style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.7),
+                ),
               ),
               const SizedBox(height: 32),
               Row(
@@ -381,29 +416,56 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Starting at', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.6))),
+                    Text(
+                      'Starting at',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text(plan.priceLabel, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
+                        Text(
+                          plan.priceLabel,
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
                         const SizedBox(width: 4),
-                        Text(plan.priceUnit, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6))),
+                        Text(
+                          plan.priceUnit,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: plan.ctaRoute == null
-                              ? null
-                              : () => context.push(plan.ctaRoute!),
-                          style: TripwiseButtonStyles.primaryElevated(
-                            radius: 12,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: plan.ctaRoute == null
+                            ? null
+                            : () => context.push(plan.ctaRoute!),
+                        style: TripwiseButtonStyles.primaryElevated(
+                          radius: 12,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          plan.ctaLabel,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
                           ),
-                        child: Text(plan.ctaLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        ),
                       ),
                     ),
                   ],
@@ -420,11 +482,23 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFFFFDBD0))),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFFFFDBD0),
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
           label.toUpperCase(),
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white.withOpacity(0.5)),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            color: Colors.white.withOpacity(0.5),
+          ),
         ),
       ],
     );
@@ -452,10 +526,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         const SizedBox(height: 4),
         const Text(
           'Boost your visibility and capture more bookings instantly.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF3F4752),
-          ),
+          style: TextStyle(fontSize: 16, color: Color(0xFF3F4752)),
         ),
         const SizedBox(height: 32),
         for (final promotion in promotions) ...[
@@ -468,6 +539,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
             price: promotion.priceLabel,
             priceUnit: promotion.priceUnit,
             isSelected: promotion.isSelected,
+            isSelecting: _selectingPromotionId == promotion.id,
           ),
           const SizedBox(height: 24),
         ],
@@ -484,6 +556,7 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
     required String price,
     required String priceUnit,
     required bool isSelected,
+    required bool isSelecting,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -515,13 +588,24 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
                   children: [
                     Icon(icon, color: const Color(0xFF005F9F), size: 24),
                     const SizedBox(width: 8),
-                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF181C22))),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF181C22),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   description,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF3F4752), height: 1.5),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF3F4752),
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -531,23 +615,81 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text(price, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
+                        Text(
+                          price,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF005F9F),
+                          ),
+                        ),
                         const SizedBox(width: 4),
-                        Text(priceUnit.toUpperCase(), style: const TextStyle(fontSize: 10, color: Color(0xFF3F4752))),
+                        Text(
+                          priceUnit.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF3F4752),
+                          ),
+                        ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: isSelected ? null : () => _selectPromotion(id, title),
-                      style: TripwiseButtonStyles.surfaceElevated(
-                        radius: 24,
-                        backgroundColor: TripwiseColors.surfaceContainerHigh,
-                        foregroundColor: TripwiseColors.onSurface,
+                    ElevatedButton.icon(
+                      onPressed: isSelecting
+                          ? null
+                          : () => _selectPromotion(
+                              id,
+                              title,
+                              isSelected: isSelected,
+                            ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isSelected
+                            ? TripwiseColors.primary
+                            : TripwiseColors.surfaceContainerHigh,
+                        foregroundColor: isSelected
+                            ? TripwiseColors.onPrimary
+                            : TripwiseColors.onSurface,
+                        disabledBackgroundColor: isSelected
+                            ? TripwiseColors.primary
+                            : TripwiseColors.surfaceContainerHigh,
+                        disabledForegroundColor: isSelected
+                            ? TripwiseColors.onPrimary
+                            : TripwiseColors.onSurface,
+                        elevation: 0,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
                         ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
-                      child: Text(isSelected ? 'SELECTED' : 'SELECT', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                      icon: isSelecting
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: TripwiseColors.primary,
+                              ),
+                            )
+                          : Icon(
+                              isSelected
+                                  ? Icons.close_rounded
+                                  : Icons.add_rounded,
+                              size: 16,
+                            ),
+                      label: Text(
+                        isSelecting
+                            ? 'UPDATING'
+                            : isSelected
+                            ? 'REMOVE'
+                            : 'SELECT',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -571,7 +713,11 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
         children: [
           const Text(
             'Promotion Reach Impact',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF181C22)),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF181C22),
+            ),
           ),
           const SizedBox(height: 24),
           Container(
@@ -582,7 +728,9 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: FractionallySizedBox(
-              widthFactor: (impact.reachIncreasePct / 100).clamp(0.0, 1.0).toDouble(),
+              widthFactor: (impact.reachIncreasePct / 100)
+                  .clamp(0.0, 1.0)
+                  .toDouble(),
               alignment: Alignment.centerLeft,
               child: Container(
                 decoration: BoxDecoration(
@@ -598,89 +746,50 @@ class _VipServicesScreenState extends State<VipServicesScreen> {
             children: [
               Column(
                 children: [
-                  Text('${impact.reachIncreasePct}%', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
+                  Text(
+                    '${impact.reachIncreasePct}%',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF005F9F),
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  const Text('REACH INCREASE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
+                  const Text(
+                    'REACH INCREASE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: Color(0xFF3F4752),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(width: 48),
               Column(
                 children: [
-                  Text(impact.bookingVelocityLabel, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF005F9F))),
+                  Text(
+                    impact.bookingVelocityLabel,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF005F9F),
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  const Text('BOOKING VELOCITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Color(0xFF3F4752))),
+                  const Text(
+                    'BOOKING VELOCITY',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: Color(0xFF3F4752),
+                    ),
+                  ),
                 ],
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF005F9F).withOpacity(0.08),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          ),
-        ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: BottomNavigationBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF005F9F),
-        unselectedItemColor: const Color(0xFF3F4752),
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
-        unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 0.5),
-        currentIndex: 2, // VIP Services
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/provider_dashboard');
-              break;
-            case 1:
-              context.go('/provider_listings');
-              break;
-            case 2:
-              context.go('/vip_services');
-              break;
-            case 3:
-              context.go('/provider_finance');
-              break;
-          }
-        },
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_rounded),
-            label: 'Listings',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1E4FF),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF005F9F)),
-            ),
-            label: 'VIP Services',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.payments_rounded),
-            label: 'Finance',
           ),
         ],
       ),
