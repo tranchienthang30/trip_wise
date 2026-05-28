@@ -13,8 +13,9 @@ class TripsApiException implements Exception {
 
 class TripsApi {
   Future<TripsResponse> fetchTrips() async {
-    final response =
-        await ApiClient.instance.dio.get<Map<String, dynamic>>('/trips');
+    final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+      '/trips',
+    );
     final data = response.data;
     if (data == null) {
       throw StateError('Empty response from /trips');
@@ -67,6 +68,31 @@ class TripsApi {
       final data = response.data;
       if (data == null) {
         throw StateError('Empty response from /trips/$tripId/items');
+      }
+      return Trip.fromJson(data);
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      if (resp is Map && resp['message'] is String) {
+        throw TripsApiException(resp['message'] as String);
+      }
+      throw TripsApiException('Something went wrong. Please try again.');
+    }
+  }
+
+  Future<Trip> updateItemTime({
+    required String tripId,
+    required int dayIndex,
+    required int itemIndex,
+    required String time,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/trips/$tripId/items/time',
+        data: {'dayIndex': dayIndex, 'itemIndex': itemIndex, 'time': time},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /trips/$tripId/items/time');
       }
       return Trip.fromJson(data);
     } on DioException catch (e) {

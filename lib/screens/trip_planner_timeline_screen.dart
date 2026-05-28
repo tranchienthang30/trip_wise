@@ -103,6 +103,84 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
     await _load();
   }
 
+  TimeOfDay _parseItemTime(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return const TimeOfDay(hour: 8, minute: 30);
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null ||
+        minute == null ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59) {
+      return const TimeOfDay(hour: 8, minute: 30);
+    }
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatItemTime(TimeOfDay value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+  }
+
+  Future<void> _editItemTime({
+    required int dayIndex,
+    required int itemIndex,
+    required TripItem item,
+  }) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _parseItemTime(item.time),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: TripwiseColors.primary,
+              onPrimary: TripwiseColors.onPrimary,
+              secondary: TripwiseColors.secondaryContainer,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return;
+
+    final trip = _trip;
+    if (trip == null) return;
+
+    try {
+      final updated = await _api.updateItemTime(
+        tripId: trip.id,
+        dayIndex: dayIndex,
+        itemIndex: itemIndex,
+        time: _formatItemTime(picked),
+      );
+      if (!mounted) return;
+      setState(() {
+        _data = TripsResponse(
+          trips: [
+            for (final existing in _data?.trips ?? const <Trip>[])
+              existing.id == updated.id ? updated : existing,
+          ],
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      _showError(error.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,7 +234,12 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
                 onSelect: (i) => setState(() => _selectedDayIndex = i),
               ),
             const SizedBox(height: 28),
-            _Timeline(items: items, onAddActivity: _openAddActivity),
+            _Timeline(
+              items: items,
+              dayIndex: days.isEmpty ? 0 : days[dayIndex].dayIndex,
+              onEditTime: _editItemTime,
+              onAddActivity: _openAddActivity,
+            ),
           ],
         ),
       ),
@@ -455,9 +538,7 @@ class _DayPill extends StatelessWidget {
           child: Text(
             label,
             style: textTheme.labelLarge?.copyWith(
-              color: selected
-                  ? Colors.white
-                  : TripwiseColors.onSurfaceVariant,
+              color: selected ? Colors.white : TripwiseColors.onSurfaceVariant,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             ),
           ),
@@ -468,9 +549,21 @@ class _DayPill extends StatelessWidget {
 }
 
 class _Timeline extends StatelessWidget {
-  const _Timeline({required this.items, required this.onAddActivity});
+  const _Timeline({
+    required this.items,
+    required this.dayIndex,
+    required this.onEditTime,
+    required this.onAddActivity,
+  });
 
   final List<TripItem> items;
+  final int dayIndex;
+  final void Function({
+    required int dayIndex,
+    required int itemIndex,
+    required TripItem item,
+  })
+  onEditTime;
   final VoidCallback onAddActivity;
 
   @override
@@ -507,7 +600,14 @@ class _Timeline extends StatelessWidget {
           children: [
             for (int i = 0; i < items.length; i++) ...[
               if (i > 0) const SizedBox(height: 20),
-              _TimelineItem(item: items[i]),
+              _TimelineItem(
+                item: items[i],
+                onEditTime: () => onEditTime(
+                  dayIndex: dayIndex,
+                  itemIndex: i,
+                  item: items[i],
+                ),
+              ),
             ],
             const SizedBox(height: 20),
             _AddActivityButton(onTap: onAddActivity),
@@ -519,9 +619,10 @@ class _Timeline extends StatelessWidget {
 }
 
 class _TimelineItem extends StatelessWidget {
-  const _TimelineItem({required this.item});
+  const _TimelineItem({required this.item, required this.onEditTime});
 
   final TripItem item;
+  final VoidCallback onEditTime;
 
   @override
   Widget build(BuildContext context) {
@@ -559,71 +660,99 @@ class _TimelineItem extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: TripwiseColors.surfaceContainerLowest,
+          Material(
+            color: TripwiseColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              onTap: onEditTime,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: TripwiseColors.primary.withOpacity(0.06),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      item.time,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: style.color,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                      ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: TripwiseColors.primary.withOpacity(0.06),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
-                    Icon(style.icon, color: style.color, size: 22),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  item.title,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      size: 16,
-                      color: TripwiseColors.onSurfaceVariant,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: onEditTime,
+                          borderRadius: BorderRadius.circular(999),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  item.time,
+                                  style: textTheme.labelMedium?.copyWith(
+                                    color: style.color,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.edit_rounded,
+                                  color: style.color,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Icon(style.icon, color: style.color, size: 22),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        item.location,
-                        style: textTheme.bodyMedium?.copyWith(
+                    const SizedBox(height: 8),
+                    Text(
+                      item.title,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 16,
                           color: TripwiseColors.onSurfaceVariant,
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            item.location,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: TripwiseColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    if (shown.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _FriendsStack(
+                        friends: shown,
+                        extraFriends: extra > 0 ? extra : 0,
+                      ),
+                    ],
                   ],
                 ),
-                if (shown.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _FriendsStack(
-                    friends: shown,
-                    extraFriends: extra > 0 ? extra : 0,
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ],
@@ -720,10 +849,7 @@ class _AddActivityButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: TripwiseColors.outlineVariant,
-              width: 2,
-            ),
+            border: Border.all(color: TripwiseColors.outlineVariant, width: 2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
