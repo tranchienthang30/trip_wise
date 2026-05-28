@@ -2,10 +2,20 @@ import '../models/provider_finance.dart';
 import 'api_client.dart';
 
 class ProviderFinanceApi {
-  Future<ProviderFinance> fetchFinance({String period = 'monthly'}) async {
+  Future<ProviderFinance> fetchFinance({
+    String period = 'monthly',
+    String? query,
+    String status = 'all',
+    int limit = 10,
+  }) async {
     final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
       '/provider/finance',
-      queryParameters: {'period': period},
+      queryParameters: {
+        'period': period,
+        'status': status,
+        'limit': limit,
+        if (query != null && query.trim().isNotEmpty) 'query': query.trim(),
+      },
     );
     final data = response.data;
     if (data == null) {

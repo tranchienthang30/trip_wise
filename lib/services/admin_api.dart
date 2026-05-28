@@ -125,10 +125,14 @@ class AdminApi {
     }
   }
 
-  Future<void> payProvider({required String providerId}) async {
+  Future<void> reviewProviderPayout({
+    required String providerId,
+    required bool approve,
+  }) async {
     try {
-      await ApiClient.instance.dio.post<Map<String, dynamic>>(
-        '/admin/provider-payouts/$providerId/pay',
+      await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/admin/provider-payouts/$providerId/review',
+        data: {'decision': approve ? 'APPROVED' : 'REJECTED'},
       );
     } on DioException catch (error) {
       throw AdminApiException(_messageFromDio(error));

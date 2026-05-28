@@ -154,12 +154,23 @@ class ProviderFinanceGrowth {
 }
 
 class ProviderFinanceTransactions {
-  ProviderFinanceTransactions({required this.items});
+  ProviderFinanceTransactions({
+    required this.items,
+    required this.total,
+    required this.query,
+    required this.status,
+  });
 
   final List<ProviderFinanceTransaction> items;
+  final int total;
+  final String query;
+  final String status;
 
   factory ProviderFinanceTransactions.fromJson(Map<String, dynamic> json) {
     return ProviderFinanceTransactions(
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      query: json['query'] as String? ?? '',
+      status: json['status'] as String? ?? 'all',
       items: ((json['items'] as List<dynamic>?) ?? const [])
           .map((item) => ProviderFinanceTransaction.fromJson(item as Map<String, dynamic>))
           .toList(),

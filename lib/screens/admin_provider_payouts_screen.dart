@@ -16,11 +16,10 @@ class AdminProviderPayoutsScreen extends StatefulWidget {
 class _AdminProviderPayoutsScreenState
     extends State<AdminProviderPayoutsScreen> {
   final AdminApi _api = AdminApi();
-  final Set<String> _payingProviderIds = {};
+  final Set<String> _reviewingProviderIds = {};
 
   AdminProviderPayoutsResponse? _data;
   bool _isLoading = true;
-  bool _isProcessingAll = false;
   String? _error;
 
   @override
@@ -50,18 +49,26 @@ class _AdminProviderPayoutsScreenState
     }
   }
 
-  Future<void> _pay(AdminProviderPayoutSummary provider) async {
-    if (_payingProviderIds.contains(provider.providerId)) return;
-    setState(() => _payingProviderIds.add(provider.providerId));
+  Future<void> _review(
+    AdminProviderPayoutSummary provider, {
+    required bool approve,
+  }) async {
+    if (_reviewingProviderIds.contains(provider.providerId)) return;
+    setState(() => _reviewingProviderIds.add(provider.providerId));
     try {
-      await _api.payProvider(providerId: provider.providerId);
+      await _api.reviewProviderPayout(
+        providerId: provider.providerId,
+        approve: approve,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Paid ${provider.displayProviderNetAmount} to ${provider.providerName}.',
+            '${approve ? 'Accepted' : 'Rejected'} ${provider.displayProviderNetAmount} request from ${provider.providerName}.',
           ),
-          backgroundColor: TripwiseColors.primary,
+          backgroundColor: approve
+              ? TripwiseColors.primary
+              : TripwiseColors.error,
         ),
       );
       await _load();
@@ -75,46 +82,8 @@ class _AdminProviderPayoutsScreenState
       );
     } finally {
       if (mounted) {
-        setState(() => _payingProviderIds.remove(provider.providerId));
+        setState(() => _reviewingProviderIds.remove(provider.providerId));
       }
-    }
-  }
-
-  Future<void> _processAllPayouts() async {
-    final providers = _data?.providers ?? const <AdminProviderPayoutSummary>[];
-    if (_isProcessingAll || providers.isEmpty) return;
-
-    setState(() => _isProcessingAll = true);
-    var successCount = 0;
-
-    try {
-      for (final provider in providers) {
-        await _api.payProvider(providerId: provider.providerId);
-        successCount += 1;
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Processed payouts for $successCount provider(s).'),
-          backgroundColor: TripwiseColors.primary,
-        ),
-      );
-      await _load();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            successCount > 0
-                ? 'Processed $successCount provider(s), then failed: $error'
-                : error.toString(),
-          ),
-          backgroundColor: TripwiseColors.error,
-        ),
-      );
-      await _load();
-    } finally {
-      if (mounted) setState(() => _isProcessingAll = false);
     }
   }
 
@@ -142,14 +111,14 @@ class _AdminProviderPayoutsScreenState
           padding: TripwiseInsets.screen,
           children: [
             Text(
-              'Provider escrow payouts',
+              'Provider payout requests',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
-              'User payments stay in the admin wallet until an admin releases the net amount to each provider.',
+              'Review payout amounts requested by providers and accept or reject each request.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: TripwiseColors.onSurfaceVariant,
                 height: 1.4,
@@ -166,12 +135,6 @@ class _AdminProviderPayoutsScreenState
             else if (data != null) ...[
               _SummaryCard(data: data),
               const SizedBox(height: 14),
-              _ProcessNowButton(
-                isProcessing: _isProcessingAll,
-                enabled: data.providers.isNotEmpty,
-                onPressed: _processAllPayouts,
-              ),
-              const SizedBox(height: 14),
               if (data.providers.isEmpty)
                 const _EmptyPayouts()
               else
@@ -180,10 +143,11 @@ class _AdminProviderPayoutsScreenState
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _ProviderPayoutTile(
                       provider: provider,
-                      isPaying: _payingProviderIds.contains(
+                      isReviewing: _reviewingProviderIds.contains(
                         provider.providerId,
                       ),
-                      onPay: () => _pay(provider),
+                      onAccept: () => _review(provider, approve: true),
+                      onReject: () => _review(provider, approve: false),
                     ),
                   ),
                 ),
@@ -193,46 +157,6 @@ class _AdminProviderPayoutsScreenState
       ),
       bottomNavigationBar: const AdminTaskbar(
         currentTab: AdminTaskbarTab.payouts,
-      ),
-    );
-  }
-}
-
-class _ProcessNowButton extends StatelessWidget {
-  const _ProcessNowButton({
-    required this.isProcessing,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  final bool isProcessing;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton.icon(
-        onPressed: enabled && !isProcessing ? onPressed : null,
-        style: TripwiseButtonStyles.accentElevated(
-          radius: 8,
-          elevation: 0,
-          disabledBackgroundColor: TripwiseColors.surfaceContainerHigh,
-          disabledForegroundColor: TripwiseColors.onSurfaceVariant,
-        ),
-        icon: isProcessing
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: TripwiseColors.onSecondary,
-                ),
-              )
-            : const Icon(Icons.flash_on_rounded),
-        label: Text(isProcessing ? 'Releasing payouts...' : 'Release all payouts'),
       ),
     );
   }
@@ -256,16 +180,16 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Line(label: 'Admin wallet', value: data.adminWallet.displayBalance),
-          _Line(label: 'Gross held', value: data.totals.displayGrossAmount),
+          _Line(label: 'Requested gross', value: data.totals.displayGrossAmount),
           _Line(
             label: 'App commission (${data.commissionLabel})',
             value: data.totals.displayCommissionAmount,
           ),
           _Line(
-            label: 'Net to providers',
+            label: 'Requested amount',
             value: data.totals.displayProviderNetAmount,
           ),
-          _Line(label: 'Bookings', value: '${data.totals.bookingCount}'),
+          _Line(label: 'Requests', value: '${data.totals.bookingCount}'),
         ],
       ),
     );
@@ -275,13 +199,15 @@ class _SummaryCard extends StatelessWidget {
 class _ProviderPayoutTile extends StatelessWidget {
   const _ProviderPayoutTile({
     required this.provider,
-    required this.isPaying,
-    required this.onPay,
+    required this.isReviewing,
+    required this.onAccept,
+    required this.onReject,
   });
 
   final AdminProviderPayoutSummary provider;
-  final bool isPaying;
-  final VoidCallback onPay;
+  final bool isReviewing;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
 
   @override
   Widget build(BuildContext context) {
@@ -305,31 +231,52 @@ class _ProviderPayoutTile extends StatelessWidget {
           _Line(label: 'Gross', value: provider.displayGrossAmount),
           _Line(label: 'Commission', value: provider.displayCommissionAmount),
           _Line(
-            label: 'Provider receives',
+            label: 'Requested amount',
             value: provider.displayProviderNetAmount,
           ),
-          _Line(label: 'Bookings', value: '${provider.bookingCount}'),
+          _Line(label: 'Requests', value: '${provider.bookingCount}'),
+          if (provider.requestedAt != null)
+            _Line(label: 'First requested', value: provider.requestedAt!),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: isPaying ? null : onPay,
-              style: TripwiseButtonStyles.primaryElevated(
-                radius: 8,
-                elevation: 0,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: isReviewing ? null : onReject,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: TripwiseColors.error,
+                    side: const BorderSide(color: TripwiseColors.error),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                  icon: const Icon(Icons.close_rounded),
+                  label: const Text('Reject'),
+                ),
               ),
-              icon: isPaying
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: TripwiseColors.onPrimary,
-                      ),
-                    )
-                  : const Icon(Icons.payments_rounded),
-              label: const Text('Pay Provider'),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isReviewing ? null : onAccept,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 8,
+                    elevation: 0,
+                  ),
+                  icon: isReviewing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: TripwiseColors.onPrimary,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded),
+                  label: const Text('Accept'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -371,7 +318,7 @@ class _EmptyPayouts extends StatelessWidget {
       padding: EdgeInsets.only(top: 90),
       child: Center(
         child: Text(
-          'No held provider payouts are waiting for release.',
+          'No provider payout requests are waiting for review.',
           style: TextStyle(
             color: TripwiseColors.onSurfaceVariant,
             fontWeight: FontWeight.w700,

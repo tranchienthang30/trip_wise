@@ -18,7 +18,13 @@ class _ProviderFinancePayoutScreenState
   static const List<String> _periods = ['Weekly', 'Monthly', 'Yearly'];
 
   final ProviderFinanceApi _api = ProviderFinanceApi();
+  final TextEditingController _payoutAmountController =
+      TextEditingController();
+  final TextEditingController _transactionSearchController =
+      TextEditingController();
   int _selectedPeriod = 1;
+  String _transactionStatus = 'all';
+  bool _showAllTransactions = false;
   ProviderFinance? _data;
   bool _isLoading = true;
   bool _isRequestingPayout = false;
@@ -30,6 +36,13 @@ class _ProviderFinancePayoutScreenState
     _loadFinance();
   }
 
+  @override
+  void dispose() {
+    _payoutAmountController.dispose();
+    _transactionSearchController.dispose();
+    super.dispose();
+  }
+
   String get _selectedPeriodValue => _periods[_selectedPeriod].toLowerCase();
 
   Future<void> _loadFinance() async {
@@ -38,7 +51,12 @@ class _ProviderFinancePayoutScreenState
       _error = null;
     });
     try {
-      final data = await _api.fetchFinance(period: _selectedPeriodValue);
+      final data = await _api.fetchFinance(
+        period: _selectedPeriodValue,
+        query: _transactionSearchController.text,
+        status: _transactionStatus,
+        limit: _showAllTransactions ? 50 : 10,
+      );
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -53,16 +71,24 @@ class _ProviderFinancePayoutScreenState
     }
   }
 
-  Future<void> _requestPayout() async {
+  Future<void> _requestPayout(double amount) async {
     if (_isRequestingPayout) return;
     final available = _data?.overview.availableForPayout ?? 0;
     if (available <= 0) {
       _showSnackBar('No balance available for payout.');
       return;
     }
+    if (amount <= 0) {
+      _showSnackBar('Enter an amount greater than zero.', isError: true);
+      return;
+    }
+    if (amount > available) {
+      _showSnackBar('Amount exceeds available balance.', isError: true);
+      return;
+    }
     setState(() => _isRequestingPayout = true);
     try {
-      await _api.requestPayout();
+      await _api.requestPayout(amount: amount);
       if (!mounted) return;
       _showSnackBar('Payout request submitted.');
       await _loadFinance();
@@ -74,6 +100,143 @@ class _ProviderFinancePayoutScreenState
         setState(() => _isRequestingPayout = false);
       }
     }
+  }
+
+  Future<void> _showPayoutAmountSheet() async {
+    final available = _data?.overview.availableForPayout ?? 0;
+    if (available <= 0) {
+      _showSnackBar('No balance available for payout.');
+      return;
+    }
+
+    _payoutAmountController.text = available.round().toString();
+    final availableLabel = _data?.overview.displayAvailableForPayout ?? '\$0';
+    final amount = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TripwiseColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Request payout',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Available: $availableLabel',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _payoutAmountController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  prefixText: '\$',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final raw = _payoutAmountController.text
+                        .replaceAll(',', '')
+                        .trim();
+                    final parsed = double.tryParse(raw) ?? -1;
+                    Navigator.of(context).pop(parsed);
+                  },
+                  style: TripwiseButtonStyles.primaryElevated(radius: 8),
+                  icon: const Icon(Icons.payments_rounded),
+                  label: const Text('Submit request'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (amount == null) return;
+    await _requestPayout(amount);
+  }
+
+  void _reloadTransactions({bool showAll = false}) {
+    setState(() => _showAllTransactions = showAll);
+    _loadFinance();
+  }
+
+  Future<void> _showTransactionFilterSheet() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: TripwiseColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        const options = [
+          ('all', 'All transactions'),
+          ('paid', 'Paid'),
+          ('pending', 'Pending'),
+          ('cancelled', 'Cancelled'),
+        ];
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Filter transactions',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...options.map(
+                  (option) => RadioListTile<String>(
+                    value: option.$1,
+                    groupValue: _transactionStatus,
+                    onChanged: (value) => Navigator.of(context).pop(value),
+                    title: Text(option.$2),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected == null || selected == _transactionStatus) return;
+    setState(() {
+      _transactionStatus = selected;
+      _showAllTransactions = false;
+    });
+    await _loadFinance();
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -116,7 +279,7 @@ class _ProviderFinancePayoutScreenState
                 _PayoutSummaryCard(
                   overview: data.overview,
                   isRequesting: _isRequestingPayout,
-                  onRequestPayout: _requestPayout,
+                  onRequestPayout: _showPayoutAmountSheet,
                 ),
                 const SizedBox(height: 18),
                 _LifetimeEarningsCard(overview: data.overview),
@@ -138,6 +301,13 @@ class _ProviderFinancePayoutScreenState
                 const SizedBox(height: 18),
                 _RecentTransactionsCard(
                   transactions: data.recentTransactions.items,
+                  total: data.recentTransactions.total,
+                  searchController: _transactionSearchController,
+                  status: _transactionStatus,
+                  isShowingAll: _showAllTransactions,
+                  onSearchSubmitted: (_) => _reloadTransactions(),
+                  onFilterTap: _showTransactionFilterSheet,
+                  onViewAll: () => _reloadTransactions(showAll: true),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
@@ -262,17 +432,6 @@ class _PayoutSummaryCard extends StatelessWidget {
                   label: const Text(
                     'Request Payout',
                     style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.only(left: 18),
-                child: Text(
-                  'View Payout Schedule',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: TripwiseColors.primary,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -558,9 +717,38 @@ class _RevenueGrowthCard extends StatelessWidget {
 }
 
 class _RecentTransactionsCard extends StatelessWidget {
-  const _RecentTransactionsCard({required this.transactions});
+  const _RecentTransactionsCard({
+    required this.transactions,
+    required this.total,
+    required this.searchController,
+    required this.status,
+    required this.isShowingAll,
+    required this.onSearchSubmitted,
+    required this.onFilterTap,
+    required this.onViewAll,
+  });
 
   final List<ProviderFinanceTransaction> transactions;
+  final int total;
+  final TextEditingController searchController;
+  final String status;
+  final bool isShowingAll;
+  final ValueChanged<String> onSearchSubmitted;
+  final VoidCallback onFilterTap;
+  final VoidCallback onViewAll;
+
+  String get _statusLabel {
+    switch (status) {
+      case 'paid':
+        return 'Paid';
+      case 'pending':
+        return 'Pending';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'All';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -583,50 +771,73 @@ class _RecentTransactionsCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: TripwiseColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search_rounded,
-                        size: 18,
-                        color: TripwiseColors.onSurfaceVariant.withValues(
-                          alpha: 0.65,
-                        ),
+                child: TextField(
+                  controller: searchController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: onSearchSubmitted,
+                  decoration: InputDecoration(
+                    hintText: 'Search transactions...',
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: TripwiseColors.onSurfaceVariant.withValues(
+                        alpha: 0.65,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Search transactions...',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: TripwiseColors.onSurfaceVariant
-                                    .withValues(alpha: 0.7),
-                              ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    suffixIcon: searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            onPressed: () {
+                              searchController.clear();
+                              onSearchSubmitted('');
+                            },
+                          ),
+                    filled: true,
+                    fillColor: TripwiseColors.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: TripwiseColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(18),
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  onPressed: onFilterTap,
+                  style: IconButton.styleFrom(
+                    backgroundColor: TripwiseColors.surfaceContainerLow,
+                    shape: const CircleBorder(),
+                  ),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
                 ),
-                child: const Icon(Icons.tune_rounded, size: 18),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              decoration: BoxDecoration(
+                color: TripwiseColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                'Filter: $_statusLabel',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 18),
           if (transactions.isEmpty)
@@ -634,7 +845,7 @@ class _RecentTransactionsCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 28),
               child: Center(
                 child: Text(
-                  'No recent transactions yet.',
+                  'No matching transactions.',
                   style: TextStyle(color: TripwiseColors.onSurfaceVariant),
                 ),
               ),
@@ -646,16 +857,32 @@ class _RecentTransactionsCard extends StatelessWidget {
                 child: _TransactionCard(data: transaction),
               ),
             ),
-          const SizedBox(height: 6),
-          Center(
-            child: TextButton(
-              onPressed: () {},
-              child: const Text(
-                'View all transactions',
-                style: TextStyle(fontWeight: FontWeight.w700),
+          if (transactions.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Center(
+              child: TextButton(
+                onPressed: onViewAll,
+                child: Text(
+                  isShowingAll
+                      ? 'Refresh transactions'
+                      : 'View all transactions${total > 0 ? ' ($total)' : ''}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
-          ),
+          ],
+          if (transactions.isNotEmpty && isShowingAll) ...[
+            const SizedBox(height: 6),
+            Center(
+              child: Text(
+                'Showing ${transactions.length} transaction${transactions.length == 1 ? '' : 's'}',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -763,7 +990,7 @@ class _TransactionCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '${data.date} • ${data.time}',
+                '${data.date} â€¢ ${data.time}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: TripwiseColors.onSurface,
                 ),
@@ -801,7 +1028,6 @@ class _TransactionCard extends StatelessWidget {
     );
   }
 }
-
 class _FinanceErrorState extends StatelessWidget {
   const _FinanceErrorState({required this.message, required this.onRetry});
 

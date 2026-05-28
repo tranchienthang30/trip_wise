@@ -93,6 +93,7 @@ class AdminProviderPayoutSummary {
     required this.displayGrossAmount,
     required this.displayCommissionAmount,
     required this.displayProviderNetAmount,
+    required this.requestedAt,
   });
 
   final String providerId;
@@ -101,6 +102,7 @@ class AdminProviderPayoutSummary {
   final String displayGrossAmount;
   final String displayCommissionAmount;
   final String displayProviderNetAmount;
+  final String? requestedAt;
 
   factory AdminProviderPayoutSummary.fromJson(Map<String, dynamic> json) {
     return AdminProviderPayoutSummary(
@@ -112,6 +114,7 @@ class AdminProviderPayoutSummary {
           json['displayCommissionAmount'] as String? ?? '\$0',
       displayProviderNetAmount:
           json['displayProviderNetAmount'] as String? ?? '\$0',
+      requestedAt: json['requestedAt'] as String?,
     );
   }
 }
