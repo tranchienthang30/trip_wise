@@ -132,9 +132,27 @@ class RuleBasedChatbotService {
     ),
     ChatbotRule(
       intent: 'identity_verification',
-      keywords: ['verify', 'verification', 'passport', 'identity'],
+      keywords: [
+        'verify',
+        'verification',
+        'passport',
+        'identity',
+        'up passport',
+        'upload passport',
+        'xác minh',
+        'xac minh',
+        'giấy tờ',
+        'giay to',
+        'hộ chiếu',
+        'ho chieu',
+        'căn cước',
+        'can cuoc',
+        'cccd',
+        'tải lên',
+        'tai len',
+      ],
       response:
-          'Some bookings or provider accounts may require identity verification. Upload a clear, valid document when requested.',
+          'Để upload passport: vào tab Profile ở thanh dưới cùng, kéo tới Verification, nhấn Continue hoặc Verify Documents, chọn thẻ Passport / Government document, rồi nhấn Tap to upload để chọn ảnh passport rõ nét.',
     ),
     ChatbotRule(
       intent: 'travel_document',
@@ -171,6 +189,36 @@ class RuleBasedChatbotService {
       keywords: ['payout', 'provider finance', 'revenue', 'withdraw'],
       response:
           'Provider revenue and payout information are available in the Finance/Payout area.',
+    ),
+    ChatbotRule(
+      intent: 'app_layout',
+      keywords: [
+        'layout',
+        'navigation',
+        'bottom bar',
+        'tab',
+        'menu',
+        'screen',
+        'where is',
+        'go to',
+      ],
+      response:
+          'Tripwise has two main layouts. Planner uses Home, My Trips, Planner, Wallet, and Profile. Provider uses Dashboard, Listings, Orders, VIP, and Finance.',
+    ),
+    ChatbotRule(
+      intent: 'app_feature',
+      keywords: [
+        'feature',
+        'function',
+        'how to use',
+        'tripwise app',
+        'planner',
+        'business app',
+        'vip',
+        'finance',
+      ],
+      response:
+          'Planner features include search, booking, trip planning, wallet, reviews, and support. Provider features include listing management, order handling, guest chat, VIP promotions, and finance balance.',
     ),
     ChatbotRule(
       intent: 'contact_support',
@@ -234,5 +282,80 @@ class RuleBasedChatbotService {
     return bestRule;
   }
 
-  String _normalize(String text) => text.toLowerCase().trim();
+  String _normalize(String text) {
+    var normalized = text.toLowerCase().trim();
+    const replacements = {
+      'à': 'a',
+      'á': 'a',
+      'ạ': 'a',
+      'ả': 'a',
+      'ã': 'a',
+      'â': 'a',
+      'ầ': 'a',
+      'ấ': 'a',
+      'ậ': 'a',
+      'ẩ': 'a',
+      'ẫ': 'a',
+      'ă': 'a',
+      'ằ': 'a',
+      'ắ': 'a',
+      'ặ': 'a',
+      'ẳ': 'a',
+      'ẵ': 'a',
+      'è': 'e',
+      'é': 'e',
+      'ẹ': 'e',
+      'ẻ': 'e',
+      'ẽ': 'e',
+      'ê': 'e',
+      'ề': 'e',
+      'ế': 'e',
+      'ệ': 'e',
+      'ể': 'e',
+      'ễ': 'e',
+      'ì': 'i',
+      'í': 'i',
+      'ị': 'i',
+      'ỉ': 'i',
+      'ĩ': 'i',
+      'ò': 'o',
+      'ó': 'o',
+      'ọ': 'o',
+      'ỏ': 'o',
+      'õ': 'o',
+      'ô': 'o',
+      'ồ': 'o',
+      'ố': 'o',
+      'ộ': 'o',
+      'ổ': 'o',
+      'ỗ': 'o',
+      'ơ': 'o',
+      'ờ': 'o',
+      'ớ': 'o',
+      'ợ': 'o',
+      'ở': 'o',
+      'ỡ': 'o',
+      'ù': 'u',
+      'ú': 'u',
+      'ụ': 'u',
+      'ủ': 'u',
+      'ũ': 'u',
+      'ư': 'u',
+      'ừ': 'u',
+      'ứ': 'u',
+      'ự': 'u',
+      'ử': 'u',
+      'ữ': 'u',
+      'ỳ': 'y',
+      'ý': 'y',
+      'ỵ': 'y',
+      'ỷ': 'y',
+      'ỹ': 'y',
+      'đ': 'd',
+    };
+    replacements.forEach((key, value) {
+      normalized = normalized.replaceAll(key, value);
+    });
+    return normalized;
+  }
 }
