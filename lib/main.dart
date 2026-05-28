@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -152,18 +153,88 @@ class _SystemBackRouteScope extends StatelessWidget {
 /// they were. Using `go` here destroys the stack and causes "nothing to pop"
 /// crashes in deep-link target screens.
 void handleDeepLink(String? route) {
-  if (route == null || route.isEmpty || !route.startsWith('/')) return;
+  if (route == null || route.isEmpty) return;
+
+  String normalizedRoute = route;
+  bool shouldReplaceStack = false;
+  if (normalizedRoute == '/') {
+    normalizedRoute = '/home';
+    shouldReplaceStack = true;
+  }
+  if (!route.startsWith('/')) {
+    shouldReplaceStack = true;
+    final uri = Uri.tryParse(route);
+    if (uri == null) return;
+    if (uri.scheme == 'tripwise' && uri.host == 'payos') {
+      final status = (uri.queryParameters['status'] ?? '').toUpperCase();
+      final code = (uri.queryParameters['code'] ?? '').trim();
+      final bookingId = uri.queryParameters['bookingId'] ?? '';
+      if (uri.path == '/return' && (status == 'PAID' || code == '00')) {
+        normalizedRoute = '/my_trips?status=upcoming'
+            '${bookingId.isEmpty ? '' : '&bookingId=${Uri.encodeQueryComponent(bookingId)}'}';
+      } else {
+        normalizedRoute = '/home';
+      }
+    } else {
+      return;
+    }
+  }
+
+  if (!normalizedRoute.startsWith('/')) return;
   if (rootNavigatorKey.currentContext == null) {
-    _pendingDeepLink = route; // router not ready yet — defer
+    _pendingDeepLink = normalizedRoute; // router not ready yet — defer
     return;
   }
-  _router.push(route);
+  if (shouldReplaceStack) {
+    _router.go(normalizedRoute);
+    return;
+  }
+  _router.push(normalizedRoute);
+}
+
+class _RouteRecoveryScreen extends StatefulWidget {
+  const _RouteRecoveryScreen({required this.rawLocation});
+
+  final String rawLocation;
+
+  @override
+  State<_RouteRecoveryScreen> createState() => _RouteRecoveryScreenState();
+}
+
+class _RouteRecoveryScreenState extends State<_RouteRecoveryScreen> {
+  bool _redirected = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_redirected) return;
+    _redirected = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (rootNavigatorKey.currentContext == null) return;
+      if (widget.rawLocation.startsWith('tripwise://')) {
+        handleDeepLink(widget.rawLocation);
+        return;
+      }
+      // Unknown/invalid route fallback.
+      _router.go('/home');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
 }
 
 final GoRouter _router = GoRouter(
   initialLocation: '/home',
+  overridePlatformDefaultLocation: true,
   navigatorKey: rootNavigatorKey,
   refreshListenable: _authSessionStore,
+  errorBuilder: (context, state) =>
+      _RouteRecoveryScreen(rawLocation: state.uri.toString()),
   redirect: (context, state) {
     final isLoggedIn = _authSessionStore.isAuthenticated;
     final onAuthScreen = state.matchedLocation == '/register';
@@ -198,6 +269,7 @@ final GoRouter _router = GoRouter(
     return null;
   },
   routes: [
+    GoRoute(path: '/', redirect: (context, state) => '/home'),
     GoRoute(
       path: '/register',
       builder: (context, state) =>
@@ -534,10 +606,19 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   StreamSubscription<IncomingPushPayload>? _pushSub;
+  StreamSubscription<Uri>? _appLinksSub;
+  final AppLinks _appLinks = AppLinks();
 
   @override
   void initState() {
     super.initState();
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) handleDeepLink(uri.toString());
+    }).catchError((_) {});
+    _appLinksSub = _appLinks.uriLinkStream.listen(
+      (uri) => handleDeepLink(uri.toString()),
+      onError: (_) {},
+    );
     // In-app banner for foreground pushes. push_messaging_service.dart no
     // longer renders the OS tray notification when the app is foregrounded —
     // the banner is shown here instead so the user gets in-app feedback
@@ -556,6 +637,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _pushSub?.cancel();
+    _appLinksSub?.cancel();
     super.dispose();
   }
 

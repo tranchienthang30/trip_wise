@@ -165,6 +165,7 @@ class CheckoutCompleteResult {
     required this.nextRoute,
     required this.statusLabel,
     required this.message,
+    required this.payos,
   });
 
   final String bookingId;
@@ -172,6 +173,7 @@ class CheckoutCompleteResult {
   final String nextRoute;
   final String statusLabel;
   final String message;
+  final CheckoutPayOSLink? payos;
 
   factory CheckoutCompleteResult.fromJson(Map<String, dynamic> json) {
     return CheckoutCompleteResult(
@@ -180,6 +182,110 @@ class CheckoutCompleteResult {
       nextRoute: json['nextRoute'] as String? ?? '/payment_success',
       statusLabel: json['statusLabel'] as String? ?? 'CONFIRMED',
       message: json['message'] as String? ?? 'Booking completed.',
+      payos: json['payos'] is Map
+          ? CheckoutPayOSLink.fromJson(
+              (json['payos'] as Map).cast<String, dynamic>(),
+            )
+          : null,
+    );
+  }
+}
+
+class CheckoutPayOSLink {
+  CheckoutPayOSLink({
+    required this.paymentLinkId,
+    required this.orderCode,
+    required this.checkoutUrl,
+    required this.qrCode,
+    required this.status,
+    required this.expiresAt,
+  });
+
+  final String paymentLinkId;
+  final int orderCode;
+  final String checkoutUrl;
+  final String qrCode;
+  final String status;
+  final int? expiresAt;
+
+  factory CheckoutPayOSLink.fromJson(Map<String, dynamic> json) {
+    return CheckoutPayOSLink(
+      paymentLinkId: json['paymentLinkId'] as String? ?? '',
+      orderCode: (json['orderCode'] as num?)?.toInt() ?? 0,
+      checkoutUrl: json['checkoutUrl'] as String? ?? '',
+      qrCode: json['qrCode'] as String? ?? '',
+      status: json['status'] as String? ?? 'PENDING',
+      expiresAt: (json['expiresAt'] as num?)?.toInt(),
+    );
+  }
+}
+
+class CheckoutPayOSSession {
+  CheckoutPayOSSession({
+    required this.bookingId,
+    required this.paymentId,
+    required this.status,
+    required this.amount,
+    required this.paymentLinkId,
+    required this.orderCode,
+    required this.checkoutUrl,
+    required this.qrCode,
+    required this.expiresAt,
+  });
+
+  final String bookingId;
+  final String paymentId;
+  final String status;
+  final double amount;
+  final String paymentLinkId;
+  final int orderCode;
+  final String checkoutUrl;
+  final String qrCode;
+  final int? expiresAt;
+
+  factory CheckoutPayOSSession.fromJson(Map<String, dynamic> json) {
+    return CheckoutPayOSSession(
+      bookingId: json['bookingId'] as String? ?? '',
+      paymentId: json['paymentId'] as String? ?? '',
+      status: json['status'] as String? ?? 'PENDING',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      paymentLinkId: json['paymentLinkId'] as String? ?? '',
+      orderCode: (json['orderCode'] as num?)?.toInt() ?? 0,
+      checkoutUrl: json['checkoutUrl'] as String? ?? '',
+      qrCode: json['qrCode'] as String? ?? '',
+      expiresAt: (json['expiresAt'] as num?)?.toInt(),
+    );
+  }
+}
+
+class CheckoutPayOSConfirmResult {
+  CheckoutPayOSConfirmResult({
+    required this.bookingId,
+    required this.paymentId,
+    required this.paymentStatus,
+    required this.bookingStatus,
+    required this.nextRoute,
+    required this.isPaid,
+    required this.message,
+  });
+
+  final String bookingId;
+  final String paymentId;
+  final String paymentStatus;
+  final String bookingStatus;
+  final String nextRoute;
+  final bool isPaid;
+  final String message;
+
+  factory CheckoutPayOSConfirmResult.fromJson(Map<String, dynamic> json) {
+    return CheckoutPayOSConfirmResult(
+      bookingId: json['bookingId'] as String? ?? '',
+      paymentId: json['paymentId'] as String? ?? '',
+      paymentStatus: json['paymentStatus'] as String? ?? 'PENDING',
+      bookingStatus: json['bookingStatus'] as String? ?? 'PENDING_PAYMENT',
+      nextRoute: json['nextRoute'] as String? ?? '/payment_success',
+      isPaid: json['isPaid'] as bool? ?? false,
+      message: json['message'] as String? ?? 'Payment status checked.',
     );
   }
 }

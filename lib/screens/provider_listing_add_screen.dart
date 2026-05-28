@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
@@ -52,7 +53,16 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const ProviderAppBar(),
+      appBar: ProviderAppBar(
+        backRoute: '/provider_listings',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/provider_listings');
+        },
+      ),
       body: Stepper(
         currentStep: _currentStep,
         onStepContinue: () {

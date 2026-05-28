@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/my_trips.dart';
 import '../services/my_trips_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -505,7 +506,8 @@ class _TripImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url.trim().isEmpty) {
+    final imageProvider = tripwiseImageProvider(url);
+    if (imageProvider == null) {
       return Container(
         color: TripwiseColors.surfaceContainer,
         alignment: Alignment.center,
@@ -516,8 +518,8 @@ class _TripImage extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      url,
+    return Image(
+      image: imageProvider,
       height: height,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/home_content.dart';
 import '../services/home_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -1229,7 +1230,8 @@ class _NetworkFillImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl == null || imageUrl!.isEmpty) {
+    final imageProvider = tripwiseImageProvider(imageUrl);
+    if (imageProvider == null) {
       return Container(
         color: TripwiseColors.surfaceContainerLow,
         alignment: Alignment.center,
@@ -1241,8 +1243,8 @@ class _NetworkFillImage extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      imageUrl!,
+    return Image(
+      image: imageProvider,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         color: TripwiseColors.surfaceContainerLow,
@@ -1278,7 +1280,8 @@ class _ThumbnailImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl == null || imageUrl!.isEmpty) {
+    final imageProvider = tripwiseImageProvider(imageUrl);
+    if (imageProvider == null) {
       return Container(
         width: 82,
         height: 82,
@@ -1291,8 +1294,8 @@ class _ThumbnailImage extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      imageUrl!,
+    return Image(
+      image: imageProvider,
       width: 82,
       height: 82,
       fit: BoxFit.cover,

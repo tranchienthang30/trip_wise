@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
+
 ImageProvider? tripwiseImageProvider(String? value) {
   final image = value?.trim();
   if (image == null || image.isEmpty) return null;
@@ -16,6 +18,24 @@ ImageProvider? tripwiseImageProvider(String? value) {
       return MemoryImage(Uint8List.fromList(bytes));
     } catch (_) {
       return null;
+    }
+  }
+
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    return NetworkImage(image);
+  }
+
+  // Backend often returns relative paths (e.g. /uploads/listings/..).
+  // Resolve them against current API host so NetworkImage can load.
+  final baseUrl = ApiClient.instance.dio.options.baseUrl.trim();
+  if (baseUrl.isNotEmpty) {
+    final baseUri = Uri.tryParse(baseUrl);
+    if (baseUri != null && baseUri.hasScheme && baseUri.host.isNotEmpty) {
+      final root = baseUri.replace(path: '', query: null, fragment: null);
+      final resolved = image.startsWith('/')
+          ? root.resolve(image).toString()
+          : root.resolve('/$image').toString();
+      return NetworkImage(resolved);
     }
   }
 

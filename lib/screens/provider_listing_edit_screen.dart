@@ -321,7 +321,16 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
     final detail = _detail;
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const ProviderAppBar(),
+      appBar: ProviderAppBar(
+        backRoute: '/provider_listings',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/provider_listings');
+        },
+      ),
       body: _isLoading && detail == null
           ? const Center(child: CircularProgressIndicator())
           : _error != null && detail == null

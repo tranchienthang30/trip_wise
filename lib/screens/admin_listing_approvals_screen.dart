@@ -4,6 +4,7 @@ import '../constants/colors.dart';
 import '../constants/icons.dart';
 import '../models/admin_listing.dart';
 import '../services/admin_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 
 class AdminListingApprovalsScreen extends StatefulWidget {
@@ -254,6 +255,7 @@ class _ListingReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = tripwiseImageProvider(listing.imageUrl);
     return Material(
       color: TripwiseColors.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(8),
@@ -277,12 +279,19 @@ class _ListingReviewTile extends StatelessWidget {
                 child: SizedBox(
                   width: 72,
                   height: 72,
-                  child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                  child: imageProvider == null
                       ? const ColoredBox(
                           color: TripwiseColors.surfaceContainerLow,
                           child: Icon(Icons.hotel_rounded),
                         )
-                      : Image.network(listing.imageUrl!, fit: BoxFit.cover),
+                      : Image(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const ColoredBox(
+                            color: TripwiseColors.surfaceContainerLow,
+                            child: Icon(Icons.hotel_rounded),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -376,6 +385,7 @@ class _ListingDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = tripwiseImageProvider(listing.imageUrl);
     return DraggableScrollableSheet(
       initialChildSize: 0.86,
       minChildSize: 0.55,
@@ -405,14 +415,23 @@ class _ListingDetailsSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 child: AspectRatio(
                   aspectRatio: 16 / 10,
-                  child: listing.imageUrl == null || listing.imageUrl!.isEmpty
+                  child: imageProvider == null
                       ? const ColoredBox(
                           color: TripwiseColors.surfaceContainerLow,
                           child: Center(
                             child: Icon(Icons.hotel_rounded, size: 42),
                           ),
                         )
-                      : Image.network(listing.imageUrl!, fit: BoxFit.cover),
+                      : Image(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const ColoredBox(
+                            color: TripwiseColors.surfaceContainerLow,
+                            child: Center(
+                              child: Icon(Icons.hotel_rounded, size: 42),
+                            ),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -782,6 +801,7 @@ class _RoomSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = tripwiseImageProvider(room.imageUrl);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -797,12 +817,19 @@ class _RoomSummaryCard extends StatelessWidget {
             child: SizedBox(
               width: 54,
               height: 54,
-              child: room.imageUrl == null || room.imageUrl!.isEmpty
+              child: imageProvider == null
                   ? const ColoredBox(
                       color: TripwiseColors.surfaceContainerHigh,
                       child: Icon(Icons.meeting_room_rounded),
                     )
-                  : Image.network(room.imageUrl!, fit: BoxFit.cover),
+                  : Image(
+                      image: imageProvider,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: TripwiseColors.surfaceContainerHigh,
+                        child: Icon(Icons.meeting_room_rounded),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 12),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/colors.dart';
 import '../models/checkout_data.dart';
@@ -121,6 +122,12 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       return;
     }
 
+    final guestValidationMessage = _guestValidationMessage();
+    if (guestValidationMessage != null) {
+      _showFeedback(guestValidationMessage, isError: true);
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final result = await _api.complete(
@@ -134,6 +141,14 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         agreeToTerms: true,
       );
       if (!mounted) return;
+      final payosUrl = result.payos?.checkoutUrl.trim() ?? '';
+      if (payosUrl.isNotEmpty) {
+        await launchUrl(
+          Uri.parse(payosUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        return;
+      }
       context.go(result.nextRoute);
     } catch (error) {
       if (!mounted) return;
@@ -494,7 +509,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _completeBooking,
+                onPressed: (_isSubmitting || !_canSubmitCheckout)
+                    ? null
+                    : _completeBooking,
                 style: TripwiseButtonStyles.primaryElevated(
                   radius: 12,
                   disabledBackgroundColor: TripwiseColors.outline.withOpacity(
@@ -716,6 +733,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: placeholder,
             border: OutlineInputBorder(
@@ -883,6 +901,45 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       return 'At least 1 guest is required.';
     }
     return null;
+  }
+
+  bool get _canSubmitCheckout {
+    if (_summary == null || _isSubmitting) return false;
+    if (!_agreeToTerms) return false;
+    return _guestValidationMessage() == null;
+  }
+
+  String? _guestValidationMessage() {
+    final fullName = _fullNameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (fullName.isEmpty) {
+      return 'Please enter your full name.';
+    }
+    if (email.isEmpty) {
+      return 'Please enter your email address.';
+    }
+    if (!_isValidEmail(email)) {
+      return 'Please enter a valid email address.';
+    }
+    if (phone.isEmpty) {
+      return 'Please enter your phone number.';
+    }
+    if (!_isValidPhone(phone)) {
+      return 'Please enter a valid phone number.';
+    }
+    return null;
+  }
+
+  bool _isValidEmail(String value) {
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    return emailRegex.hasMatch(value);
+  }
+
+  bool _isValidPhone(String value) {
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+    return digitsOnly.length >= 9 && digitsOnly.length <= 15;
   }
 
   void _showFeedback(String message, {bool isError = false}) {

@@ -108,7 +108,7 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         return;
       }
 
-      final croppedFile = await _cropDocumentImage(file.path);
+      final croppedFile = await _cropDocumentImage(file.path, type);
       if (croppedFile == null) return;
 
       final bytes = await croppedFile.readAsBytes();
@@ -140,11 +140,16 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
     }
   }
 
-  Future<CroppedFile?> _cropDocumentImage(String sourcePath) {
+  Future<CroppedFile?> _cropDocumentImage(
+    String sourcePath,
+    ProfileVerificationDocumentType type,
+  ) {
+    final ratio = _documentCropAspectRatio(type);
     return ImageCropper().cropImage(
       sourcePath: sourcePath,
       maxWidth: 1400,
-      maxHeight: 1050,
+      maxHeight: 2000,
+      aspectRatio: ratio,
       compressFormat: ImageCompressFormat.jpg,
       compressQuality: 80,
       uiSettings: [
@@ -153,22 +158,20 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
           toolbarWidgetColor: TripwiseColors.primary,
           statusBarLight: true,
           navBarLight: true,
-          initAspectRatio: CropAspectRatioPreset.ratio4x3,
+          initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: true,
           hideBottomControls: true,
           showCropGrid: true,
           cropGridColumnCount: 2,
           cropGridRowCount: 2,
           cropGridColor: TripwiseColors.primary,
-          aspectRatioPresets: const [
-            CropAspectRatioPreset.ratio4x3,
-          ],
+          aspectRatioPresets: const [CropAspectRatioPreset.original],
         ),
         IOSUiSettings(
-          minimumAspectRatio: 4 / 3,
-          aspectRatioPresets: const [
-            CropAspectRatioPreset.ratio4x3,
-          ],
+          minimumAspectRatio: ratio.ratioX / ratio.ratioY,
+          aspectRatioLockEnabled: true,
+          aspectRatioPickerButtonHidden: true,
+          aspectRatioPresets: const [CropAspectRatioPreset.original],
           hidesNavigationBar: true,
         ),
         WebUiSettings(
@@ -178,6 +181,17 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         ),
       ],
     );
+  }
+
+  CropAspectRatio _documentCropAspectRatio(
+    ProfileVerificationDocumentType type,
+  ) {
+    switch (type) {
+      case ProfileVerificationDocumentType.passport:
+        return const CropAspectRatio(ratioX: 4, ratioY: 5);
+      case ProfileVerificationDocumentType.address:
+        return const CropAspectRatio(ratioX: 1, ratioY: 1.42);
+    }
   }
 
   Future<void> _deleteDocument(ProfileVerificationDocumentType type) async {

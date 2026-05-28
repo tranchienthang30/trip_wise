@@ -8,6 +8,7 @@ import '../models/hotel_detail.dart';
 import '../services/hotels_api.dart';
 import '../services/my_trips_api.dart';
 import '../utils/currency.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/review_card.dart';
 import 'image_gallery_screen.dart';
 
@@ -363,8 +364,21 @@ class _NetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    final imageProvider = tripwiseImageProvider(url);
+    if (imageProvider == null) {
+      return Container(
+        color: TripwiseColors.surfaceContainerLow,
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.image_rounded,
+          size: 36,
+          color: TripwiseColors.onSurfaceVariant,
+        ),
+      );
+    }
+
+    return Image(
+      image: imageProvider,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         color: TripwiseColors.surfaceContainerLow,

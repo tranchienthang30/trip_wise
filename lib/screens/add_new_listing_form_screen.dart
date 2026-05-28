@@ -100,12 +100,6 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         ),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Draft prepared. Continue to Save Changes to persist.'),
-          backgroundColor: TripwiseColors.primary,
-        ),
-      );
       await context.push('/provider_listing_edit?mode=create');
       if (!mounted) return;
     } catch (error) {
@@ -155,7 +149,16 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      appBar: const ProviderAppBar(),
+      appBar: ProviderAppBar(
+        backRoute: '/provider_listings',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/provider_listings');
+        },
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

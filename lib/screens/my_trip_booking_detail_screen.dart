@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/my_trip_detail.dart';
 import '../services/my_trips_api.dart';
+import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -690,14 +691,15 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = tripwiseImageProvider(url);
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: url.trim().isEmpty
+        child: imageProvider == null
             ? const _ImageFallback(icon: Icons.image_rounded)
-            : Image.network(
-                url,
+            : Image(
+                image: imageProvider,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const _ImageFallback(icon: Icons.broken_image_rounded),
