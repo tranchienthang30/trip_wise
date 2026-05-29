@@ -194,6 +194,30 @@ void handleDeepLink(String? route) {
   _router.push(normalizedRoute);
 }
 
+final NotificationApi _pushNotificationApi = NotificationApi();
+
+/// Handles a tap on a system-tray notification (backgrounded, cold-start, or
+/// foreground-rendered). Tapping is engagement, so mark the notification read
+/// — otherwise the inbox stays unread and the bell keeps its +1 even though
+/// the user clearly saw and acted on it. Then deep-link as usual.
+void handleNotificationTap({String? route, String? notificationId}) {
+  if (notificationId != null && notificationId.isNotEmpty) {
+    unawaited(_markTrayNotificationRead(notificationId));
+  }
+  handleDeepLink(route);
+}
+
+Future<void> _markTrayNotificationRead(String id) async {
+  try {
+    await _pushNotificationApi.markRead(id);
+    // Tell any mounted bell to refetch so the badge clears deterministically
+    // instead of racing the app-resume refresh.
+    NotificationAlertService.notifyChanged();
+  } catch (_) {
+    // Best-effort: the inbox reconciles on its next fetch.
+  }
+}
+
 class _RouteRecoveryScreen extends StatefulWidget {
   const _RouteRecoveryScreen({required this.rawLocation});
 
@@ -592,7 +616,7 @@ void main() async {
   runApp(const MyApp());
 
   if (PushMessagingService.isSupported) {
-    await PushMessagingService.initialize(onDeepLink: handleDeepLink);
+    await PushMessagingService.initialize(onNotificationTap: handleNotificationTap);
     await _authSessionStore.syncPushToken();
     PushMessagingService.onTokenRefresh.listen((t) {
       if (_authSessionStore.isAuthenticated) {

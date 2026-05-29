@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../constants/icons.dart';
+import '../services/notification_alert_service.dart';
 import '../services/notifications_api.dart';
 import '../services/push_messaging_service.dart';
 import 'planner_assistant_chat.dart';
@@ -179,6 +180,7 @@ class _NotificationBellButtonState extends State<NotificationBellButton>
   final NotificationApi _api = NotificationApi();
   int _unread = 0;
   StreamSubscription<IncomingPushPayload>? _pushSub;
+  StreamSubscription<void>? _changedSub;
 
   @override
   void initState() {
@@ -187,6 +189,9 @@ class _NotificationBellButtonState extends State<NotificationBellButton>
     // Bump the badge the moment a foreground push lands, instead of waiting
     // for the next mount or inbox-pop. (#4)
     _pushSub = PushMessagingService.onForegroundPush.listen((_) => _loadUnread());
+    // Refresh when something marks a notification read elsewhere (e.g. a tray
+    // tap), so the badge clears deterministically rather than racing.
+    _changedSub = NotificationAlertService.onChanged.listen((_) => _loadUnread());
     _loadUnread();
   }
 
@@ -194,6 +199,7 @@ class _NotificationBellButtonState extends State<NotificationBellButton>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pushSub?.cancel();
+    _changedSub?.cancel();
     super.dispose();
   }
 

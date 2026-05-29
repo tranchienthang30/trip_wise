@@ -26,6 +26,15 @@ class NotificationAlertService {
   static Stream<IncomingPushPayload> get onNewNotification =>
       _controller.stream;
 
+  /// Fires when the unread count may have changed for a reason other than a
+  /// new notification arriving — e.g. a tray tap marked one read. Listeners
+  /// (the bell badge) refetch their count. Deterministic refresh, so the badge
+  /// doesn't race the mark-read request.
+  static final StreamController<void> _changed =
+      StreamController<void>.broadcast();
+  static Stream<void> get onChanged => _changed.stream;
+  static void notifyChanged() => _changed.add(null);
+
   static Timer? _timer;
   static bool _baselineSet = false;
   static bool _polling = false;

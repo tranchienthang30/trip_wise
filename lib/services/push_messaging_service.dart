@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -81,8 +82,34 @@ Future<void> _showLocal(
         icon: '@mipmap/ic_launcher',
       ),
     ),
-    payload: (data['action_route'] as String?) ?? '',
+    // Carry BOTH the route and the notification id so a tray tap can mark the
+    // notification read (not just navigate). Encoded as JSON; _decodeTapPayload
+    // also accepts a bare route string for back-compat with older payloads.
+    payload: jsonEncode({
+      'route': (data['action_route'] as String?) ?? '',
+      'id': (data['notification_id'] as String?) ?? '',
+    }),
   );
+}
+
+/// Parse the local-notification payload written by [_showLocal]. Falls back to
+/// treating the whole string as a route (older payloads were a bare route).
+({String? route, String? id}) _decodeTapPayload(String? raw) {
+  if (raw == null || raw.isEmpty) return (route: null, id: null);
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) {
+      final r = decoded['route'];
+      final i = decoded['id'];
+      return (
+        route: r is String && r.isNotEmpty ? r : null,
+        id: i is String && i.isNotEmpty ? i : null,
+      );
+    }
+  } catch (_) {
+    // Not JSON — treat as a bare route (back-compat).
+  }
+  return (route: raw, id: null);
 }
 
 /// Runs in a separate isolate when a message arrives while the app is
@@ -133,10 +160,15 @@ class PushMessagingService {
     }
   }
 
-  /// One-time setup. [onDeepLink] receives the tapped notification's
-  /// `action_route` (a GoRouter path) and is responsible for navigating.
+  /// One-time setup. [onNotificationTap] fires when the user taps a tray
+  /// notification (foreground-rendered, backgrounded, or cold-start). It
+  /// receives the `action_route` to navigate to AND the `notification_id` so
+  /// the caller can mark it read — tapping a notification is engagement, so it
+  /// should clear the unread state just like tapping the in-app banner or an
+  /// inbox row.
   static Future<void> initialize({
-    required void Function(String? route) onDeepLink,
+    required void Function({String? route, String? notificationId})
+        onNotificationTap,
   }) async {
     if (!_supported || _ready) return;
     _ready = true;
@@ -147,7 +179,10 @@ class PushMessagingService {
 
     await _plugin.initialize(
       const InitializationSettings(android: _androidInit),
-      onDidReceiveNotificationResponse: (resp) => onDeepLink(resp.payload),
+      onDidReceiveNotificationResponse: (resp) {
+        final p = _decodeTapPayload(resp.payload);
+        onNotificationTap(route: p.route, notificationId: p.id);
+      },
     );
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -171,13 +206,19 @@ class PushMessagingService {
 
     // Tapped a tray notification while the app was alive (backgrounded).
     FirebaseMessaging.onMessageOpenedApp.listen(
-      (m) => onDeepLink(m.data['action_route'] as String?),
+      (m) => onNotificationTap(
+        route: m.data['action_route'] as String?,
+        notificationId: m.data['notification_id'] as String?,
+      ),
     );
 
     // Tapped a tray notification that cold-started the app.
     final initial = await FirebaseMessaging.instance.getInitialMessage();
     if (initial != null) {
-      onDeepLink(initial.data['action_route'] as String?);
+      onNotificationTap(
+        route: initial.data['action_route'] as String?,
+        notificationId: initial.data['notification_id'] as String?,
+      );
     }
   }
 
