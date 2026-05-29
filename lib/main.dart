@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'constants/theme.dart';
 import 'services/auth_session_store.dart';
 import 'services/notification_alert_service.dart';
+import 'services/notifications_api.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
 import 'widgets/in_app_push_banner.dart';
@@ -613,6 +614,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   StreamSubscription<IncomingPushPayload>? _pollSub;
   StreamSubscription<Uri>? _appLinksSub;
   final AppLinks _appLinks = AppLinks();
+  final NotificationApi _notificationApi = NotificationApi();
 
   // Notifications already shown as a banner this session. Both the FCM
   // foreground stream (Android) and the polling fallback (all platforms) feed
@@ -673,8 +675,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     showInAppPushBanner(
       navigator: navigator,
       payload: payload,
-      onTap: () => handleDeepLink(payload.actionRoute),
+      onTap: () => _onBannerTap(payload),
     );
+  }
+
+  // Tapping a banner is explicit engagement, so mark the notification read
+  // (mirrors an inbox-row tap) before deep-linking. Merely *showing* the
+  // banner does NOT mark read — a glance the user may have missed shouldn't
+  // silently clear the unread badge.
+  void _onBannerTap(IncomingPushPayload payload) {
+    final id = payload.notificationId;
+    if (id != null && id.isNotEmpty) {
+      unawaited(_markReadQuietly(id));
+    }
+    handleDeepLink(payload.actionRoute);
+  }
+
+  Future<void> _markReadQuietly(String id) async {
+    try {
+      await _notificationApi.markRead(id);
+    } catch (_) {
+      // Best-effort: the deep-link still happens; the inbox will reconcile on
+      // its next fetch.
+    }
   }
 
   @override
