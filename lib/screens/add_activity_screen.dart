@@ -1,31 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
-import '../models/activity_catalog.dart';
-import '../services/activities_api.dart';
+import '../models/my_trips.dart';
+import '../services/my_trips_api.dart';
 import '../services/trips_api.dart';
 
-// UI chip labels -> server category. Index 0 ("All") means no filter.
-const List<String> _chipLabels = [
-  'All',
-  'Food',
-  'Sightseeing',
-  'Transport',
-  'Outdoors',
-];
-const List<String?> _chipCategory = [
-  null,
-  'FOOD',
-  'SIGHTSEEING',
-  'TRANSPORT',
-  'OUTDOORS',
-];
+const List<String> _chipLabels = ['All', 'Activity', 'Flight', 'Hotel'];
+const List<String?> _chipServiceType = [null, 'activity', 'flight', 'hotel'];
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key, this.tripId, this.dayIndex});
 
-  /// When both are provided, "Add to Trip" persists the activity onto this
-  /// trip/day; otherwise it falls back to a confirm-and-pop (no trip context).
   final String? tripId;
   final int? dayIndex;
 
@@ -34,11 +19,11 @@ class AddActivityScreen extends StatefulWidget {
 }
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
-  final ActivitiesApi _api = ActivitiesApi();
+  final MyTripsApi _myTripsApi = MyTripsApi();
   final TripsApi _tripsApi = TripsApi();
   final TextEditingController _searchController = TextEditingController();
 
-  ActivityCatalog? _data;
+  List<MyTripCard>? _items;
   Object? _error;
   int _selectedChipIndex = 0;
   String _query = '';
@@ -59,35 +44,33 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   Future<void> _load() async {
     setState(() {
       _error = null;
-      _data = null;
+      _items = null;
     });
     try {
-      final data = await _api.fetchCatalog();
+      final response = await _myTripsApi.fetchTrips(status: 'upcoming');
       if (!mounted) return;
-      setState(() => _data = data);
+      final list = response.items.toList()
+        ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      setState(() => _items = list);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e);
     }
   }
 
-  /// Client-side filter over the loaded catalog (category chip + search).
-  List<CatalogActivity> get _filtered {
-    final data = _data;
+  List<MyTripCard> get _filtered {
+    final data = _items;
     if (data == null) return const [];
-    final seen = <int>{};
-    final pool = <CatalogActivity>[
-      if (data.recommended != null) data.recommended!,
-      ...data.popular,
-    ].where((a) => seen.add(a.id)).toList();
 
-    final cat = _chipCategory[_selectedChipIndex];
+    final serviceType = _chipServiceType[_selectedChipIndex];
     final q = _query.trim().toLowerCase();
-    return pool.where((a) {
-      if (cat != null && a.category.toUpperCase() != cat) return false;
+    return data.where((item) {
+      if (serviceType != null && item.serviceType != serviceType) return false;
       if (q.isEmpty) return true;
-      return a.title.toLowerCase().contains(q) ||
-          a.location.toLowerCase().contains(q);
+      return item.title.toLowerCase().contains(q) ||
+          item.subtitle.toLowerCase().contains(q) ||
+          item.dateLabel.toLowerCase().contains(q) ||
+          item.ticketCode.toLowerCase().contains(q);
     }).toList();
   }
 
@@ -97,33 +80,63 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: const Duration(milliseconds: 1600),
+          duration: const Duration(milliseconds: 1800),
           behavior: SnackBarBehavior.floating,
         ),
       );
   }
 
-  Future<void> _onAddTap(CatalogActivity activity) async {
+  String _formatItemTime(TimeOfDay value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Future<String?> _pickPlanTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: TripwiseColors.primary,
+              onPrimary: TripwiseColors.onPrimary,
+              secondary: TripwiseColors.secondaryContainer,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return null;
+    return _formatItemTime(picked);
+  }
+
+  Future<void> _onAddTap(MyTripCard item) async {
     if (_submitting) return;
     final tripId = widget.tripId;
     final dayIndex = widget.dayIndex;
 
-    // Opened without trip context — legacy confirm-and-pop.
     if (tripId == null || dayIndex == null) {
-      _snack('Added to your trip');
-      Navigator.of(context).pop();
+      _snack('Please open this from a trip timeline.');
       return;
     }
+
+    final pickedTime = await _pickPlanTime();
+    if (pickedTime == null) return;
 
     setState(() => _submitting = true);
     try {
       await _tripsApi.addItem(
         tripId: tripId,
         dayIndex: dayIndex,
-        activityId: activity.id,
+        bookingItemId: item.id,
+        activityId: item.activityId,
+        time: pickedTime,
       );
       if (!mounted) return;
-      _snack('Added “${activity.title}” to your trip');
+      _snack('Added "${item.title}" to your plan');
       Navigator.of(context).pop(true);
     } on TripsApiException catch (e) {
       if (!mounted) return;
@@ -154,7 +167,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Add Activity',
+          'Add From Bookings',
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
       ),
@@ -163,19 +176,17 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   }
 
   Widget _buildBody() {
-    if (_data == null && _error == null) {
+    if (_items == null && _error == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_data == null) {
+    if (_items == null) {
       return _ErrorView(error: _error, onRetry: _load);
     }
 
     final textTheme = Theme.of(context).textTheme;
     final filtered = _filtered;
     final hero = filtered.isNotEmpty ? filtered.first : null;
-    final rest = filtered.length > 1
-        ? filtered.sublist(1)
-        : const <CatalogActivity>[];
+    final rest = filtered.length > 1 ? filtered.sublist(1) : const <MyTripCard>[];
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -201,7 +212,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Center(
                   child: Text(
-                    'No activities match your search.',
+                    'No booked items match your search.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: TripwiseColors.onSurfaceVariant,
                     ),
@@ -210,7 +221,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               )
             else ...[
               Text(
-                'RECOMMENDED FOR YOU',
+                'BOOKED TICKETS & SERVICES',
                 style: textTheme.labelMedium?.copyWith(
                   color: TripwiseColors.primary.withOpacity(0.70),
                   fontWeight: FontWeight.w800,
@@ -218,23 +229,18 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _HeroActivityCard(activity: hero, onAdd: _onAddTap),
+              _HeroBookingCard(item: hero, onAdd: _onAddTap),
               if (rest.isNotEmpty) ...[
                 const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Popular Activities',
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'More Bookings',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                _PopularActivitiesGrid(items: rest, onAdd: _onAddTap),
+                _PopularBookingsGrid(items: rest, onAdd: _onAddTap),
               ],
             ],
           ],
@@ -266,7 +272,7 @@ class _ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              "Couldn't load activities",
+              "Couldn't load booked items",
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
@@ -352,7 +358,7 @@ class _SearchField extends StatelessWidget {
           minWidth: 0,
           minHeight: 0,
         ),
-        hintText: 'Find locations or activities...',
+        hintText: 'Find booked tickets or services...',
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: TripwiseColors.onSurfaceVariant.withOpacity(0.6),
         ),
@@ -449,9 +455,7 @@ class _CategoryChip extends StatelessWidget {
           child: Text(
             label,
             style: textTheme.labelLarge?.copyWith(
-              color: selected
-                  ? Colors.white
-                  : TripwiseColors.onSurfaceVariant,
+              color: selected ? Colors.white : TripwiseColors.onSurfaceVariant,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             ),
           ),
@@ -461,13 +465,24 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-String _ratingText(double r) => r.toStringAsFixed(1);
+String _serviceTypeLabel(String value) {
+  switch (value) {
+    case 'activity':
+      return 'Activity';
+    case 'flight':
+      return 'Flight';
+    case 'hotel':
+      return 'Hotel';
+    default:
+      return 'Service';
+  }
+}
 
-class _HeroActivityCard extends StatelessWidget {
-  const _HeroActivityCard({required this.activity, required this.onAdd});
+class _HeroBookingCard extends StatelessWidget {
+  const _HeroBookingCard({required this.item, required this.onAdd});
 
-  final CatalogActivity activity;
-  final ValueChanged<CatalogActivity> onAdd;
+  final MyTripCard item;
+  final ValueChanged<MyTripCard> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -488,14 +503,14 @@ class _HeroActivityCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _NetImage(url: activity.image),
+          _NetImage(url: item.imageUrl),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [Colors.black.withOpacity(0.80), Colors.transparent],
-                stops: const [0.0, 0.55],
+                colors: [Colors.black.withOpacity(0.82), Colors.transparent],
+                stops: const [0.0, 0.58],
               ),
             ),
           ),
@@ -506,50 +521,17 @@ class _HeroActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.20),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _ratingText(activity.rating),
-                            style: textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      activity.category,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: Colors.white.withOpacity(0.80),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
+                    _HeroPill(label: _serviceTypeLabel(item.serviceType)),
+                    _HeroPill(label: item.statusLabel),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
-                  activity.title,
+                  item.title,
                   style: textTheme.displaySmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -558,12 +540,13 @@ class _HeroActivityCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  activity.description ?? activity.location,
-                  maxLines: 2,
+                  '${item.subtitle}\n${item.dateLabel}',
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.80),
+                    color: Colors.white.withOpacity(0.85),
                     fontWeight: FontWeight.w500,
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -571,9 +554,9 @@ class _HeroActivityCard extends StatelessWidget {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: () => onAdd(activity),
+                    onPressed: () => onAdd(item),
                     icon: const Icon(Icons.add_rounded, size: 22),
-                    label: const Text('Add to Trip'),
+                    label: const Text('Add to Plan'),
                     style: TripwiseButtonStyles.primaryElevated(
                       radius: 999,
                       textStyle: const TextStyle(fontWeight: FontWeight.w800),
@@ -591,13 +574,35 @@ class _HeroActivityCard extends StatelessWidget {
   }
 }
 
-/// Lays the remaining activities into the original cadence: a row of two
-/// small cards, then a wide card, repeating — defensive to any length.
-class _PopularActivitiesGrid extends StatelessWidget {
-  const _PopularActivitiesGrid({required this.items, required this.onAdd});
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({required this.label});
 
-  final List<CatalogActivity> items;
-  final ValueChanged<CatalogActivity> onAdd;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
+}
+
+class _PopularBookingsGrid extends StatelessWidget {
+  const _PopularBookingsGrid({required this.items, required this.onAdd});
+
+  final List<MyTripCard> items;
+  final ValueChanged<MyTripCard> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -610,10 +615,10 @@ class _PopularActivitiesGrid extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _SmallActivityCard(data: pair[0], onAdd: onAdd)),
+            Expanded(child: _SmallBookingCard(data: pair[0], onAdd: onAdd)),
             const SizedBox(width: 16),
             if (pair.length > 1)
-              Expanded(child: _SmallActivityCard(data: pair[1], onAdd: onAdd))
+              Expanded(child: _SmallBookingCard(data: pair[1], onAdd: onAdd))
             else
               const Expanded(child: SizedBox.shrink()),
           ],
@@ -622,7 +627,7 @@ class _PopularActivitiesGrid extends StatelessWidget {
       if (i < items.length) {
         blocks
           ..add(const SizedBox(height: 16))
-          ..add(_WideActivityCard(data: items[i], onAdd: onAdd));
+          ..add(_WideBookingCard(data: items[i], onAdd: onAdd));
         i += 1;
         if (i < items.length) blocks.add(const SizedBox(height: 16));
       }
@@ -631,11 +636,11 @@ class _PopularActivitiesGrid extends StatelessWidget {
   }
 }
 
-class _SmallActivityCard extends StatelessWidget {
-  const _SmallActivityCard({required this.data, required this.onAdd});
+class _SmallBookingCard extends StatelessWidget {
+  const _SmallBookingCard({required this.data, required this.onAdd});
 
-  final CatalogActivity data;
-  final ValueChanged<CatalogActivity> onAdd;
+  final MyTripCard data;
+  final ValueChanged<MyTripCard> onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -660,7 +665,7 @@ class _SmallActivityCard extends StatelessWidget {
             height: 140,
             child: Stack(
               children: [
-                Positioned.fill(child: _NetImage(url: data.image)),
+                Positioned.fill(child: _NetImage(url: data.imageUrl)),
                 Positioned(
                   top: 12,
                   right: 12,
@@ -674,7 +679,7 @@ class _SmallActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _RatingRow(rating: _ratingText(data.rating)),
+                _MetaRow(label: _serviceTypeLabel(data.serviceType)),
                 const SizedBox(height: 4),
                 Text(
                   data.title,
@@ -686,8 +691,8 @@ class _SmallActivityCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data.description ?? data.location,
-                  maxLines: 2,
+                  data.dateLabel,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySmall?.copyWith(
                     color: TripwiseColors.onSurfaceVariant,
@@ -703,17 +708,17 @@ class _SmallActivityCard extends StatelessWidget {
   }
 }
 
-class _WideActivityCard extends StatelessWidget {
-  const _WideActivityCard({required this.data, required this.onAdd});
+class _WideBookingCard extends StatelessWidget {
+  const _WideBookingCard({required this.data, required this.onAdd});
 
-  final CatalogActivity data;
-  final ValueChanged<CatalogActivity> onAdd;
+  final MyTripCard data;
+  final ValueChanged<MyTripCard> onAdd;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Container(
-      height: 160,
+      height: 170,
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
@@ -730,7 +735,7 @@ class _WideActivityCard extends StatelessWidget {
         children: [
           Expanded(
             flex: 1,
-            child: SizedBox.expand(child: _NetImage(url: data.image)),
+            child: SizedBox.expand(child: _NetImage(url: data.imageUrl)),
           ),
           Expanded(
             flex: 2,
@@ -747,7 +752,7 @@ class _WideActivityCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _RatingRow(rating: _ratingText(data.rating)),
+                            _MetaRow(label: _serviceTypeLabel(data.serviceType)),
                             const SizedBox(height: 4),
                             Text(
                               data.title,
@@ -765,7 +770,7 @@ class _WideActivityCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    data.description ?? data.location,
+                    '${data.subtitle}\n${data.dateLabel}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(
@@ -783,10 +788,10 @@ class _WideActivityCard extends StatelessWidget {
   }
 }
 
-class _RatingRow extends StatelessWidget {
-  const _RatingRow({required this.rating});
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({required this.label});
 
-  final String rating;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -795,13 +800,13 @@ class _RatingRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(
-          Icons.star_rounded,
+          Icons.confirmation_number_rounded,
           size: 14,
           color: TripwiseColors.secondary,
         ),
         const SizedBox(width: 4),
         Text(
-          rating,
+          label,
           style: textTheme.labelSmall?.copyWith(
             color: TripwiseColors.onSurfaceVariant,
             fontWeight: FontWeight.w800,

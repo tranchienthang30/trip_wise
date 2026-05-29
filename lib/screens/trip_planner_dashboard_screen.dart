@@ -94,6 +94,7 @@ class _TripPlannerDashboardScreenState
 
   TripsResponse? _data;
   Object? _error;
+  String _selectedTripTab = 'pending';
 
   @override
   void initState() {
@@ -189,19 +190,104 @@ class _TripPlannerDashboardScreenState
     }
 
     final trips = _data!.trips;
+    final pendingTrips = [
+      for (final t in trips)
+        if (t.resolvedStatus != 'COMPLETED') t,
+    ];
+    final completedTrips = [
+      for (final t in trips)
+        if (t.resolvedStatus == 'COMPLETED') t,
+    ];
+    final showCompleted = _selectedTripTab == 'complete';
+    final visibleTrips = showCompleted ? completedTrips : pendingTrips;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final t in trips) ...[
-          _buildTripCard(context, t),
-          const SizedBox(height: 24),
-        ],
+        _buildStatusTabs(
+          pendingCount: pendingTrips.length,
+          completedCount: completedTrips.length,
+        ),
+        const SizedBox(height: 16),
+        if (visibleTrips.isEmpty)
+          const Text(
+            'No trips in this tab yet.',
+            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          )
+        else
+          for (final t in visibleTrips) ...[
+            _buildTripCard(context, t),
+            const SizedBox(height: 24),
+          ],
         _buildPlanNewCard(context),
       ],
     );
   }
 
+  Widget _buildStatusTabs({
+    required int pendingCount,
+    required int completedCount,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatusTabButton(
+              label: 'Pending ($pendingCount)',
+              value: 'pending',
+            ),
+          ),
+          Expanded(
+            child: _buildStatusTabButton(
+              label: 'Complete ($completedCount)',
+              value: 'complete',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusTabButton({
+    required String label,
+    required String value,
+  }) {
+    final selected = _selectedTripTab == value;
+    return GestureDetector(
+      onTap: () {
+        if (_selectedTripTab == value) return;
+        setState(() => _selectedTripTab = value);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: selected
+                ? const Color(0xFF005F9F)
+                : const Color(0xFF586574),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTripCard(BuildContext context, Trip trip) {
-    final chrome = _statusChrome(trip.status);
+    final chrome = _statusChrome(trip.resolvedStatus);
     final comp = _tripCompanions(trip);
 
     return InkWell(

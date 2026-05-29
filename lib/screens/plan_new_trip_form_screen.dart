@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
+import '../models/my_trip_detail.dart';
+import '../models/my_trips.dart';
 import '../models/search_data.dart';
+import '../services/my_trips_api.dart';
 import '../services/search_api.dart';
 import '../services/trips_api.dart';
 
@@ -18,6 +21,7 @@ class PlanNewTripFormScreen extends StatefulWidget {
 class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
   final TripsApi _api = TripsApi();
   final SearchApi _searchApi = SearchApi();
+  final MyTripsApi _myTripsApi = MyTripsApi();
   final _tripNameController = TextEditingController();
   final _destinationController = TextEditingController();
   final _startDateController = TextEditingController();
@@ -25,6 +29,16 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
 
   bool _inviteFriends = false;
   bool _isSubmitting = false;
+  List<MyTripCard>? _bookedItems;
+  Object? _bookedItemsError;
+  final Set<String> _selectedBookingItemIds = <String>{};
+  final Map<String, String> _bookingTimeById = <String, String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookedItems();
+  }
 
   DateTime? _parseDate(String value) {
     final trimmed = value.trim();
@@ -46,6 +60,127 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
       ..showSnackBar(
         SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
+  }
+
+  String _formatTimeOfDay(TimeOfDay value) {
+    final h = value.hour.toString().padLeft(2, '0');
+    final m = value.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  TimeOfDay _parseTimeOfDay(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return const TimeOfDay(hour: 9, minute: 0);
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
+      return const TimeOfDay(hour: 9, minute: 0);
+    }
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  int _dayIndexForBookingDate({
+    required DateTime tripStart,
+    required DateTime tripEnd,
+    required DateTime? bookingDate,
+  }) {
+    if (bookingDate == null) return 1;
+    if (bookingDate.isBefore(tripStart)) return 1;
+    final totalDays = tripEnd.difference(tripStart).inDays + 1;
+    if (bookingDate.isAfter(tripEnd)) return totalDays;
+    return bookingDate.difference(tripStart).inDays + 1;
+  }
+
+  Future<void> _loadBookedItems() async {
+    setState(() {
+      _bookedItems = null;
+      _bookedItemsError = null;
+    });
+    try {
+      final response = await _myTripsApi.fetchTrips(status: 'upcoming');
+      if (!mounted) return;
+      setState(() => _bookedItems = response.items);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _bookedItemsError = e);
+    }
+  }
+
+  Future<void> _pickBookingTime(String bookingItemId) async {
+    final current = _bookingTimeById[bookingItemId] ?? '09:00';
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _parseTimeOfDay(current),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: TripwiseColors.primary,
+              onPrimary: TripwiseColors.onPrimary,
+              secondary: TripwiseColors.secondaryContainer,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return;
+    setState(() {
+      _bookingTimeById[bookingItemId] = _formatTimeOfDay(picked);
+    });
+  }
+
+  Future<void> _importSelectedBookingsToTrip({
+    required String tripId,
+    required DateTime tripStart,
+    required DateTime tripEnd,
+  }) async {
+    final selectedIds = _selectedBookingItemIds.toList(growable: false);
+    if (selectedIds.isEmpty) return;
+    final items = _bookedItems ?? const <MyTripCard>[];
+    final itemById = {for (final item in items) item.id: item};
+
+    int imported = 0;
+    for (final bookingItemId in selectedIds) {
+      final item = itemById[bookingItemId];
+      if (item == null) continue;
+
+      MyTripDetail? detail;
+      try {
+        detail = await _myTripsApi.fetchTripDetail(bookingItemId);
+      } catch (_) {
+        detail = null;
+      }
+
+      final bookingDate = _parseDate(
+        detail?.startDate ?? detail?.endDate ?? '',
+      );
+      final dayIndex = _dayIndexForBookingDate(
+        tripStart: tripStart,
+        tripEnd: tripEnd,
+        bookingDate: bookingDate,
+      );
+
+      try {
+        await _api.addItem(
+          tripId: tripId,
+          dayIndex: dayIndex,
+          bookingItemId: bookingItemId,
+          activityId: item.activityId,
+          time: _bookingTimeById[bookingItemId] ?? '09:00',
+        );
+        imported += 1;
+      } catch (_) {
+        // Keep importing remaining items even if one fails.
+      }
+    }
+
+    if (!mounted) return;
+    if (imported == 0) {
+      _showError('Trip created, but no selected tickets were imported.');
+    } else if (imported < selectedIds.length) {
+      _showError('Trip created. Imported $imported/${selectedIds.length} tickets.');
+    }
   }
 
   @override
@@ -89,6 +224,11 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
         destination: _destinationController.text.trim(),
         startDate: _startDateController.text.trim(),
         endDate: _endDateController.text.trim(),
+      );
+      await _importSelectedBookingsToTrip(
+        tripId: trip.id,
+        tripStart: startDate,
+        tripEnd: endDate,
       );
       if (!mounted) return;
       context.go(
@@ -242,6 +382,8 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    _buildBookedTicketsSection(),
+                    const SizedBox(height: 24),
                     _buildInviteFriendsToggle(),
                   ],
                 ),
@@ -366,43 +508,50 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD1E4FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.group_add_rounded,
-                  color: Color(0xFF005F9F),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Invite Friends',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF181C22),
-                    ),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD1E4FF),
+                    shape: BoxShape.circle,
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Collaborate on this itinerary',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
+                  child: const Icon(
+                    Icons.group_add_rounded,
+                    color: Color(0xFF005F9F),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Invite Friends',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF181C22),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Collaborate on this itinerary',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 12),
           Switch(
             value: _inviteFriends,
             onChanged: (value) {
@@ -415,6 +564,152 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: const Color(0xFFDFE2EB),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookedTicketsSection() {
+    final items = _bookedItems;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4FC),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Import From My Trips',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF181C22),
+                ),
+              ),
+              TextButton(
+                onPressed: _loadBookedItems,
+                child: const Text('Refresh'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Select booked tickets and set time to auto-create timeline events.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF3F4752)),
+          ),
+          const SizedBox(height: 12),
+          if (items == null && _bookedItemsError == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (items == null)
+            Text(
+              _bookedItemsError.toString(),
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFFB42318),
+              ),
+            )
+          else if (items.isEmpty)
+            const Text(
+              'No upcoming booked tickets found.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            )
+          else
+            Column(
+              children: [
+                for (final item in items)
+                  _buildBookedTicketTile(item),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookedTicketTile(MyTripCard item) {
+    final selected = _selectedBookingItemIds.contains(item.id);
+    final pickedTime = _bookingTimeById[item.id] ?? '09:00';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected
+              ? const Color(0xFF005F9F).withOpacity(0.35)
+              : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: selected,
+                activeColor: const Color(0xFF005F9F),
+                onChanged: _isSubmitting
+                    ? null
+                    : (value) {
+                        setState(() {
+                          if (value == true) {
+                            _selectedBookingItemIds.add(item.id);
+                            _bookingTimeById.putIfAbsent(item.id, () => '09:00');
+                          } else {
+                            _selectedBookingItemIds.remove(item.id);
+                            _bookingTimeById.remove(item.id);
+                          }
+                        });
+                      },
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF181C22),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.dateLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (selected)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _isSubmitting ? null : () => _pickBookingTime(item.id),
+                icon: const Icon(Icons.access_time_rounded, size: 18),
+                label: Text('Time: $pickedTime'),
+              ),
+            ),
         ],
       ),
     );

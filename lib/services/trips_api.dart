@@ -58,12 +58,24 @@ class TripsApi {
   Future<Trip> addItem({
     required String tripId,
     required int dayIndex,
-    required int activityId,
+    int? activityId,
+    String? bookingItemId,
+    String? time,
   }) async {
     try {
+      final payload = <String, dynamic>{'dayIndex': dayIndex};
+      if (bookingItemId != null && bookingItemId.trim().isNotEmpty) {
+        payload['bookingItemId'] = bookingItemId.trim();
+      }
+      if (activityId != null) {
+        payload['activityId'] = activityId;
+      }
+      if (time != null && time.trim().isNotEmpty) {
+        payload['time'] = time.trim();
+      }
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/trips/$tripId/items',
-        data: {'dayIndex': dayIndex, 'activityId': activityId},
+        data: payload,
       );
       final data = response.data;
       if (data == null) {

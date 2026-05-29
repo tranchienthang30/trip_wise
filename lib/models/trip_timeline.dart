@@ -1,3 +1,13 @@
+DateTime? _parseIsoDateOnly(String? iso) {
+  if (iso == null || iso.length < 10) return null;
+  final y = int.tryParse(iso.substring(0, 4));
+  final m = int.tryParse(iso.substring(5, 7));
+  final d = int.tryParse(iso.substring(8, 10));
+  if (y == null || m == null || d == null) return null;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return DateTime(y, m, d);
+}
+
 class TripCompanion {
   TripCompanion({required this.name, required this.image});
 
@@ -80,6 +90,28 @@ class Trip {
   final String? endDate;
   final List<TripDay> days;
 
+  String get resolvedStatus {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = _parseIsoDateOnly(startDate);
+    final end = _parseIsoDateOnly(endDate);
+    final raw = status.toUpperCase();
+
+    if (start != null && end != null) {
+      if (today.isBefore(start)) return 'UPCOMING';
+      if (today.isAfter(end)) return 'COMPLETED';
+      return 'ONGOING';
+    }
+    if (start != null) {
+      return today.isBefore(start) ? 'UPCOMING' : 'ONGOING';
+    }
+    if (end != null) {
+      return today.isAfter(end) ? 'COMPLETED' : 'ONGOING';
+    }
+    if (raw == 'UPCOMING' || raw == 'ONGOING' || raw == 'COMPLETED') return raw;
+    return 'UPCOMING';
+  }
+
   factory Trip.fromJson(Map<String, dynamic> json) => Trip(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
@@ -105,7 +137,7 @@ class TripsResponse {
   Trip? get current {
     if (trips.isEmpty) return null;
     for (final t in trips) {
-      if (t.status == 'ONGOING') return t;
+      if (t.resolvedStatus == 'ONGOING') return t;
     }
     return trips.first;
   }
