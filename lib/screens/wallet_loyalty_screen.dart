@@ -156,7 +156,6 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
             _LoyaltyPointsCard(
               points: data.loyaltyPoints,
               completedInvoiceUsd: data.completedInvoiceUsd,
-              pointsRatePercent: data.pointsRatePercent,
             ),
             const SizedBox(height: 24),
             _TransactionsSection(
@@ -452,12 +451,10 @@ class _LoyaltyPointsCard extends StatelessWidget {
   const _LoyaltyPointsCard({
     required this.points,
     required this.completedInvoiceUsd,
-    required this.pointsRatePercent,
   });
 
   final int points;
   final double completedInvoiceUsd;
-  final double pointsRatePercent;
 
   @override
   Widget build(BuildContext context) {
@@ -502,19 +499,6 @@ class _LoyaltyPointsCard extends StatelessWidget {
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
-            ),
-          ),
-          Text(
-            '${pointsRatePercent.toStringAsFixed(0)}% of completed bookings',
-            style: textTheme.bodySmall?.copyWith(
-              color: TripwiseColors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Points are calculated from the total amount of completed bookings.',
-            style: textTheme.bodySmall?.copyWith(
-              color: TripwiseColors.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),

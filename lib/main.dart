@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'constants/theme.dart';
 import 'services/auth_session_store.dart';
+import 'services/notification_alert_service.dart';
+import 'services/notifications_api.dart';
 import 'services/push_messaging_service.dart';
 import 'services/devices_api.dart';
 import 'widgets/in_app_push_banner.dart';
@@ -607,14 +609,23 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  StreamSubscription<IncomingPushPayload>? _pushSub;
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  StreamSubscription<IncomingPushPayload>? _fcmSub;
+  StreamSubscription<IncomingPushPayload>? _pollSub;
   StreamSubscription<Uri>? _appLinksSub;
   final AppLinks _appLinks = AppLinks();
+  final NotificationApi _notificationApi = NotificationApi();
+
+  // Notifications already shown as a banner this session. Both the FCM
+  // foreground stream (Android) and the polling fallback (all platforms) feed
+  // banners — dedupe by notification id so the same one never pops twice.
+  final Set<String> _banneredIds = <String>{};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     _appLinks.getInitialLink().then((uri) {
       if (uri != null) handleDeepLink(uri.toString());
     }).catchError((_) {});
@@ -622,24 +633,79 @@ class _MyAppState extends State<MyApp> {
       (uri) => handleDeepLink(uri.toString()),
       onError: (_) {},
     );
-    // In-app banner for foreground pushes. push_messaging_service.dart no
-    // longer renders the OS tray notification when the app is foregrounded —
-    // the banner is shown here instead so the user gets in-app feedback
-    // without an interruptive system heads-up.
-    _pushSub = PushMessagingService.onForegroundPush.listen((payload) {
-      final navigator = rootNavigatorKey.currentState;
-      if (navigator == null) return;
-      showInAppPushBanner(
-        navigator: navigator,
-        payload: payload,
-        onTap: () => handleDeepLink(payload.actionRoute),
-      );
-    });
+
+    // Source 1: FCM foreground pushes (Android, instant). push_messaging_
+    // service.dart no longer renders the OS tray for these — we banner instead.
+    _fcmSub = PushMessagingService.onForegroundPush.listen(_showBanner);
+
+    // Source 2: polling fallback so the in-app banner works on iOS / web /
+    // Android-without-a-live-push. Only runs while authenticated.
+    _pollSub = NotificationAlertService.onNewNotification.listen(_showBanner);
+
+    _authSessionStore.addListener(_syncPollerToAuth);
+    _syncPollerToAuth();
+  }
+
+  void _syncPollerToAuth() {
+    if (_authSessionStore.isAuthenticated) {
+      NotificationAlertService.start();
+    } else {
+      NotificationAlertService.stop();
+      _banneredIds.clear();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the foreground: poll immediately rather than waiting for the
+    // next tick, so a notification that arrived while backgrounded shows soon.
+    if (state == AppLifecycleState.resumed) {
+      NotificationAlertService.pollNow();
+    }
+  }
+
+  void _showBanner(IncomingPushPayload payload) {
+    final id = payload.notificationId;
+    if (id != null && id.isNotEmpty) {
+      if (_banneredIds.contains(id)) return;
+      _banneredIds.add(id);
+    }
+    final navigator = rootNavigatorKey.currentState;
+    if (navigator == null) return;
+    showInAppPushBanner(
+      navigator: navigator,
+      payload: payload,
+      onTap: () => _onBannerTap(payload),
+    );
+  }
+
+  // Tapping a banner is explicit engagement, so mark the notification read
+  // (mirrors an inbox-row tap) before deep-linking. Merely *showing* the
+  // banner does NOT mark read — a glance the user may have missed shouldn't
+  // silently clear the unread badge.
+  void _onBannerTap(IncomingPushPayload payload) {
+    final id = payload.notificationId;
+    if (id != null && id.isNotEmpty) {
+      unawaited(_markReadQuietly(id));
+    }
+    handleDeepLink(payload.actionRoute);
+  }
+
+  Future<void> _markReadQuietly(String id) async {
+    try {
+      await _notificationApi.markRead(id);
+    } catch (_) {
+      // Best-effort: the deep-link still happens; the inbox will reconcile on
+      // its next fetch.
+    }
   }
 
   @override
   void dispose() {
-    _pushSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _authSessionStore.removeListener(_syncPollerToAuth);
+    _fcmSub?.cancel();
+    _pollSub?.cancel();
     _appLinksSub?.cancel();
     super.dispose();
   }
