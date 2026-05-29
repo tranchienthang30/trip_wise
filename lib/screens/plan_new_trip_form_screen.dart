@@ -54,6 +54,11 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
     return '${date.year}-$month-$day';
   }
 
+  DateTime _todayDateOnly() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -183,6 +188,68 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
     }
   }
 
+  Future<({String destination, DateTime startDate, DateTime endDate})>
+  _resolveTripMetaFromSelection() async {
+    final today = _todayDateOnly();
+    final selectedIds = _selectedBookingItemIds.toList(growable: false);
+    final items = _bookedItems ?? const <MyTripCard>[];
+    final itemById = {for (final item in items) item.id: item};
+
+    String destination = 'Tripwise';
+    DateTime? minDate;
+    DateTime? maxDate;
+
+    for (final bookingItemId in selectedIds) {
+      final item = itemById[bookingItemId];
+      if (item == null) continue;
+
+      MyTripDetail? detail;
+      try {
+        detail = await _myTripsApi.fetchTripDetail(bookingItemId);
+      } catch (_) {
+        detail = null;
+      }
+
+      if (detail != null &&
+          detail.locationLabel.trim().isNotEmpty &&
+          destination == 'Tripwise') {
+        destination = detail.locationLabel.trim();
+      }
+
+      final start = _parseDate(detail?.startDate ?? '');
+      final end = _parseDate(detail?.endDate ?? '');
+      final candidateMin = start ?? end;
+      final candidateMax = end ?? start;
+
+      if (candidateMin != null) {
+        minDate = minDate == null || candidateMin.isBefore(minDate)
+            ? candidateMin
+            : minDate;
+      }
+      if (candidateMax != null) {
+        maxDate = maxDate == null || candidateMax.isAfter(maxDate)
+            ? candidateMax
+            : maxDate;
+      }
+
+      if (destination == 'Tripwise' && item.subtitle.trim().isNotEmpty) {
+        destination = item.subtitle.trim();
+      }
+    }
+
+    final defaultEnd = today.add(const Duration(days: 2));
+    var startDate = minDate ?? today;
+    var endDate = maxDate ?? defaultEnd;
+    if (startDate.isBefore(today)) startDate = today;
+    if (endDate.isBefore(startDate)) endDate = startDate;
+
+    return (
+      destination: destination,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
   @override
   void dispose() {
     _tripNameController.dispose();
@@ -194,36 +261,22 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
 
   Future<void> _createTrip() async {
     if (_isSubmitting) return;
-    final startDate = _parseDate(_startDateController.text);
-    final endDate = _parseDate(_endDateController.text);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    if (startDate == null || endDate == null) {
-      _showError('Please choose travel dates.');
-      return;
-    }
-    if (_destinationController.text.trim().isEmpty) {
-      _showError('Please choose a destination.');
-      return;
-    }
-    if (startDate.isBefore(today) || endDate.isBefore(today)) {
-      _showError('Trip dates cannot be before today.');
-      return;
-    }
-    if (endDate.isBefore(startDate)) {
-      _showError('End date must be after start date.');
-      return;
-    }
+    final meta = await _resolveTripMetaFromSelection();
+    final startDate = meta.startDate;
+    final endDate = meta.endDate;
+    final destination = meta.destination;
+    final tripTitle = _tripNameController.text.trim().isEmpty
+        ? 'My Planned Trip'
+        : _tripNameController.text.trim();
 
     setState(() => _isSubmitting = true);
 
     try {
       final trip = await _api.createTrip(
-        title: _tripNameController.text.trim(),
-        destination: _destinationController.text.trim(),
-        startDate: _startDateController.text.trim(),
-        endDate: _endDateController.text.trim(),
+        title: tripTitle,
+        destination: destination,
+        startDate: _formatDate(startDate),
+        endDate: _formatDate(endDate),
       );
       await _importSelectedBookingsToTrip(
         tripId: trip.id,
@@ -344,42 +397,6 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                       hint: 'e.g., Adventure in Tokyo',
                       icon: Icons.edit_note_rounded,
                       controller: _tripNameController,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildTextField(
-                      label: 'Destination',
-                      hint: 'Search a city, country...',
-                      icon: Icons.location_on_rounded,
-                      controller: _destinationController,
-                      readOnly: true,
-                      onTap: _chooseDestination,
-                      suffixIcon: Icons.keyboard_arrow_down_rounded,
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            label: 'Start Date',
-                            hint: 'YYYY-MM-DD',
-                            icon: Icons.calendar_today_rounded,
-                            controller: _startDateController,
-                            readOnly: true,
-                            onTap: _chooseDates,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          child: _buildTextField(
-                            label: 'End Date',
-                            hint: 'YYYY-MM-DD',
-                            icon: Icons.event_rounded,
-                            controller: _endDateController,
-                            readOnly: true,
-                            onTap: _chooseDates,
-                          ),
-                        ),
-                      ],
                     ),
                     const SizedBox(height: 32),
                     _buildBookedTicketsSection(),
