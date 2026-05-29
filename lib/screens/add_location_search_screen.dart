@@ -11,7 +11,7 @@ import '../utils/tripwise_image_provider.dart';
 const String _flightTileAssetPath = 'assets/images/flight_plane_v2.jpg';
 const double _searchTileImageWidth = 116;
 const double _searchTileImageHeight = 116;
-const double _flightTileCompactHeight = 124;
+const double _flightTileCompactHeight = 132;
 const double _flightTileZoom = 1.28;
 
 class AddLocationSearchScreen extends StatefulWidget {
@@ -711,6 +711,31 @@ class _SearchSectionHeader extends StatelessWidget {
   }
 }
 
+String _compactFlightMetaLabel(String value) {
+  final parts = value
+      .split('•')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return value;
+  if (parts.length == 1) return parts.first;
+  final timePart = parts[1].split('-').first.trim();
+  return '${parts.first} • $timePart';
+}
+
+String _flightMetaLabelForCard(String value) {
+  final normalized = value.replaceAll('â€¢', '•');
+  final parts = normalized
+      .split('•')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return normalized;
+  if (parts.length == 1) return parts.first;
+  final timePart = parts[1].split('-').first.trim();
+  return '${parts.first} • $timePart';
+}
+
 class _DestinationTile extends StatelessWidget {
   const _DestinationTile({
     required this.item,
@@ -897,12 +922,15 @@ class _TravelResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tileHeight = usePlaneImage ? _flightTileCompactHeight : null;
+    const double? tileHeight = null;
     final imageHeight =
         usePlaneImage ? _flightTileCompactHeight : _searchTileImageHeight;
     final contentPadding = usePlaneImage
         ? const EdgeInsets.symmetric(horizontal: 14, vertical: 8)
         : const EdgeInsets.all(16);
+    final displayMetaLabel = usePlaneImage
+        ? _flightMetaLabelForCard(metaLabel)
+        : metaLabel;
 
     return InkWell(
       onTap: onTap,
@@ -965,29 +993,59 @@ class _TravelResultTile extends StatelessWidget {
                           ),
                     ),
                     SizedBox(height: usePlaneImage ? 6 : 10),
-                    Row(
-                      children: [
-                        Text(
-                          valueLabel,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: TripwiseColors.primary,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                        const Spacer(),
-                        Expanded(
-                          child: Text(
-                            metaLabel,
-                            textAlign: TextAlign.end,
+                    if (usePlaneImage)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            valueLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: TripwiseColors.primary,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            displayMetaLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: TripwiseColors.onSurfaceVariant,
                                 ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          Flexible(
+                            fit: FlexFit.loose,
+                            child: Text(
+                              valueLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: TripwiseColors.primary,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              displayMetaLabel,
+                              textAlign: TextAlign.end,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: TripwiseColors.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

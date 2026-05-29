@@ -374,6 +374,8 @@ class _TripListCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     item.dateLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: TripwiseColors.onSurfaceVariant,
                       fontSize: 12,
