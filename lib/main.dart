@@ -177,6 +177,12 @@ void handleDeepLink(String? route) {
       } else {
         normalizedRoute = '/home';
       }
+    } else if (uri.scheme == 'tripwise' && uri.host == 'app') {
+      // Shareable in-app links: tripwise://app/<route>. The path (and any
+      // query) IS the GoRouter destination, so any screen can be shared —
+      // e.g. tripwise://app/service_details/38 → /service_details/38.
+      final path = uri.path.isEmpty ? '/home' : uri.path;
+      normalizedRoute = uri.hasQuery ? '$path?${uri.query}' : path;
     } else {
       return;
     }

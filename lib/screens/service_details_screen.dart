@@ -66,8 +66,11 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     final price = data.priceFrom == null
         ? ''
         : '\nFrom ${formatUsd(data.priceFrom)} / night';
+    // Deep link that reopens the app straight to this hotel. handleDeepLink
+    // in main.dart maps tripwise://app/<route> back to the GoRouter path.
+    final deepLink = 'tripwise://app/service_details/${data.id}';
     await Share.share(
-      'Check out ${data.name} on Tripwise.\n${data.address}$price',
+      'Check out ${data.name} on Tripwise.\n${data.address}$price\n\n$deepLink',
       subject: data.name,
     );
   }
