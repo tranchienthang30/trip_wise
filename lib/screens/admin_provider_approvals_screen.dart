@@ -186,14 +186,6 @@ class _AdminProviderApprovalsScreenState
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Only users who submitted provider registration appear here.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: TripwiseColors.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
       ],
     );
   }

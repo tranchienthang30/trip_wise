@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../models/my_trip_detail.dart';
 import '../models/payment_success.dart';
 
 /// Renders the e-ticket PDF for a confirmed (or pending) booking. The
@@ -56,6 +57,63 @@ Future<Uint8List> buildETicketPdfBytes(PaymentSuccess data) async {
             pw.SizedBox(height: 8),
             for (final item in data.items) _itemRow(item),
           ],
+          pw.SizedBox(height: 24),
+          _divider(),
+          pw.SizedBox(height: 12),
+          pw.Text(
+            'Present this ticket at check-in.',
+            style: pw.TextStyle(fontSize: 11),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            'Issued by Tripwise',
+            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  return doc.save();
+}
+
+Future<Uint8List> buildMyTripETicketPdfBytes(MyTripDetail detail) async {
+  final regular = await PdfGoogleFonts.notoSansRegular();
+  final bold = await PdfGoogleFonts.notoSansBold();
+  final doc = pw.Document(
+    title: 'Tripwise E-Ticket ${detail.ticketCode}',
+    theme: pw.ThemeData.withFont(base: regular, bold: bold),
+  );
+
+  doc.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      build: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          _header(),
+          pw.SizedBox(height: 20),
+          _divider(),
+          pw.SizedBox(height: 16),
+          _row('BOOKING ID', detail.bookingId.isEmpty ? '-' : detail.bookingId),
+          _row('STATUS', detail.statusLabel),
+          _row('SERVICE', detail.title, subtitle: detail.subtitle),
+          _row(
+            'LOCATION',
+            detail.locationLabel.isEmpty ? '-' : detail.locationLabel,
+          ),
+          _row(detail.startDateTitle.toUpperCase(), detail.startDateLabel),
+          _row(detail.endDateTitle.toUpperCase(), detail.endDateLabel),
+          _row(detail.quantityTitle.toUpperCase(), detail.quantityLabel),
+          if (detail.ticketCode.isNotEmpty) _row('E-TICKET', detail.ticketCode),
+          if ((detail.airlineName ?? '').trim().isNotEmpty)
+            _row('AIRLINE', detail.airlineName!),
+          if ((detail.cabinClass ?? '').trim().isNotEmpty)
+            _row('CABIN', detail.cabinClass!),
+          if (detail.seatNumbers.isNotEmpty)
+            _row('SEATS', detail.seatNumbers.join(', ')),
+          _row('TOTAL', detail.totalAmountLabel),
           pw.SizedBox(height: 24),
           _divider(),
           pw.SizedBox(height: 12),

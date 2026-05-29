@@ -95,14 +95,6 @@ class _ProviderRegistrationScreenState
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Complete your profile so Tripwise can review and activate your provider account.',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        height: 1.45,
-                      ),
-                    ),
                   ],
                 ),
               ),

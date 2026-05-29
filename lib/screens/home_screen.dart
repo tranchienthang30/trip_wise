@@ -131,7 +131,6 @@ class _HomeBodyState extends State<_HomeBody> {
             const SizedBox(height: 34),
             _SectionHeader(
               title: data.sections.recommended.title,
-              subtitle: data.sections.recommended.subtitle,
               actionLabel: data.sections.recommended.actionLabel,
               onActionTap: () =>
                   _openRoute(context, data.sections.recommended.actionRoute),
@@ -898,13 +897,11 @@ class _OfferCard extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
-    this.subtitle,
     this.actionLabel,
     this.onActionTap,
   });
 
   final String title;
-  final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onActionTap;
 
@@ -924,15 +921,6 @@ class _SectionHeader extends StatelessWidget {
                       letterSpacing: -1,
                     ),
               ),
-              if (subtitle != null && subtitle!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle!,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: TripwiseColors.onSurfaceVariant.withOpacity(0.75),
-                      ),
-                ),
-              ],
             ],
           ),
         ),

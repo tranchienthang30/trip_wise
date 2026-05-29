@@ -6,6 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/search_data.dart';
 import '../services/search_api.dart';
+import '../utils/tripwise_image_provider.dart';
+
+const String _flightTileAssetPath = 'assets/images/flight_plane_v2.jpg';
+const double _searchTileImageWidth = 116;
+const double _searchTileImageHeight = 116;
+const double _flightTileCompactHeight = 124;
+const double _flightTileZoom = 1.28;
 
 class AddLocationSearchScreen extends StatefulWidget {
   const AddLocationSearchScreen({
@@ -86,15 +93,25 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     _refresh();
   }
 
-  void _showComingSoon(String label) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$label details will be available soon.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  String _checkoutRoute({
+    required String type,
+    required int id,
+  }) {
+    final query = <String, String>{'type': type};
+    if (type == 'flight') {
+      query['flightId'] = id.toString();
+    } else {
+      query['activityId'] = id.toString();
+    }
+
+    final startDate = widget.startDate?.trim();
+    final endDate = widget.endDate?.trim();
+    final guests = widget.guests?.trim();
+    if (startDate != null && startDate.isNotEmpty) query['startDate'] = startDate;
+    if (endDate != null && endDate.isNotEmpty) query['endDate'] = endDate;
+    if (guests != null && guests.isNotEmpty) query['guests'] = guests;
+
+    return Uri(path: '/booking_checkout', queryParameters: query).toString();
   }
 
   String _routeWithTripParams(String route) {
@@ -180,7 +197,6 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                 if (_category == 'all' && data.destinations.isNotEmpty) ...[
                   const _SearchSectionHeader(
                     title: 'Popular Destinations',
-                    subtitle: 'Suggestions pulled from real location data',
                   ),
                   const SizedBox(height: 14),
                   ...data.destinations.map(
@@ -197,7 +213,6 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                 if (data.hotels.isNotEmpty) ...[
                   const _SearchSectionHeader(
                     title: 'Hotel Matches',
-                    subtitle: 'Backed by hotels and room prices from the database',
                   ),
                   const SizedBox(height: 14),
                   ...data.hotels.map(
@@ -214,7 +229,6 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                 if (data.flights.isNotEmpty) ...[
                   const _SearchSectionHeader(
                     title: 'Flight Matches',
-                    subtitle: 'Showing real flights from the flights collection',
                   ),
                   const SizedBox(height: 14),
                   ...data.flights.map(
@@ -227,7 +241,10 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                         valueLabel: item.valueLabel,
                         metaLabel: item.metaLabel,
                         imageUrl: item.imageUrl,
-                        onTap: () => _showComingSoon('Flight'),
+                        usePlaneImage: true,
+                        onTap: () => context.push(
+                          _checkoutRoute(type: 'flight', id: item.id),
+                        ),
                       ),
                     ),
                   ),
@@ -236,7 +253,6 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                 if (data.tours.isNotEmpty) ...[
                   const _SearchSectionHeader(
                     title: 'Tour Matches',
-                    subtitle: 'Showing real tour/activity records from the database',
                   ),
                   const SizedBox(height: 14),
                   ...data.tours.map(
@@ -249,7 +265,9 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
                         valueLabel: item.valueLabel,
                         metaLabel: item.metaLabel,
                         imageUrl: item.imageUrl,
-                        onTap: () => _showComingSoon('Tour'),
+                        onTap: () => context.push(
+                          _checkoutRoute(type: 'activity', id: item.id),
+                        ),
                       ),
                     ),
                   ),
@@ -673,11 +691,9 @@ class _CategoryFilterChip extends StatelessWidget {
 class _SearchSectionHeader extends StatelessWidget {
   const _SearchSectionHeader({
     required this.title,
-    required this.subtitle,
   });
 
   final String title;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -688,13 +704,6 @@ class _SearchSectionHeader extends StatelessWidget {
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: TripwiseColors.onSurfaceVariant,
               ),
         ),
       ],
@@ -874,6 +883,7 @@ class _TravelResultTile extends StatelessWidget {
     required this.metaLabel,
     required this.imageUrl,
     required this.onTap,
+    this.usePlaneImage = false,
   });
 
   final IconData icon;
@@ -883,13 +893,22 @@ class _TravelResultTile extends StatelessWidget {
   final String metaLabel;
   final String? imageUrl;
   final VoidCallback onTap;
+  final bool usePlaneImage;
 
   @override
   Widget build(BuildContext context) {
+    final tileHeight = usePlaneImage ? _flightTileCompactHeight : null;
+    final imageHeight =
+        usePlaneImage ? _flightTileCompactHeight : _searchTileImageHeight;
+    final contentPadding = usePlaneImage
+        ? const EdgeInsets.symmetric(horizontal: 14, vertical: 8)
+        : const EdgeInsets.all(16);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        height: tileHeight,
         decoration: BoxDecoration(
           color: TripwiseColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(20),
@@ -904,12 +923,17 @@ class _TravelResultTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Row(
           children: [
-            _SearchTileImage(imageUrl: imageUrl),
+            _SearchTileImage(
+              imageUrl: imageUrl,
+              forcePlaneImage: usePlaneImage,
+              height: imageHeight,
+            ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: contentPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Row(
                       children: [
@@ -931,7 +955,7 @@ class _TravelResultTile extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: usePlaneImage ? 4 : 6),
                     Text(
                       subtitle,
                       maxLines: 2,
@@ -940,7 +964,7 @@ class _TravelResultTile extends StatelessWidget {
                             color: TripwiseColors.onSurfaceVariant,
                           ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: usePlaneImage ? 6 : 10),
                     Row(
                       children: [
                         Text(
@@ -976,16 +1000,63 @@ class _TravelResultTile extends StatelessWidget {
 }
 
 class _SearchTileImage extends StatelessWidget {
-  const _SearchTileImage({required this.imageUrl});
+  const _SearchTileImage({
+    required this.imageUrl,
+    this.forcePlaneImage = false,
+    this.height = _searchTileImageHeight,
+  });
 
   final String? imageUrl;
+  final bool forcePlaneImage;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl == null || imageUrl!.isEmpty) {
+    if (forcePlaneImage) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+        child: SizedBox(
+          width: _searchTileImageWidth,
+          height: height,
+          child: Transform.scale(
+            scale: _flightTileZoom,
+            child: Image.asset(
+              _flightTileAssetPath,
+              width: _searchTileImageWidth,
+              height: height,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              errorBuilder: (_, __, ___) => Container(
+                width: _searchTileImageWidth,
+                height: height,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFFB3E5FC),
+                      Color(0xFFE3F2FD),
+                    ],
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.flight_rounded,
+                  size: 42,
+                  color: TripwiseColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final imageProvider = tripwiseImageProvider(imageUrl);
+    if (imageProvider == null) {
       return Container(
-        width: 116,
-        height: 116,
+        width: _searchTileImageWidth,
+        height: height,
         color: TripwiseColors.surfaceContainerLow,
         alignment: Alignment.center,
         child: const Icon(
@@ -995,14 +1066,14 @@ class _SearchTileImage extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      imageUrl!,
-      width: 116,
-      height: 116,
+    return Image(
+      image: imageProvider,
+      width: _searchTileImageWidth,
+      height: height,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
-        width: 116,
-        height: 116,
+        width: _searchTileImageWidth,
+        height: height,
         color: TripwiseColors.surfaceContainerLow,
         alignment: Alignment.center,
         child: const Icon(

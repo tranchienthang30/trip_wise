@@ -18,6 +18,7 @@ class OrderManagerScreen extends StatefulWidget {
 
 class _OrderManagerScreenState extends State<OrderManagerScreen> {
   final OrdersApi _ordersApi = OrdersApi();
+  final TextEditingController _ticketCodeController = TextEditingController();
   String _selectedStatus = 'pending';
   _OrderSortOption _selectedSort = _OrderSortOption.dateDesc;
   ProviderOrdersResponse? _data;
@@ -52,6 +53,12 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   void initState() {
     super.initState();
     _loadOrders();
+  }
+
+  @override
+  void dispose() {
+    _ticketCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadOrders() async {
@@ -113,6 +120,55 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     }
   }
 
+  Future<void> _lookupTicket() async {
+    final code = _ticketCodeController.text.trim();
+    if (code.isEmpty) return;
+
+    try {
+      final order = await _ordersApi.lookupTicket(code);
+      if (!mounted) return;
+      _showTicketDialog(order);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    }
+  }
+
+  void _showTicketDialog(ProviderOrder order) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(order.ticketCode.isEmpty ? 'Ticket found' : order.ticketCode),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(order.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('${order.serviceType.toUpperCase()} - ${order.statusLabel}'),
+            const SizedBox(height: 6),
+            Text(order.dates),
+            const SizedBox(height: 6),
+            Text('Guest: ${order.guestName}'),
+            const SizedBox(height: 6),
+            Text('Total: ${order.displayPrice}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,7 +211,36 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       spacing: 16,
       runSpacing: 16,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: [_buildFilterTabs(), _buildSortMenu()],
+      children: [_buildFilterTabs(), _buildSortMenu(), _buildTicketLookup()],
+    );
+  }
+
+  Widget _buildTicketLookup() {
+    return SizedBox(
+      width: 320,
+      child: TextField(
+        controller: _ticketCodeController,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => _lookupTicket(),
+        decoration: InputDecoration(
+          hintText: 'Check e-ticket code',
+          prefixIcon: const Icon(Icons.confirmation_number_rounded),
+          suffixIcon: IconButton(
+            onPressed: _lookupTicket,
+            icon: const Icon(Icons.search_rounded),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFDFE2EB)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFDFE2EB)),
+          ),
+        ),
+      ),
     );
   }
 

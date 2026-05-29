@@ -124,11 +124,6 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Performance by period',
-                    style: TextStyle(color: TripwiseColors.onSurfaceVariant),
-                  ),
                 ],
               ),
             ),

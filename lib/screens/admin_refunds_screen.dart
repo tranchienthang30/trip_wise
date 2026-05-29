@@ -14,6 +14,7 @@ class AdminRefundsScreen extends StatefulWidget {
 
 class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
   final AdminApi _api = AdminApi();
+  final TextEditingController _ticketCodeController = TextEditingController();
   final Set<String> _reviewingIds = {};
 
   AdminCancellationRequestsResponse? _data;
@@ -24,6 +25,12 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _ticketCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -111,6 +118,53 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
     }
   }
 
+  Future<void> _lookupTicket() async {
+    final code = _ticketCodeController.text.trim();
+    if (code.isEmpty) return;
+
+    try {
+      final order = await _api.lookupTicket(code);
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(order.ticketCode.isEmpty ? 'Ticket found' : order.ticketCode),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(order.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 8),
+              Text('${order.serviceType.toUpperCase()} - ${order.statusLabel}'),
+              const SizedBox(height: 6),
+              Text(order.dates),
+              const SizedBox(height: 6),
+              Text('Guest: ${order.guestName}'),
+              const SizedBox(height: 6),
+              Text('Booking: ${order.bookingId}'),
+              const SizedBox(height: 6),
+              Text('Total: ${order.displayPrice}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: TripwiseColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -144,13 +198,10 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Cancellation requests wait here until admin confirms refund or rejects them.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: TripwiseColors.onSurfaceVariant,
-                height: 1.4,
-              ),
+            const SizedBox(height: 16),
+            _TicketLookupField(
+              controller: _ticketCodeController,
+              onSubmit: _lookupTicket,
             ),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
@@ -241,6 +292,43 @@ class _RefundSummary extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TicketLookupField extends StatelessWidget {
+  const _TicketLookupField({
+    required this.controller,
+    required this.onSubmit,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => onSubmit(),
+      decoration: InputDecoration(
+        hintText: 'Check any booking by e-ticket code',
+        prefixIcon: const Icon(Icons.confirmation_number_rounded),
+        suffixIcon: IconButton(
+          onPressed: onSubmit,
+          icon: const Icon(Icons.search_rounded),
+        ),
+        filled: true,
+        fillColor: TripwiseColors.surfaceContainerLowest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: TripwiseColors.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: TripwiseColors.outlineVariant),
+        ),
       ),
     );
   }

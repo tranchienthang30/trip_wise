@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../models/admin_cancellation.dart';
 import '../models/admin_provider_payout.dart';
 import '../models/admin_listing.dart';
+import '../models/provider_order.dart';
 import '../models/provider_application.dart';
 import 'api_client.dart';
 
@@ -165,6 +166,21 @@ class AdminApi {
         '/admin/cancellations/$bookingItemId/review',
         data: {'decision': approve ? 'APPROVED' : 'REJECTED'},
       );
+    } on DioException catch (error) {
+      throw AdminApiException(_messageFromDio(error));
+    }
+  }
+
+  Future<ProviderOrder> lookupTicket(String code) async {
+    try {
+      final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+        '/admin/tickets/${Uri.encodeComponent(code.trim())}',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const AdminApiException('Empty response from /admin/tickets');
+      }
+      return ProviderOrder.fromJson(data);
     } on DioException catch (error) {
       throw AdminApiException(_messageFromDio(error));
     }

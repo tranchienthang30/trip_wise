@@ -11,6 +11,9 @@ class MyTripDetail {
     required this.statusLabel,
     required this.imageUrl,
     required this.ticketCode,
+    required this.cabinClass,
+    required this.seatNumbers,
+    required this.airlineName,
     required this.dateLabel,
     required this.startDate,
     required this.endDate,
@@ -48,6 +51,9 @@ class MyTripDetail {
   final String statusLabel;
   final String imageUrl;
   final String ticketCode;
+  final String? cabinClass;
+  final List<String> seatNumbers;
+  final String? airlineName;
   final String dateLabel;
   final String? startDate;
   final String? endDate;
@@ -88,6 +94,11 @@ class MyTripDetail {
       statusLabel: json['statusLabel'] as String? ?? 'Upcoming',
       imageUrl: json['imageUrl'] as String? ?? '',
       ticketCode: json['ticketCode'] as String? ?? '',
+      cabinClass: json['cabinClass'] as String?,
+      seatNumbers: (json['seatNumbers'] as List? ?? const [])
+          .whereType<String>()
+          .toList(),
+      airlineName: json['airlineName'] as String?,
       dateLabel: json['dateLabel'] as String? ?? 'Dates not set',
       startDate: json['startDate'] as String?,
       endDate: json['endDate'] as String?,

@@ -116,14 +116,6 @@ class _AdminProviderPayoutsScreenState
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Review payout amounts requested by providers and accept or reject each request.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: TripwiseColors.onSurfaceVariant,
-                height: 1.4,
-              ),
-            ),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
               const Padding(

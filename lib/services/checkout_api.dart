@@ -13,21 +13,29 @@ class CheckoutApiException implements Exception {
 
 class CheckoutApi {
   Future<CheckoutSummary> fetchSummary({
+    String? type,
     int? hotelId,
     int? roomId,
+    int? flightId,
+    int? activityId,
     String? startDate,
     String? endDate,
     int? guests,
+    String? cabinClass,
   }) async {
     try {
       final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
         '/checkout/summary',
         queryParameters: {
+          if (type != null && type.isNotEmpty) 'type': type,
           if (hotelId != null) 'hotelId': hotelId,
           if (roomId != null) 'roomId': roomId,
+          if (flightId != null) 'flightId': flightId,
+          if (activityId != null) 'activityId': activityId,
           if (startDate != null && startDate.isNotEmpty) 'startDate': startDate,
           if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
           if (guests != null) 'guests': guests,
+          if (cabinClass != null && cabinClass.isNotEmpty) 'cabinClass': cabinClass,
         },
       );
       final data = response.data;
@@ -41,27 +49,35 @@ class CheckoutApi {
   }
 
   Future<CheckoutCompleteResult> complete({
+    required String type,
     required int hotelId,
     required int roomId,
+    int? flightId,
+    int? activityId,
     required String startDate,
     required String endDate,
     required int guests,
     required String paymentMethod,
     required bool usePoints,
     required bool agreeToTerms,
+    String? cabinClass,
   }) async {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/checkout/complete',
         data: {
+          'type': type,
           'hotelId': hotelId,
           'roomId': roomId,
+          if (flightId != null) 'flightId': flightId,
+          if (activityId != null) 'activityId': activityId,
           'startDate': startDate,
           'endDate': endDate,
           'guests': guests,
           'paymentMethod': paymentMethod,
           'usePoints': usePoints,
           'agreeToTerms': agreeToTerms,
+          if (cabinClass != null && cabinClass.isNotEmpty) 'cabinClass': cabinClass,
         },
       );
       final data = response.data;

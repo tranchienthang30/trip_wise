@@ -34,6 +34,9 @@ class CheckoutListing {
   CheckoutListing({
     required this.hotelId,
     required this.roomId,
+    required this.flightId,
+    required this.activityId,
+    required this.serviceType,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
@@ -41,10 +44,25 @@ class CheckoutListing {
     required this.endDate,
     required this.nights,
     required this.guests,
+    required this.dateLocked,
+    required this.quantityTitle,
+    required this.unitTitle,
+    required this.flightNumber,
+    required this.airlineName,
+    required this.departureAirportCode,
+    required this.departureAirportName,
+    required this.arrivalAirportCode,
+    required this.arrivalAirportName,
+    required this.availableSeats,
+    required this.cabinClass,
+    required this.cabinClassLabel,
   });
 
   final int hotelId;
   final int roomId;
+  final int? flightId;
+  final int? activityId;
+  final String serviceType;
   final String title;
   final String subtitle;
   final String? imageUrl;
@@ -52,11 +70,26 @@ class CheckoutListing {
   final String endDate;
   final int nights;
   final int guests;
+  final bool dateLocked;
+  final String quantityTitle;
+  final String unitTitle;
+  final String? flightNumber;
+  final String? airlineName;
+  final String? departureAirportCode;
+  final String? departureAirportName;
+  final String? arrivalAirportCode;
+  final String? arrivalAirportName;
+  final int? availableSeats;
+  final String cabinClass;
+  final String cabinClassLabel;
 
   factory CheckoutListing.fromJson(Map<String, dynamic> json) {
     return CheckoutListing(
       hotelId: (json['hotelId'] as num?)?.toInt() ?? 0,
       roomId: (json['roomId'] as num?)?.toInt() ?? 0,
+      flightId: (json['flightId'] as num?)?.toInt(),
+      activityId: (json['activityId'] as num?)?.toInt(),
+      serviceType: json['serviceType'] as String? ?? 'hotel',
       title: json['title'] as String? ?? 'Listing',
       subtitle: json['subtitle'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
@@ -64,6 +97,18 @@ class CheckoutListing {
       endDate: json['endDate'] as String? ?? '',
       nights: (json['nights'] as num?)?.toInt() ?? 1,
       guests: (json['guests'] as num?)?.toInt() ?? 1,
+      dateLocked: json['dateLocked'] as bool? ?? false,
+      quantityTitle: json['quantityTitle'] as String? ?? 'Guests',
+      unitTitle: json['unitTitle'] as String? ?? 'Price per night',
+      flightNumber: json['flightNumber'] as String?,
+      airlineName: json['airlineName'] as String?,
+      departureAirportCode: json['departureAirportCode'] as String?,
+      departureAirportName: json['departureAirportName'] as String?,
+      arrivalAirportCode: json['arrivalAirportCode'] as String?,
+      arrivalAirportName: json['arrivalAirportName'] as String?,
+      availableSeats: (json['availableSeats'] as num?)?.toInt(),
+      cabinClass: json['cabinClass'] as String? ?? 'economy',
+      cabinClassLabel: json['cabinClassLabel'] as String? ?? 'Economy',
     );
   }
 }

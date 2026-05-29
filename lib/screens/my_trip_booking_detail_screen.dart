@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
 import '../constants/colors.dart';
 import '../models/my_trip_detail.dart';
 import '../services/my_trips_api.dart';
+import '../utils/eticket_pdf.dart';
 import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
@@ -123,6 +125,39 @@ class _MyTripBookingDetailScreenState
     await context.push('/direct_messaging?$query');
   }
 
+  Future<void> _downloadTicket() async {
+    final detail = _detail;
+    if (detail == null) return;
+    if (!detail.hasTicketCode && detail.bookingId.trim().isEmpty) {
+      _showSnackBar('E-ticket is not available yet.', isError: true);
+      return;
+    }
+
+    try {
+      final bytes = await buildMyTripETicketPdfBytes(detail);
+      final identifier = detail.hasTicketCode ? detail.ticketCode : detail.bookingId;
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'tripwise-eticket-$identifier.pdf',
+      );
+    } catch (error) {
+      _showSnackBar('Could not generate e-ticket: $error', isError: true);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor:
+              isError ? TripwiseColors.error : TripwiseColors.primary,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,6 +189,7 @@ class _MyTripBookingDetailScreenState
             onRefresh: _refreshDetail,
             onRequestCancel: _requestCancel,
             onMessageProvider: _openProviderChat,
+            onDownloadTicket: _downloadTicket,
           );
         },
       ),
@@ -171,6 +207,7 @@ class _BookingDetailBody extends StatelessWidget {
     required this.onRefresh,
     required this.onRequestCancel,
     required this.onMessageProvider,
+    required this.onDownloadTicket,
   });
 
   final MyTripDetail detail;
@@ -178,6 +215,7 @@ class _BookingDetailBody extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onRequestCancel;
   final VoidCallback onMessageProvider;
+  final VoidCallback onDownloadTicket;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +246,26 @@ class _BookingDetailBody extends StatelessWidget {
           icon: Icons.confirmation_number_rounded,
           label: 'Ticket code',
           value: detail.ticketCode,
+        ),
+      if (detail.serviceType == 'flight' &&
+          (detail.airlineName ?? '').trim().isNotEmpty)
+        _DetailTileData(
+          icon: Icons.flight_rounded,
+          label: 'Airline',
+          value: detail.airlineName!,
+        ),
+      if (detail.serviceType == 'flight' &&
+          (detail.cabinClass ?? '').trim().isNotEmpty)
+        _DetailTileData(
+          icon: Icons.airline_seat_recline_extra_rounded,
+          label: 'Cabin',
+          value: detail.cabinClass!,
+        ),
+      if (detail.serviceType == 'flight' && detail.seatNumbers.isNotEmpty)
+        _DetailTileData(
+          icon: Icons.event_seat_rounded,
+          label: 'Seat${detail.seatNumbers.length == 1 ? '' : 's'}',
+          value: detail.seatNumbers.join(', '),
         ),
       _DetailTileData(
         icon: Icons.receipt_long_rounded,
@@ -288,14 +346,34 @@ class _BookingDetailBody extends StatelessWidget {
             const _SectionTitle('Payment'),
             const SizedBox(height: 10),
             _PaymentCard(detail: detail),
-            const SizedBox(height: 24),
-            const _SectionTitle('Cancellation'),
-            const SizedBox(height: 10),
-            _CancellationCard(
-              detail: detail,
-              isCancelling: isCancelling,
-              onRequestCancel: onRequestCancel,
-            ),
+            if (detail.hasTicketCode) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onDownloadTicket,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 8,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text(
+                    'Download e-ticket',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+            if (detail.status != 'completed') ...[
+              const SizedBox(height: 24),
+              const _SectionTitle('Cancellation'),
+              const SizedBox(height: 10),
+              _CancellationCard(
+                detail: detail,
+                isCancelling: isCancelling,
+                onRequestCancel: onRequestCancel,
+              ),
+            ],
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,

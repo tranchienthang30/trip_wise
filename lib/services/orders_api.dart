@@ -37,4 +37,17 @@ class OrdersApi {
 
     return ProviderOrder.fromJson(data);
   }
+
+  Future<ProviderOrder> lookupTicket(String code) async {
+    final response = await ApiClient.instance.dio.get<Map<String, dynamic>>(
+      '/orders/tickets/${Uri.encodeComponent(code.trim())}',
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw StateError('Empty response from /orders/tickets');
+    }
+
+    return ProviderOrder.fromJson(data);
+  }
 }

@@ -369,8 +369,11 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => _withSystemBack(
         state,
         BookingCheckoutScreen(
+          type: state.uri.queryParameters['type'],
           hotelId: state.uri.queryParameters['hotelId'],
           roomId: state.uri.queryParameters['roomId'],
+          flightId: state.uri.queryParameters['flightId'],
+          activityId: state.uri.queryParameters['activityId'],
           startDate: state.uri.queryParameters['startDate'],
           endDate: state.uri.queryParameters['endDate'],
           guests: state.uri.queryParameters['guests'],

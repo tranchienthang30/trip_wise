@@ -80,6 +80,7 @@ class ProviderOrder {
     required this.imageUrl,
     required this.roomType,
     required this.serviceType,
+    required this.ticketCode,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -103,6 +104,7 @@ class ProviderOrder {
   final String imageUrl;
   final String? roomType;
   final String serviceType;
+  final String ticketCode;
   final String? createdAt;
   final String? updatedAt;
 
@@ -130,6 +132,7 @@ class ProviderOrder {
       imageUrl: json['imageUrl'] as String? ?? '',
       roomType: json['roomType'] as String?,
       serviceType: json['serviceType'] as String? ?? 'hotel',
+      ticketCode: json['ticketCode'] as String? ?? '',
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
     );

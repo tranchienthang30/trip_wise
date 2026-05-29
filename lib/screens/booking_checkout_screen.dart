@@ -9,15 +9,21 @@ import '../services/checkout_api.dart';
 class BookingCheckoutScreen extends StatefulWidget {
   const BookingCheckoutScreen({
     super.key,
+    this.type,
     this.hotelId,
     this.roomId,
+    this.flightId,
+    this.activityId,
     this.startDate,
     this.endDate,
     this.guests,
   });
 
+  final String? type;
   final String? hotelId;
   final String? roomId;
+  final String? flightId;
+  final String? activityId;
   final String? startDate;
   final String? endDate;
   final String? guests;
@@ -37,6 +43,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   String? _selectedStartDate;
   String? _selectedEndDate;
   int? _selectedGuests;
+  String _selectedCabinClass = 'economy';
   String _selectedPaymentMethod = 'card';
   bool _usePoints = false;
   bool _agreeToTerms = false;
@@ -70,11 +77,15 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
 
     try {
       final summary = await _api.fetchSummary(
+        type: _bookingType,
         hotelId: _toInt(widget.hotelId),
         roomId: _toInt(widget.roomId),
+        flightId: _toInt(widget.flightId),
+        activityId: _toInt(widget.activityId),
         startDate: _selectedStartDate,
         endDate: _selectedEndDate,
         guests: _selectedGuests,
+        cabinClass: _selectedCabinClass,
       );
       if (!mounted) return;
 
@@ -83,6 +94,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         _selectedStartDate = summary.listing.startDate;
         _selectedEndDate = summary.listing.endDate;
         _selectedGuests = summary.listing.guests;
+        _selectedCabinClass = summary.listing.cabinClass;
         _selectedPaymentMethod = summary.paymentOptions.isEmpty
             ? 'card'
             : summary.paymentOptions.first.key;
@@ -131,14 +143,18 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     setState(() => _isSubmitting = true);
     try {
       final result = await _api.complete(
+        type: summary.listing.serviceType,
         hotelId: summary.listing.hotelId,
         roomId: summary.listing.roomId,
+        flightId: summary.listing.flightId,
+        activityId: summary.listing.activityId,
         startDate: summary.listing.startDate,
         endDate: summary.listing.endDate,
         guests: summary.listing.guests,
         paymentMethod: _selectedPaymentMethod,
         usePoints: _usePoints,
         agreeToTerms: true,
+        cabinClass: _selectedCabinClass,
       );
       if (!mounted) return;
       final payosUrl = result.payos?.checkoutUrl.trim() ?? '';
@@ -164,6 +180,14 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   }
 
   Future<void> _pickDates(CheckoutSummary summary) async {
+    if (summary.listing.dateLocked) {
+      _showFeedback('This schedule is fixed for the selected flight.');
+      return;
+    }
+    if (summary.listing.serviceType == 'activity') {
+      await _pickTourDate(summary);
+      return;
+    }
     final currentRange = _currentDateRange(summary);
     final today = _dateOnly(DateTime.now());
     final picked = await showDateRangePicker(
@@ -215,12 +239,63 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     await _loadSummary();
   }
 
+  Future<void> _pickTourDate(CheckoutSummary summary) async {
+    final today = _dateOnly(DateTime.now());
+    final current =
+        DateTime.tryParse(_selectedStartDate ?? summary.listing.startDate) ??
+        today.add(const Duration(days: 1));
+    final initialDate = current.isBefore(today) ? today : current;
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: today,
+      lastDate: DateTime(today.year + 2, 12, 31),
+      initialDate: initialDate,
+      helpText: 'Select tour date',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: TripwiseColors.primary,
+              onPrimary: TripwiseColors.onPrimary,
+              surface: TripwiseColors.surfaceContainerLowest,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return;
+
+    final date = _isoDate(picked);
+    final validationMessage = _bookingValidationMessage(
+      startDate: date,
+      endDate: date,
+      guests: _selectedGuests ?? summary.listing.guests,
+    );
+    if (validationMessage != null) {
+      _showFeedback(validationMessage, isError: true);
+      return;
+    }
+
+    setState(() {
+      _selectedStartDate = date;
+      _selectedEndDate = date;
+    });
+    await _loadSummary();
+  }
+
   Future<void> _pickGuests(CheckoutSummary summary) async {
+    final maxGuests = summary.listing.serviceType == 'flight'
+        ? summary.listing.availableSeats
+        : null;
     final picked = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         var draftGuests = _selectedGuests ?? summary.listing.guests;
+        if (maxGuests != null && draftGuests > maxGuests) {
+          draftGuests = maxGuests;
+        }
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return SafeArea(
@@ -236,20 +311,31 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Guests',
+                      summary.listing.quantityTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
                     ),
                     const SizedBox(height: 14),
                     _GuestStepper(
-                      label: 'Guests',
+                      label: summary.listing.quantityTitle,
                       value: draftGuests,
                       min: 1,
+                      max: maxGuests,
                       onChanged: (value) {
                         setSheetState(() => draftGuests = value);
                       },
                     ),
+                    if (maxGuests != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '$maxGuests seat${maxGuests == 1 ? '' : 's'} available for this flight.',
+                        style: const TextStyle(
+                          color: TripwiseColors.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -410,15 +496,29 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                 ),
                 const SizedBox(height: 16),
                 _BookingTripDetailsCard(
-                  dateLabel:
-                      '${_formatDate(summary.listing.startDate)} - ${_formatDate(summary.listing.endDate)}',
-                  nightsLabel:
-                      '${summary.listing.nights} ${_plural(summary.listing.nights, 'night')}',
+                  serviceType: summary.listing.serviceType,
+                  dateLabel: _dateSummary(summary.listing),
+                  nightsLabel: _unitSummary(summary.listing),
                   guestsLabel:
-                      '${summary.listing.guests} ${_plural(summary.listing.guests, 'guest')}',
+                      '${summary.listing.guests} ${_plural(summary.listing.guests, _quantitySingular(summary.listing.serviceType))}',
+                  quantityTitle: summary.listing.quantityTitle,
+                  dateLocked: summary.listing.dateLocked,
                   onEditDates: () => _pickDates(summary),
                   onEditGuests: () => _pickGuests(summary),
                 ),
+                if (summary.listing.serviceType == 'flight') ...[
+                  const SizedBox(height: 14),
+                  _FlightBookingOptionsCard(
+                    listing: summary.listing,
+                    selectedCabinClass: _selectedCabinClass,
+                    scheduleLabel: _dateSummary(summary.listing),
+                    onCabinChanged: (value) async {
+                      if (value == _selectedCabinClass) return;
+                      setState(() => _selectedCabinClass = value);
+                      await _loadSummary();
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -434,7 +534,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Guest Information',
+                  _travelerInfoTitle(summary.listing.serviceType),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -867,7 +967,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     final normalizedStart = _dateOnly(start);
     final normalizedEnd = _dateOnly(end);
     if (normalizedStart.isBefore(today) ||
-        !normalizedEnd.isAfter(normalizedStart)) {
+        (!summary.listing.dateLocked && !normalizedEnd.isAfter(normalizedStart))) {
       return DateTimeRange(
         start: today.add(const Duration(days: 1)),
         end: today.add(const Duration(days: 2)),
@@ -891,10 +991,16 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     final today = _dateOnly(DateTime.now());
     final startOnly = _dateOnly(start);
     final endOnly = _dateOnly(end);
-    if (startOnly.isBefore(today)) {
+    if (_bookingType != 'flight' && startOnly.isBefore(today)) {
       return 'Start date cannot be in the past.';
     }
-    if (!endOnly.isAfter(startOnly)) {
+    final maxGuests = _summary?.listing.serviceType == 'flight'
+        ? _summary?.listing.availableSeats
+        : null;
+    if (maxGuests != null && guests > maxGuests) {
+      return 'Only $maxGuests seat${maxGuests == 1 ? '' : 's'} available.';
+    }
+    if (_bookingType == 'hotel' && !endOnly.isAfter(startOnly)) {
       return 'End date must be after start date.';
     }
     if (guests < 1) {
@@ -960,23 +1066,73 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     return MaterialLocalizations.of(context).formatShortMonthDay(parsed);
   }
 
+  String _formatDateTime(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    final local = parsed.toLocal();
+    final dateLabel = MaterialLocalizations.of(context).formatShortMonthDay(local);
+    final timeLabel = TimeOfDay.fromDateTime(local).format(context);
+    return '$dateLabel, $timeLabel';
+  }
+
   String _plural(int value, String singular) {
     return value == 1 ? singular : '${singular}s';
+  }
+
+  String get _bookingType {
+    final raw = widget.type?.trim().toLowerCase();
+    if (raw == 'flight' || raw == 'flights') return 'flight';
+    if (raw == 'tour' || raw == 'tours' || raw == 'activity') return 'activity';
+    return 'hotel';
+  }
+
+  String _quantitySingular(String serviceType) {
+    if (serviceType == 'flight') return 'traveler';
+    if (serviceType == 'activity') return 'person';
+    return 'guest';
+  }
+
+  String _unitSummary(CheckoutListing listing) {
+    if (listing.serviceType == 'flight') return 'Ticket';
+    if (listing.serviceType == 'activity') return 'Tour';
+    return '${listing.nights} ${_plural(listing.nights, 'night')}';
+  }
+
+  String _dateSummary(CheckoutListing listing) {
+    if (listing.serviceType == 'flight') {
+      return '${_formatDateTime(listing.startDate)} - ${_formatDateTime(listing.endDate)}';
+    }
+    if (listing.serviceType == 'activity') {
+      return _formatDate(listing.startDate);
+    }
+    return '${_formatDate(listing.startDate)} - ${_formatDate(listing.endDate)}';
+  }
+
+  String _travelerInfoTitle(String serviceType) {
+    if (serviceType == 'flight') return 'Traveler Information';
+    if (serviceType == 'activity') return 'Participant Information';
+    return 'Guest Information';
   }
 }
 
 class _BookingTripDetailsCard extends StatelessWidget {
   const _BookingTripDetailsCard({
+    required this.serviceType,
     required this.dateLabel,
     required this.nightsLabel,
     required this.guestsLabel,
+    required this.quantityTitle,
+    required this.dateLocked,
     required this.onEditDates,
     required this.onEditGuests,
   });
 
+  final String serviceType;
   final String dateLabel;
   final String nightsLabel;
   final String guestsLabel;
+  final String quantityTitle;
+  final bool dateLocked;
   final VoidCallback onEditDates;
   final VoidCallback onEditGuests;
 
@@ -993,9 +1149,9 @@ class _BookingTripDetailsCard extends StatelessWidget {
         children: [
           _TripDetailRow(
             icon: Icons.calendar_today_rounded,
-            eyebrow: 'DATES',
+            eyebrow: serviceType == 'flight' ? 'SCHEDULE' : 'DATES',
             value: dateLabel,
-            onTap: onEditDates,
+            onTap: dateLocked ? null : onEditDates,
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
@@ -1006,9 +1162,9 @@ class _BookingTripDetailsCard extends StatelessWidget {
               Expanded(
                 child: _TripDetailMetric(
                   icon: Icons.bedtime_rounded,
-                  eyebrow: 'STAY',
+                  eyebrow: serviceType == 'hotel' ? 'STAY' : 'TYPE',
                   value: nightsLabel,
-                  onTap: onEditDates,
+                  onTap: dateLocked ? null : onEditDates,
                 ),
               ),
               Container(
@@ -1019,7 +1175,7 @@ class _BookingTripDetailsCard extends StatelessWidget {
               Expanded(
                 child: _TripDetailMetric(
                   icon: Icons.group_rounded,
-                  eyebrow: 'GUESTS',
+                  eyebrow: quantityTitle.toUpperCase(),
                   value: guestsLabel,
                   onTap: onEditGuests,
                 ),
@@ -1027,6 +1183,273 @@ class _BookingTripDetailsCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FlightBookingOptionsCard extends StatelessWidget {
+  const _FlightBookingOptionsCard({
+    required this.listing,
+    required this.selectedCabinClass,
+    required this.scheduleLabel,
+    required this.onCabinChanged,
+  });
+
+  final CheckoutListing listing;
+  final String selectedCabinClass;
+  final String scheduleLabel;
+  final ValueChanged<String> onCabinChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final departureCode = listing.departureAirportCode ?? 'DEP';
+    final arrivalCode = listing.arrivalAirportCode ?? 'ARR';
+    final availableSeats = listing.availableSeats;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: TripwiseColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.flight_takeoff_rounded,
+                  color: TripwiseColors.onPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      listing.airlineName ?? 'Selected airline',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${listing.flightNumber ?? 'Flight'} - $scheduleLabel',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TripwiseColors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _FlightAirportBlock(
+                  code: departureCode,
+                  label: listing.departureAirportName ?? departureCode,
+                  alignEnd: false,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: TripwiseColors.primary,
+                ),
+              ),
+              Expanded(
+                child: _FlightAirportBlock(
+                  code: arrivalCode,
+                  label: listing.arrivalAirportName ?? arrivalCode,
+                  alignEnd: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (availableSeats != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: TripwiseColors.primaryFixed.withOpacity(0.45),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$availableSeats seat${availableSeats == 1 ? '' : 's'} available',
+                style: const TextStyle(
+                  color: TripwiseColors.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          const SizedBox(height: 14),
+          Text(
+            'Cabin class',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _CabinChoice(
+                  title: 'Economy',
+                  subtitle: 'Standard fare',
+                  value: 'economy',
+                  groupValue: selectedCabinClass,
+                  onChanged: onCabinChanged,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _CabinChoice(
+                  title: 'Business',
+                  subtitle: 'Higher fare',
+                  value: 'business',
+                  groupValue: selectedCabinClass,
+                  onChanged: onCabinChanged,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlightAirportBlock extends StatelessWidget {
+  const _FlightAirportBlock({
+    required this.code,
+    required this.label,
+    required this.alignEnd,
+  });
+
+  final String code;
+  final String label;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          code,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: TripwiseColors.onSurface,
+              ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          style: const TextStyle(
+            color: TripwiseColors.onSurfaceVariant,
+            fontSize: 12,
+            height: 1.25,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CabinChoice extends StatelessWidget {
+  const _CabinChoice({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final String value;
+  final String groupValue;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == groupValue;
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected
+              ? TripwiseColors.primaryFixed
+              : TripwiseColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? TripwiseColors.primary
+                : TripwiseColors.outlineVariant,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: 18,
+                  color: selected
+                      ? TripwiseColors.primary
+                      : TripwiseColors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: TripwiseColors.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1043,7 +1466,7 @@ class _TripDetailRow extends StatelessWidget {
   final IconData icon;
   final String eyebrow;
   final String value;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1059,11 +1482,12 @@ class _TripDetailRow extends StatelessWidget {
             Expanded(
               child: _TripDetailText(eyebrow: eyebrow, value: value),
             ),
-            const Icon(
-              Icons.edit_calendar_rounded,
-              size: 20,
-              color: TripwiseColors.primary,
-            ),
+            if (onTap != null)
+              const Icon(
+                Icons.edit_calendar_rounded,
+                size: 20,
+                color: TripwiseColors.primary,
+              ),
           ],
         ),
       ),
@@ -1082,7 +1506,7 @@ class _TripDetailMetric extends StatelessWidget {
   final IconData icon;
   final String eyebrow;
   final String value;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1176,16 +1600,19 @@ class _GuestStepper extends StatelessWidget {
     required this.label,
     required this.value,
     required this.min,
+    this.max,
     required this.onChanged,
   });
 
   final String label;
   final int value;
   final int min;
+  final int? max;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final canAdd = max == null || value < max!;
     return Row(
       children: [
         Expanded(
@@ -1217,10 +1644,12 @@ class _GuestStepper extends StatelessWidget {
           ),
         ),
         IconButton.filledTonal(
-          onPressed: () => onChanged(value + 1),
+          onPressed: canAdd ? () => onChanged(value + 1) : null,
           style: IconButton.styleFrom(
             backgroundColor: TripwiseColors.primary,
             foregroundColor: TripwiseColors.onPrimary,
+            disabledBackgroundColor: TripwiseColors.surfaceContainerHigh,
+            disabledForegroundColor: TripwiseColors.outline,
           ),
           icon: const Icon(Icons.add_rounded),
         ),

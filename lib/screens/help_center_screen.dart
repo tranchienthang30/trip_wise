@@ -65,14 +65,6 @@ class HelpCenterScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Quick answers to common booking, payment, and profile questions.',
-            style: TextStyle(
-              color: TripwiseColors.onSurfaceVariant,
-              fontSize: 13,
-            ),
-          ),
           const SizedBox(height: 16),
           ..._faqs.map(
             (faq) => Padding(

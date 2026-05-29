@@ -181,9 +181,6 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final title = _isSignUp ? 'Create your planner account' : 'Welcome back';
-    final subtitle = _isSignUp
-        ? 'New accounts start as planners. You can request provider access later inside Tripwise.'
-        : 'Sign in to continue your trips, bookings, saved plans, or provider workspace based on your account.';
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
@@ -199,14 +196,6 @@ class _InitialRegistrationScreenState extends State<InitialRegistrationScreen> {
                 title,
                 style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: TripwiseColors.onSurfaceVariant,
-                  height: 1.45,
                 ),
               ),
               const SizedBox(height: 24),

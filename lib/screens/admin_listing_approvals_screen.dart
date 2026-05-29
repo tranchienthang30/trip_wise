@@ -155,14 +155,6 @@ class _AdminListingApprovalsScreenState
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Provider listings stay hidden from search until approved.',
-              style: TextStyle(
-                color: TripwiseColors.onSurfaceVariant,
-                height: 1.4,
-              ),
-            ),
             const SizedBox(height: 16),
             _buildStatusFilters(data?.counts),
             const SizedBox(height: 16),
