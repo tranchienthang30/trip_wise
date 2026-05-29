@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/colors.dart';
@@ -58,18 +57,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
       _data = null;
       _load();
     });
-  }
-
-  Future<void> _onShare() async {
-    final data = _data;
-    if (data == null) return;
-    // Share only the deep link. handleDeepLink in main.dart maps
-    // tripwise://app/<route> back to the GoRouter path, so tapping it reopens
-    // the app straight to this hotel.
-    await Share.share(
-      'tripwise://app/service_details/${data.id}',
-      subject: data.name,
-    );
   }
 
   Future<void> _onOpenExternalMap() async {
@@ -220,16 +207,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           letterSpacing: -0.3,
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(
-            Icons.ios_share_rounded,
-            color: TripwiseColors.primary,
-          ),
-          onPressed: _data == null ? null : _onShare,
-        ),
-        const SizedBox(width: 4),
-      ],
     );
   }
 }
