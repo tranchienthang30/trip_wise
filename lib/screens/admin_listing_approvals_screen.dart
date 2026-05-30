@@ -149,13 +149,6 @@ class _AdminListingApprovalsScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           padding: TripwiseInsets.screen,
           children: [
-            Text(
-              'Listing approvals',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 16),
             _buildStatusFilters(data?.counts),
             const SizedBox(height: 16),
             if (_isLoading && data == null)

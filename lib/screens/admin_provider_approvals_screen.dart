@@ -132,8 +132,6 @@ class _AdminProviderApprovalsScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           padding: TripwiseInsets.screen,
           children: [
-            _buildHeader(context),
-            const SizedBox(height: 14),
             _buildStatusFilters(data?.counts),
             const SizedBox(height: 16),
             if (_isLoading && data == null)
@@ -173,20 +171,6 @@ class _AdminProviderApprovalsScreenState
       bottomNavigationBar: const AdminTaskbar(
         currentTab: AdminTaskbarTab.providers,
       ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Provider applications',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-        ),
-      ],
     );
   }
 

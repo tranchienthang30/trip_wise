@@ -97,7 +97,7 @@ class _AdminProviderPayoutsScreenState
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
-          'ADMIN PAYOUTS',
+          'TRIP WISE ADMIN',
           style: TextStyle(
             color: TripwiseColors.primary,
             fontWeight: FontWeight.w900,
@@ -110,13 +110,6 @@ class _AdminProviderPayoutsScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           padding: TripwiseInsets.screen,
           children: [
-            Text(
-              'Provider payout requests',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 16),
             if (_isLoading && data == null)
               const Padding(
                 padding: EdgeInsets.only(top: 120),

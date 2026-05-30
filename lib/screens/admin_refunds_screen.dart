@@ -179,7 +179,7 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
         automaticallyImplyLeading: false,
         titleSpacing: 20,
         title: Text(
-          'ADMIN REFUNDS',
+          'TRIP WISE ADMIN',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: TripwiseColors.primary,
             fontWeight: FontWeight.w900,
@@ -192,13 +192,6 @@ class _AdminRefundsScreenState extends State<AdminRefundsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: TripwiseInsets.screen,
           children: [
-            Text(
-              'Refund confirmations',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 16),
             _TicketLookupField(
               controller: _ticketCodeController,
               onSubmit: _lookupTicket,
