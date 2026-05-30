@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -37,6 +38,10 @@ class _ProviderRegistrationFormScreenState
   bool _isSubmitting = false;
   bool _isUploadingLicense = false;
   String? _submitError;
+  static final BorderSide _fieldBorderSide = BorderSide(
+    color: TripwiseColors.outline.withValues(alpha: 0.42),
+    width: 1.1,
+  );
   final List<String> _specialties = [
     'Adventure Tours',
     'Cultural Experiences',
@@ -91,9 +96,22 @@ class _ProviderRegistrationFormScreenState
                   _buildFormField(
                     label: 'Full Name',
                     controller: _fullNameController,
+                    hint: 'Nguyen Thanh Phuoc',
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r"[a-zA-ZÀ-ỹà-ỹ\s\.'-]"),
+                      ),
+                    ],
                     validator: (value) {
-                      if (value?.isEmpty ?? true) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
                         return 'Full name is required';
+                      }
+                      if (text.length < 2) {
+                        return 'Full name must be at least 2 characters';
+                      }
+                      if (text.length > 80) {
+                        return 'Full name is too long';
                       }
                       return null;
                     },
@@ -104,9 +122,17 @@ class _ProviderRegistrationFormScreenState
                     controller: _phoneController,
                     hint: '0123456789',
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
                     validator: (value) {
-                      if (value?.isEmpty ?? true) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
                         return 'Phone number is required';
+                      }
+                      if (!RegExp(r'^\d{9,11}$').hasMatch(text)) {
+                        return 'Phone number must be 9-11 digits';
                       }
                       return null;
                     },
@@ -123,7 +149,14 @@ class _ProviderRegistrationFormScreenState
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: _selectedSpecialty,
-                    hint: const Text('Adventure Tours'),
+                    hint: Text(
+                      'Adventure Tours',
+                      style: TextStyle(
+                        color: TripwiseColors.onSurfaceVariant.withValues(
+                          alpha: 0.62,
+                        ),
+                      ),
+                    ),
                     items: _specialties.map((specialty) {
                       return DropdownMenuItem(
                         value: specialty,
@@ -148,17 +181,17 @@ class _ProviderRegistrationFormScreenState
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: TripwiseColors.outline),
+                        borderSide: _fieldBorderSide,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: TripwiseColors.outline),
+                        borderSide: _fieldBorderSide,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: TripwiseColors.primary,
-                          width: 2,
+                          width: 1.5,
                         ),
                       ),
                       errorBorder: OutlineInputBorder(
@@ -173,12 +206,21 @@ class _ProviderRegistrationFormScreenState
                     controller: _experienceController,
                     hint: '5',
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(2),
+                    ],
                     validator: (value) {
-                      if (value?.isEmpty ?? true) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
                         return 'Years of experience is required';
                       }
-                      if (int.tryParse(value!) == null) {
+                      final years = int.tryParse(text);
+                      if (years == null) {
                         return 'Please enter a valid number';
+                      }
+                      if (years < 0 || years >= 100) {
+                        return 'Years of experience must be less than 100';
                       }
                       return null;
                     },
@@ -189,12 +231,17 @@ class _ProviderRegistrationFormScreenState
                     controller: _bioController,
                     hint: 'Nguyen Thanh Phuoc ...',
                     maxLines: 3,
+                    inputFormatters: [LengthLimitingTextInputFormatter(500)],
                     validator: (value) {
-                      if (value?.isEmpty ?? true) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
                         return 'Bio is required';
                       }
-                      if (value!.length < 20) {
+                      if (text.length < 20) {
                         return 'Bio must be at least 20 characters';
+                      }
+                      if (text.length > 500) {
+                        return 'Bio must be 500 characters or fewer';
                       }
                       return null;
                     },
@@ -525,6 +572,7 @@ class _ProviderRegistrationFormScreenState
     String? hint,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return Column(
@@ -543,21 +591,24 @@ class _ProviderRegistrationFormScreenState
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          inputFormatters: inputFormatters,
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: TripwiseColors.onSurfaceVariant),
+            hintStyle: TextStyle(
+              color: TripwiseColors.onSurfaceVariant.withValues(alpha: 0.62),
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: TripwiseColors.outline),
+              borderSide: _fieldBorderSide,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: TripwiseColors.outline),
+              borderSide: _fieldBorderSide,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: TripwiseColors.primary, width: 2),
+              borderSide: BorderSide(color: TripwiseColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -592,20 +643,27 @@ class _ProviderRegistrationFormScreenState
           AndroidUiSettings(
             toolbarColor: Colors.transparent,
             toolbarWidgetColor: TripwiseColors.primary,
+            activeControlsWidgetColor: TripwiseColors.primary,
             statusBarLight: true,
             navBarLight: true,
             initAspectRatio: CropAspectRatioPreset.ratio4x3,
             lockAspectRatio: true,
-            hideBottomControls: true,
+            hideBottomControls: false,
             showCropGrid: true,
             cropGridColumnCount: 2,
             cropGridRowCount: 2,
             cropGridColor: TripwiseColors.primary,
-            aspectRatioPresets: const [CropAspectRatioPreset.ratio4x3],
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
           ),
           IOSUiSettings(
             minimumAspectRatio: 4 / 3,
-            aspectRatioPresets: const [CropAspectRatioPreset.ratio4x3],
+            aspectRatioPresets: const [
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
             hidesNavigationBar: true,
           ),
           WebUiSettings(
@@ -678,12 +736,20 @@ class _ProviderRegistrationFormScreenState
       _submitError = null;
     });
 
+    final yearsExperience = int.tryParse(_experienceController.text.trim());
+    if (yearsExperience == null || yearsExperience < 0 || yearsExperience >= 100) {
+      setState(() {
+        _submitError = 'Years of experience must be less than 100';
+      });
+      return;
+    }
+
     try {
       await _api.submitApplication(
         fullName: _fullNameController.text.trim(),
         phone: _phoneController.text.trim(),
         specialty: _selectedSpecialty!,
-        yearsExperience: int.parse(_experienceController.text.trim()),
+        yearsExperience: yearsExperience,
         bio: _bioController.text.trim(),
         licenseFileName: _licenseFileName!,
         licenseMimeType: _licenseMimeType!,

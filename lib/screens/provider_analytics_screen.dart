@@ -100,14 +100,6 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
   }
 
   Widget _buildAnalytics(ProviderListingAnalytics data) {
-    final trend = data.trend;
-    final maxViews = trend.isEmpty
-        ? 1
-        : trend
-              .map((e) => e.views)
-              .reduce((a, b) => a > b ? a : b)
-              .clamp(1, 1 << 30);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,152 +204,6 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Text(
-          'Performance Trend',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: TripwiseColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: SizedBox(
-            height: 160,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: trend.map((point) {
-                final ratio = maxViews == 0 ? 0.0 : point.views / maxViews;
-                final barHeight = (ratio * 100).clamp(6, 100).toDouble();
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${point.bookings}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 22,
-                      height: barHeight,
-                      decoration: BoxDecoration(
-                        color: TripwiseColors.primary.withOpacity(0.75),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(point.label, style: const TextStyle(fontSize: 11)),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Top Performing Days',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        ...data.topDays.map((day) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: TripwiseColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      day.day,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${day.views} views • ${day.bookings} bookings',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: TripwiseColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '\$${day.revenue.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: TripwiseColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-        const SizedBox(height: 18),
-        Text(
-          'Booking Source',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: TripwiseColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: data.bookingSources
-                .map(
-                  (source) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSourceItem(source),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'Guest Statistics',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Repeat Guests',
-                value: '${data.guestStats.repeatGuestsPct}%',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _StatCard(
-                title: 'Avg Stay',
-                value:
-                    '${data.guestStats.averageStayNights.toStringAsFixed(1)} nights',
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -375,7 +221,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -403,7 +249,7 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: (positive ? Colors.green : Colors.red).withOpacity(0.1),
+              color: (positive ? Colors.green : Colors.red).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -417,41 +263,6 @@ class _ProviderAnalyticsScreenState extends State<ProviderAnalyticsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSourceItem(ProviderBookingSource source) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              source.label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Text(
-              '${source.percentage}% (${source.count})',
-              style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 8,
-            child: LinearProgressIndicator(
-              value: source.percentage / 100,
-              backgroundColor: TripwiseColors.surfaceContainerHigh,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                TripwiseColors.primary,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -490,39 +301,4 @@ class _PeriodOption {
 
   final String value;
   final String label;
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.title, required this.value});
-
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: TripwiseColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: TripwiseColors.onSurfaceVariant,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
-          ),
-        ],
-      ),
-    );
-  }
 }

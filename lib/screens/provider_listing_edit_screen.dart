@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
@@ -49,7 +50,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
   String? _error;
 
   String _selectedCategory = 'Hotel';
-  String _selectedStatus = 'active';
   XFile? _listingImage;
   Uint8List? _listingImageBytes;
   String? _listingImageFileName;
@@ -113,7 +113,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
         _maxGuestsController.text = '${detail.maxGuests}';
         _amenitiesController.text = detail.amenities.join(', ');
         _selectedCategory = detail.category;
-        _selectedStatus = detail.status;
         _isLoading = false;
       });
     } catch (error) {
@@ -145,7 +144,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
       _maxGuestsController.text = '${draft.maxGuests}';
       _amenitiesController.text = draft.amenities.join(', ');
       _selectedCategory = draft.category;
-      _selectedStatus = 'pending';
       _listingImageBytes = draft.imageBytes;
       _listingImageFileName = draft.imageFileName;
       _listingImageMimeType = draft.imageMimeType;
@@ -198,7 +196,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               description: _descriptionController.text.trim(),
               location: _locationController.text.trim(),
               category: _selectedCategory,
-              status: _selectedStatus,
               roomType: _roomTypeController.text.trim(),
               pricePerNight: _toDouble(_priceController.text),
               bedrooms: _toInt(_bedroomsController.text),
@@ -240,13 +237,20 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
         maxWidth: 1600,
       );
       if (file == null) return;
-      final bytes = await file.readAsBytes();
+      final cropped = await _cropListingImage(file.path);
+      if (cropped == null) return;
+      final croppedXFile = XFile(
+        cropped.path,
+        name: 'listing-cover.jpg',
+        mimeType: 'image/jpeg',
+      );
+      final bytes = await croppedXFile.readAsBytes();
       if (!mounted) return;
       setState(() {
-        _listingImage = file;
+        _listingImage = croppedXFile;
         _listingImageBytes = bytes;
-        _listingImageFileName = file.name;
-        _listingImageMimeType = _inferMimeType(file.name);
+        _listingImageFileName = croppedXFile.name;
+        _listingImageMimeType = _inferMimeType(croppedXFile.name);
       });
     } catch (error) {
       if (!mounted) return;
@@ -259,6 +263,41 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
     }
+  }
+
+  Future<CroppedFile?> _cropListingImage(String sourcePath) {
+    return ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      maxWidth: 1600,
+      maxHeight: 900,
+      aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 85,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarColor: Colors.transparent,
+          toolbarWidgetColor: TripwiseColors.primary,
+          activeControlsWidgetColor: TripwiseColors.primary,
+          statusBarLight: true,
+          navBarLight: true,
+          initAspectRatio: CropAspectRatioPreset.ratio16x9,
+          lockAspectRatio: true,
+          hideBottomControls: false,
+          showCropGrid: true,
+          cropGridColumnCount: 2,
+          cropGridRowCount: 2,
+          cropGridColor: TripwiseColors.primary,
+          aspectRatioPresets: const [CropAspectRatioPreset.ratio16x9],
+        ),
+        IOSUiSettings(
+          minimumAspectRatio: 16 / 9,
+          aspectRatioLockEnabled: true,
+          aspectRatioPickerButtonHidden: true,
+          aspectRatioPresets: const [CropAspectRatioPreset.ratio16x9],
+          hidesNavigationBar: true,
+        ),
+      ],
+    );
   }
 
   Future<void> _delete() async {
@@ -422,8 +461,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                     label: 'Description',
                     maxLines: 4,
                   ),
-                  const SizedBox(height: 12),
-                  _buildStatusField(),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -633,52 +670,6 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
       onChanged: (value) {
         if (value != null) {
           setState(() => _selectedCategory = value);
-        }
-      },
-    );
-  }
-
-  Widget _buildStatusField() {
-    const options = [
-      {'value': 'active', 'label': 'Active'},
-      {'value': 'inactive', 'label': 'Inactive'},
-      {'value': 'pending', 'label': 'Pending Review'},
-    ];
-    final selected =
-        options.map((item) => item['value']!).contains(_selectedStatus)
-        ? _selectedStatus
-        : 'active';
-
-    return DropdownButtonFormField<String>(
-      initialValue: selected,
-      decoration: InputDecoration(
-        labelText: 'Listing Status',
-        filled: true,
-        fillColor: TripwiseColors.surfaceContainerLow,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: TripwiseColors.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: TripwiseColors.primary),
-        ),
-      ),
-      items: options
-          .map(
-            (item) => DropdownMenuItem(
-              value: item['value'],
-              child: Text(item['label']!),
-            ),
-          )
-          .toList(),
-      onChanged: (value) {
-        if (value != null) {
-          setState(() => _selectedStatus = value);
         }
       },
     );

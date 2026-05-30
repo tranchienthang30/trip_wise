@@ -156,11 +156,12 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
         AndroidUiSettings(
           toolbarColor: Colors.transparent,
           toolbarWidgetColor: TripwiseColors.primary,
+          activeControlsWidgetColor: TripwiseColors.primary,
           statusBarLight: true,
           navBarLight: true,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: true,
-          hideBottomControls: true,
+          hideBottomControls: false,
           showCropGrid: true,
           cropGridColumnCount: 2,
           cropGridRowCount: 2,

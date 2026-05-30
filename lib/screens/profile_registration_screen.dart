@@ -115,9 +115,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       compressQuality: 90,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Crop avatar',
-          toolbarColor: TripwiseColors.primary,
-          toolbarWidgetColor: TripwiseColors.onPrimary,
+          toolbarColor: Colors.white,
+          toolbarWidgetColor: TripwiseColors.primary,
+          statusBarLight: true,
+          navBarLight: true,
           activeControlsWidgetColor: TripwiseColors.primary,
           cropStyle: CropStyle.circle,
           initAspectRatio: CropAspectRatioPreset.square,

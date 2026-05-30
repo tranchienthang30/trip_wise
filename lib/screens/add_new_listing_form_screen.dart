@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../constants/colors.dart';
@@ -126,10 +127,17 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         maxWidth: 1600,
       );
       if (file == null) return;
-      final bytes = await file.readAsBytes();
+      final cropped = await _cropListingImage(file.path);
+      if (cropped == null) return;
+      final croppedXFile = XFile(
+        cropped.path,
+        name: 'listing-cover.jpg',
+        mimeType: 'image/jpeg',
+      );
+      final bytes = await croppedXFile.readAsBytes();
       if (!mounted) return;
       setState(() {
-        _listingImage = file;
+        _listingImage = croppedXFile;
         _listingImageBytes = bytes;
       });
     } catch (error) {
@@ -143,6 +151,41 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
     }
+  }
+
+  Future<CroppedFile?> _cropListingImage(String sourcePath) {
+    return ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      maxWidth: 1600,
+      maxHeight: 900,
+      aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 85,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarColor: Colors.transparent,
+          toolbarWidgetColor: TripwiseColors.primary,
+          activeControlsWidgetColor: TripwiseColors.primary,
+          statusBarLight: true,
+          navBarLight: true,
+          initAspectRatio: CropAspectRatioPreset.ratio16x9,
+          lockAspectRatio: true,
+          hideBottomControls: false,
+          showCropGrid: true,
+          cropGridColumnCount: 2,
+          cropGridRowCount: 2,
+          cropGridColor: TripwiseColors.primary,
+          aspectRatioPresets: const [CropAspectRatioPreset.ratio16x9],
+        ),
+        IOSUiSettings(
+          minimumAspectRatio: 16 / 9,
+          aspectRatioLockEnabled: true,
+          aspectRatioPickerButtonHidden: true,
+          aspectRatioPresets: const [CropAspectRatioPreset.ratio16x9],
+          hidesNavigationBar: true,
+        ),
+      ],
+    );
   }
 
   @override
