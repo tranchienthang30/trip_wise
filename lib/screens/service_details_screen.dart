@@ -196,7 +196,13 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           Icons.arrow_back_ios_new_rounded,
           color: TripwiseColors.primary,
         ),
-        onPressed: () => context.pop(),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/home');
+        },
       ),
       title: const Text(
         'Tripwise',

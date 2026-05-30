@@ -92,7 +92,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/home');
+          },
         ),
         title: Text(
           'Notifications',

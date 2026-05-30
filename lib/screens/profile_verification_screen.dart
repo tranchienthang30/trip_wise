@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -280,12 +281,24 @@ class _ProfileVerificationScreenState extends State<ProfileVerificationScreen> {
           ? ProviderAppBar(
               backRoute: '/profile_registration',
               titleText: 'IDV',
-              onBack: () => Navigator.of(context).pop(),
+              onBack: () {
+                if (context.canPop()) {
+                  context.pop();
+                  return;
+                }
+                context.go('/profile_registration');
+              },
             )
           : PlannerAppBar(
               backRoute: '/profile_registration',
               titleText: 'IDV',
-              onBack: () => Navigator.of(context).pop(),
+              onBack: () {
+                if (context.canPop()) {
+                  context.pop();
+                  return;
+                }
+                context.go('/profile_registration');
+              },
             ),
       body: RefreshIndicator(
         onRefresh: _loadVerification,

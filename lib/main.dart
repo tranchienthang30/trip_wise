@@ -125,11 +125,21 @@ class _SystemBackRouteScope extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final targetRoute = _systemBackTargetFor(path);
+    final navigatorCanPop = Navigator.of(context).canPop();
 
     return PopScope(
-      canPop: targetRoute == null,
+      // If this screen was opened with push(), Android back must return to the
+      // previous page. Only use logical fallback routes when this is the root
+      // page in the current stack.
+      canPop: navigatorCanPop || targetRoute == null,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+
+        final navigator = rootNavigatorKey.currentState;
+        if (navigator?.canPop() == true) {
+          navigator!.pop();
+          return;
+        }
 
         final currentPath =
             _router.routerDelegate.currentConfiguration.uri.path;

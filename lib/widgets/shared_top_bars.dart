@@ -10,6 +10,14 @@ import '../services/notifications_api.dart';
 import '../services/push_messaging_service.dart';
 import 'planner_assistant_chat.dart';
 
+void _navigateBackOrGo(BuildContext context, String backRoute) {
+  if (context.canPop()) {
+    context.pop();
+    return;
+  }
+  context.go(backRoute);
+}
+
 class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
   const PlannerAppBar({super.key, this.backRoute, this.titleText, this.onBack});
 
@@ -30,7 +38,7 @@ class PlannerAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: backRoute == null
           ? null
           : IconButton(
-              onPressed: onBack ?? () => context.go(backRoute!),
+              onPressed: onBack ?? () => _navigateBackOrGo(context, backRoute!),
               tooltip: 'Back',
               icon: const Icon(
                 TripwiseIcons.back,
@@ -76,7 +84,7 @@ class ProviderAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: backRoute == null
           ? null
           : IconButton(
-              onPressed: onBack ?? () => context.go(backRoute!),
+              onPressed: onBack ?? () => _navigateBackOrGo(context, backRoute!),
               tooltip: 'Back',
               icon: const Icon(
                 TripwiseIcons.back,

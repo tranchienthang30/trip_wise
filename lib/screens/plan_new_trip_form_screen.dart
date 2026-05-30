@@ -422,7 +422,13 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
       centerTitle: true,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF005F9F)),
-        onPressed: () => context.go('/trip_planner_dashboard'),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/trip_planner_dashboard');
+        },
       ),
       title: const Text(
         'Plan Trip',
@@ -762,7 +768,13 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     Expanded(
                       flex: 1,
                       child: TextButton(
-                        onPressed: () => context.go('/trip_planner_dashboard'),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                            return;
+                          }
+                          context.go('/trip_planner_dashboard');
+                        },
                         style: TripwiseButtonStyles.text(
                           radius: 12,
                           backgroundColor: TripwiseColors.surfaceContainerLow,

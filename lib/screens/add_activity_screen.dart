@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../models/my_trips.dart';
@@ -164,7 +165,20 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             Icons.arrow_back_rounded,
             color: TripwiseColors.primary,
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            final tripId = widget.tripId;
+            if (tripId != null && tripId.isNotEmpty) {
+              context.go(
+                '/trip_planner_timeline?id=${Uri.encodeQueryComponent(tripId)}',
+              );
+              return;
+            }
+            context.go('/trip_planner_dashboard');
+          },
         ),
         title: Text(
           'Add From Bookings',

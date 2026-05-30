@@ -106,7 +106,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
             Icons.arrow_back_rounded,
             color: TripwiseColors.primary,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/wallet_loyalty');
+          },
         ),
         title: Text(
           'Payment Method',
