@@ -1,3 +1,5 @@
+import 'review.dart';
+
 class MyTripDetail {
   MyTripDetail({
     required this.id,
@@ -38,6 +40,10 @@ class MyTripDetail {
     required this.cancelDeadline,
     required this.cancelDeadlineLabel,
     required this.cancellationPolicyLabel,
+    required this.hotelId,
+    required this.canReview,
+    required this.hasReviewed,
+    required this.myReview,
   });
 
   final String id;
@@ -78,6 +84,10 @@ class MyTripDetail {
   final String? cancelDeadline;
   final String? cancelDeadlineLabel;
   final String cancellationPolicyLabel;
+  final int? hotelId;
+  final bool canReview;
+  final bool hasReviewed;
+  final Review? myReview;
 
   bool get hasTicketCode => ticketCode.trim().isNotEmpty;
 
@@ -127,6 +137,12 @@ class MyTripDetail {
       cancellationPolicyLabel:
           json['cancellationPolicyLabel'] as String? ??
           'Cancellation policy is not available.',
+      hotelId: (json['hotelId'] as num?)?.toInt(),
+      canReview: json['canReview'] as bool? ?? false,
+      hasReviewed: json['hasReviewed'] as bool? ?? false,
+      myReview: json['myReview'] is Map<String, dynamic>
+          ? Review.fromJson(json['myReview'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

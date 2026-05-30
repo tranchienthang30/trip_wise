@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../models/my_trip_detail.dart';
 import '../models/my_trips.dart';
+import '../models/review.dart';
 import 'api_client.dart';
 
 class MyTripsApi {
@@ -58,6 +59,33 @@ class MyTripsApi {
         throw StateError(response['message'] as String);
       }
       throw StateError('Could not cancel trip. Please try again.');
+    }
+  }
+
+  Future<Review> submitReview({
+    required String bookingItemId,
+    required int rating,
+    required String comment,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/my-trips/$bookingItemId/review',
+        data: {
+          'rating': rating,
+          'comment': comment,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /my-trips/$bookingItemId/review');
+      }
+      return Review.fromJson(data);
+    } on DioException catch (e) {
+      final response = e.response?.data;
+      if (response is Map && response['message'] is String) {
+        throw StateError(response['message'] as String);
+      }
+      throw StateError('Could not submit review. Please try again.');
     }
   }
 }

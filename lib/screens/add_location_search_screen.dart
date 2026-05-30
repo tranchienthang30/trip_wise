@@ -39,14 +39,17 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
   late final TextEditingController _searchController;
   Timer? _debounce;
   late String _category;
-  late Future<SearchData> _future;
+  SearchData? _data;
+  Object? _error;
+  bool _isLoading = false;
+  int _requestSerial = 0;
 
   @override
   void initState() {
     super.initState();
     _category = widget.initialCategory;
     _searchController = TextEditingController(text: widget.initialQuery);
-    _future = _load();
+    _refresh();
   }
 
   @override
@@ -63,14 +66,32 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     );
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
+    final requestId = ++_requestSerial;
     setState(() {
-      _future = _load();
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      final data = await _load();
+      if (!mounted || requestId != _requestSerial) return;
+      setState(() {
+        _data = data;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted || requestId != _requestSerial) return;
+      setState(() {
+        _error = error;
+        _isLoading = false;
+      });
+    }
   }
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
+    setState(() {});
     _debounce = Timer(const Duration(milliseconds: 300), _refresh);
   }
 
@@ -81,8 +102,8 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
 
     setState(() {
       _category = category;
-      _future = _load();
     });
+    _refresh();
   }
 
   void _applyDestination(SearchDestinationItem item) {
@@ -134,8 +155,111 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     return uri.replace(queryParameters: query).toString();
   }
 
+  List<SearchCategoryChip> get _fallbackCategories {
+    return [
+      SearchCategoryChip(key: 'all', label: 'All', enabled: true),
+      SearchCategoryChip(key: 'hotels', label: 'Hotels', enabled: true),
+      SearchCategoryChip(key: 'flights', label: 'Flights', enabled: true),
+      SearchCategoryChip(key: 'tours', label: 'Tours', enabled: true),
+      SearchCategoryChip(key: 'train', label: 'Train', enabled: false),
+    ];
+  }
+
+  List<Widget> _buildResultWidgets(SearchData data) {
+    return [
+      // Destinations are generic location suggestions and only make sense on
+      // the unfiltered ("All") tab. Hiding them on category tabs keeps results
+      // focused on the chosen category.
+      if (_category == 'all' && data.destinations.isNotEmpty) ...[
+        const _SearchSectionHeader(
+          title: 'Popular Destinations',
+        ),
+        const SizedBox(height: 14),
+        ...data.destinations.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _DestinationTile(
+              item: item,
+              onTap: () => _applyDestination(item),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+      if (data.hotels.isNotEmpty) ...[
+        const _SearchSectionHeader(
+          title: 'Hotel Matches',
+        ),
+        const SizedBox(height: 14),
+        ...data.hotels.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _HotelResultTile(
+              item: item,
+              onTap: () => context.push(_routeWithTripParams(item.route)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+      if (data.flights.isNotEmpty) ...[
+        const _SearchSectionHeader(
+          title: 'Flight Matches',
+        ),
+        const SizedBox(height: 14),
+        ...data.flights.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _TravelResultTile(
+              icon: Icons.flight_takeoff_rounded,
+              title: item.title,
+              subtitle: item.subtitle,
+              valueLabel: item.valueLabel,
+              metaLabel: item.metaLabel,
+              imageUrl: item.imageUrl,
+              usePlaneImage: true,
+              onTap: () => context.push(
+                _checkoutRoute(type: 'flight', id: item.id),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+      if (data.tours.isNotEmpty) ...[
+        const _SearchSectionHeader(
+          title: 'Tour Matches',
+        ),
+        const SizedBox(height: 14),
+        ...data.tours.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _TravelResultTile(
+              icon: Icons.explore_rounded,
+              title: item.title,
+              subtitle: item.subtitle,
+              valueLabel: item.valueLabel,
+              metaLabel: item.metaLabel,
+              imageUrl: item.imageUrl,
+              onTap: () => context.push(
+                _checkoutRoute(type: 'activity', id: item.id),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+      if (_category == 'train' || _hasNoResults(data))
+        _SearchEmptyState(category: _category),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final data = _data;
+    final categories =
+        data?.categories.isNotEmpty == true ? data!.categories : _fallbackCategories;
+
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
       appBar: AppBar(
@@ -154,131 +278,43 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
               ),
         ),
       ),
-      body: FutureBuilder<SearchData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return _SearchErrorView(
-              error: snapshot.error,
-              onRetry: _refresh,
-            );
-          }
-
-          final data = snapshot.data!;
-
-          return SafeArea(
-            top: false,
-            child: ListView(
-              padding: TripwiseInsets.screen,
-              children: [
-                _SearchInput(
-                  controller: _searchController,
-                  hintText: _searchHint(_category),
-                  onChanged: _onQueryChanged,
-                  onClear: () {
-                    _searchController.clear();
-                    _refresh();
-                  },
-                ),
-                const SizedBox(height: 18),
-                _CategoryFilterBar(
-                  items: data.categories,
-                  selectedCategory: _category,
-                  onSelect: _selectCategory,
-                ),
-                const SizedBox(height: 24),
-                // Destinations are generic location suggestions and only make
-                // sense on the unfiltered ("All") tab. Hiding them on category
-                // tabs keeps results focused on the chosen category.
-                if (_category == 'all' && data.destinations.isNotEmpty) ...[
-                  const _SearchSectionHeader(
-                    title: 'Popular Destinations',
-                  ),
-                  const SizedBox(height: 14),
-                  ...data.destinations.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _DestinationTile(
-                        item: item,
-                        onTap: () => _applyDestination(item),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                if (data.hotels.isNotEmpty) ...[
-                  const _SearchSectionHeader(
-                    title: 'Hotel Matches',
-                  ),
-                  const SizedBox(height: 14),
-                  ...data.hotels.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _HotelResultTile(
-                        item: item,
-                        onTap: () => context.push(_routeWithTripParams(item.route)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                if (data.flights.isNotEmpty) ...[
-                  const _SearchSectionHeader(
-                    title: 'Flight Matches',
-                  ),
-                  const SizedBox(height: 14),
-                  ...data.flights.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _TravelResultTile(
-                        icon: Icons.flight_takeoff_rounded,
-                        title: item.title,
-                        subtitle: item.subtitle,
-                        valueLabel: item.valueLabel,
-                        metaLabel: item.metaLabel,
-                        imageUrl: item.imageUrl,
-                        usePlaneImage: true,
-                        onTap: () => context.push(
-                          _checkoutRoute(type: 'flight', id: item.id),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                if (data.tours.isNotEmpty) ...[
-                  const _SearchSectionHeader(
-                    title: 'Tour Matches',
-                  ),
-                  const SizedBox(height: 14),
-                  ...data.tours.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _TravelResultTile(
-                        icon: Icons.explore_rounded,
-                        title: item.title,
-                        subtitle: item.subtitle,
-                        valueLabel: item.valueLabel,
-                        metaLabel: item.metaLabel,
-                        imageUrl: item.imageUrl,
-                        onTap: () => context.push(
-                          _checkoutRoute(type: 'activity', id: item.id),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                if (_category == 'train' || _hasNoResults(data))
-                  _SearchEmptyState(category: _category),
-              ],
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: TripwiseInsets.screen,
+          children: [
+            _SearchInput(
+              controller: _searchController,
+              hintText: _searchHint(_category),
+              onChanged: _onQueryChanged,
+              onClear: () {
+                _debounce?.cancel();
+                _searchController.clear();
+                setState(() {});
+                _refresh();
+              },
             ),
-          );
-        },
+            const SizedBox(height: 18),
+            _CategoryFilterBar(
+              items: categories,
+              selectedCategory: _category,
+              onSelect: _selectCategory,
+            ),
+            const SizedBox(height: 18),
+            if (_isLoading) const _SearchLoadingNotice(),
+            if (_error != null && data != null) ...[
+              _SearchInlineError(error: _error, onRetry: _refresh),
+              const SizedBox(height: 14),
+            ],
+            if (data == null && _isLoading) const _SearchInitialLoading()
+            else if (data == null && _error != null)
+              _SearchErrorView(error: _error, onRetry: _refresh)
+            else if (data != null) ...[
+              const SizedBox(height: 6),
+              ..._buildResultWidgets(data),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1191,6 +1227,102 @@ class _SearchEmptyState extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: TripwiseColors.onSurfaceVariant,
                 ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchLoadingNotice extends StatelessWidget {
+  const _SearchLoadingNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Updating results...',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: TripwiseColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchInitialLoading extends StatelessWidget {
+  const _SearchInitialLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 80),
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2.4),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchInlineError extends StatelessWidget {
+  const _SearchInlineError({
+    required this.error,
+    required this.onRetry,
+  });
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TripwiseColors.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: TripwiseColors.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              error?.toString() ?? 'Unable to update results',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: TripwiseColors.onErrorContainer,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TripwiseButtonStyles.text(
+              foregroundColor: TripwiseColors.onErrorContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+            child: const Text('Retry'),
           ),
         ],
       ),

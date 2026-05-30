@@ -1044,14 +1044,17 @@ class _RecommendedCard extends StatelessWidget {
                   children: [
                     Text(
                       item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
+                            height: 1.05,
                           ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (item.priceLabel != null && item.priceLabel!.isNotEmpty)
                           Container(
@@ -1072,16 +1075,15 @@ class _RecommendedCard extends StatelessWidget {
                             ),
                           ),
                         if (item.priceLabel != null && item.priceLabel!.isNotEmpty)
-                          const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item.caption,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.82),
-                                ),
-                          ),
+                          const SizedBox(height: 4),
+                        Text(
+                          item.caption,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withOpacity(0.9),
+                                height: 1.18,
+                              ),
                         ),
                       ],
                     ),

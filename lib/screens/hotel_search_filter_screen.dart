@@ -109,7 +109,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
   String? _startDate;
   String? _endDate;
   int? _guests;
-  bool _isMapView = false;
   int _selectedBottomNavIndex = 2;
 
   @override
@@ -438,16 +437,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
     }
   }
 
-  void _toggleMapView() {
-    setState(() {
-      _isMapView = !_isMapView;
-    });
-
-    _showActionFeedback(
-      _isMapView ? 'Map view enabled.' : 'List view enabled.',
-    );
-  }
-
   void _resetSearchAndFilters() {
     setState(() {
       _searchQuery = '';
@@ -456,7 +445,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
       _guests = null;
       _filterSettings = _FilterSettings.defaults;
       _sortMode = _SearchSortMode.popularity;
-      _isMapView = false;
     });
 
     _showActionFeedback('Search, filters, and view were reset.');
@@ -558,16 +546,7 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
     context.go(routeName);
   }
 
-  void _showActionFeedback(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
+  void _showActionFeedback(String _) {}
 
   String _bookingRoute() {
     final query = <String, String>{};
@@ -591,32 +570,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
 
     return Scaffold(
       backgroundColor: TripwiseColors.surface,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 18),
-        child: SizedBox(
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed: _toggleMapView,
-            style: TripwiseButtonStyles.primaryElevated(
-              radius: 28,
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-            ),
-            icon: Icon(
-              _isMapView ? Icons.view_agenda_rounded : Icons.map_rounded,
-              size: 18,
-            ),
-            label: Text(
-              _isMapView ? 'LIST VIEW' : 'MAP VIEW',
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ),
-        ),
-      ),
       bottomNavigationBar: const PlannerTaskbar(
         currentTab: PlannerTaskbarTab.planner,
       ),
@@ -663,31 +616,6 @@ class _HotelSearchFilterScreenState extends State<HotelSearchFilterScreen> {
             const SizedBox(height: 28),
             if (!hasResults)
               _EmptyStateCard(onReset: _resetSearchAndFilters)
-            else if (_isMapView)
-              _MapViewCard(
-                markers: [
-                  ...visibleHotels.map(
-                    (hotel) => _MapMarkerData(
-                      label: hotel.price,
-                      alignment: hotel.markerAlignment,
-                      highlighted: hotel.isHighlighted,
-                    ),
-                  ),
-                  if (_showFeaturedHotel)
-                    _MapMarkerData(
-                      label: _featuredHotel.price,
-                      alignment: _featuredHotel.markerAlignment,
-                      highlighted: _featuredHotel.isHighlighted,
-                    ),
-                ],
-                primaryHotelName: visibleHotels.isNotEmpty
-                    ? visibleHotels.first.name
-                    : _featuredHotel.name,
-                primaryHotelLocation: visibleHotels.isNotEmpty
-                    ? visibleHotels.first.location
-                    : _featuredHotel.location,
-                resultCount: _visiblePropertyCount,
-              )
             else ...[
               ...visibleHotels.map(
                 (hotel) => Padding(
@@ -1223,225 +1151,6 @@ class _HotelDetailCard extends StatelessWidget {
   }
 }
 
-class _MapViewCard extends StatelessWidget {
-  const _MapViewCard({
-    required this.markers,
-    required this.primaryHotelName,
-    required this.primaryHotelLocation,
-    required this.resultCount,
-  });
-
-  final List<_MapMarkerData> markers;
-  final String primaryHotelName;
-  final String primaryHotelLocation;
-  final int resultCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 420,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFD7E9FF),
-                Color(0xFFF5F8FF),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 40,
-                left: 18,
-                right: 32,
-                child: Container(
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.36),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 112,
-                left: 26,
-                right: 16,
-                child: Container(
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.26),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 108,
-                left: 30,
-                right: 20,
-                child: Container(
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.32),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 12,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    '$resultCount stays',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ),
-              ),
-              ...markers.map(
-                (marker) => Align(
-                  alignment: marker.alignment,
-                  child: _MapMarker(marker: marker),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Container(
-          decoration: BoxDecoration(
-            color: TripwiseColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: TripwiseColors.primary.withOpacity(0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE5F0FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.place_rounded,
-                  color: TripwiseColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      primaryHotelName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      primaryHotelLocation,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: TripwiseColors.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'Pinned',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: TripwiseColors.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MapMarker extends StatelessWidget {
-  const _MapMarker({required this.marker});
-
-  final _MapMarkerData marker;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: marker.highlighted
-                ? TripwiseColors.secondaryContainer
-                : TripwiseColors.primary,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.14),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          child: Text(
-            marker.label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ),
-        Container(
-          width: 14,
-          height: 14,
-          margin: const EdgeInsets.only(top: 6),
-          decoration: BoxDecoration(
-            color: marker.highlighted
-                ? TripwiseColors.secondaryContainer
-                : TripwiseColors.primary,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _EmptyStateCard extends StatelessWidget {
   const _EmptyStateCard({required this.onReset});
 
@@ -1764,16 +1473,4 @@ class _FilterSettings {
         minRating > defaults.minRating ||
         onlyHighlighted;
   }
-}
-
-class _MapMarkerData {
-  const _MapMarkerData({
-    required this.label,
-    required this.alignment,
-    required this.highlighted,
-  });
-
-  final String label;
-  final Alignment alignment;
-  final bool highlighted;
 }

@@ -7,6 +7,7 @@ import '../models/my_trip_detail.dart';
 import '../services/my_trips_api.dart';
 import '../utils/eticket_pdf.dart';
 import '../utils/tripwise_image_provider.dart';
+import '../widgets/review_card.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -30,6 +31,7 @@ class _MyTripBookingDetailScreenState
   late Future<MyTripDetail> _future;
   MyTripDetail? _detail;
   bool _isCancelling = false;
+  bool _isSubmittingReview = false;
 
   @override
   void initState() {
@@ -145,6 +147,28 @@ class _MyTripBookingDetailScreenState
     }
   }
 
+  Future<void> _submitReview(int rating, String comment) async {
+    final detail = _detail;
+    if (detail == null || !detail.canReview || _isSubmittingReview) return;
+
+    setState(() => _isSubmittingReview = true);
+    try {
+      await _api.submitReview(
+        bookingItemId: detail.id,
+        rating: rating,
+        comment: comment,
+      );
+      if (!mounted) return;
+      _showSnackBar('Review submitted. Thank you for the feedback.');
+      _retry();
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _isSubmittingReview = false);
+    }
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -190,6 +214,8 @@ class _MyTripBookingDetailScreenState
             onRequestCancel: _requestCancel,
             onMessageProvider: _openProviderChat,
             onDownloadTicket: _downloadTicket,
+            onSubmitReview: _submitReview,
+            isSubmittingReview: _isSubmittingReview,
           );
         },
       ),
@@ -208,6 +234,8 @@ class _BookingDetailBody extends StatelessWidget {
     required this.onRequestCancel,
     required this.onMessageProvider,
     required this.onDownloadTicket,
+    required this.onSubmitReview,
+    required this.isSubmittingReview,
   });
 
   final MyTripDetail detail;
@@ -216,6 +244,8 @@ class _BookingDetailBody extends StatelessWidget {
   final VoidCallback onRequestCancel;
   final VoidCallback onMessageProvider;
   final VoidCallback onDownloadTicket;
+  final Future<void> Function(int rating, String comment) onSubmitReview;
+  final bool isSubmittingReview;
 
   @override
   Widget build(BuildContext context) {
@@ -346,6 +376,17 @@ class _BookingDetailBody extends StatelessWidget {
             const _SectionTitle('Payment'),
             const SizedBox(height: 10),
             _PaymentCard(detail: detail),
+            if (detail.serviceType == 'hotel' &&
+                detail.status == 'completed') ...[
+              const SizedBox(height: 24),
+              const _SectionTitle('Your review'),
+              const SizedBox(height: 10),
+              _ReviewActionCard(
+                detail: detail,
+                isSubmitting: isSubmittingReview,
+                onSubmitReview: onSubmitReview,
+              ),
+            ],
             if (detail.hasTicketCode) ...[
               const SizedBox(height: 14),
               SizedBox(
@@ -561,6 +602,256 @@ class _PaymentCard extends StatelessWidget {
           const SizedBox(height: 10),
           _MoneyRow(label: 'Booked on', value: detail.bookingCreatedAtLabel),
         ],
+      ),
+    );
+  }
+}
+
+class _ReviewActionCard extends StatelessWidget {
+  const _ReviewActionCard({
+    required this.detail,
+    required this.isSubmitting,
+    required this.onSubmitReview,
+  });
+
+  final MyTripDetail detail;
+  final bool isSubmitting;
+  final Future<void> Function(int rating, String comment) onSubmitReview;
+
+  Future<void> _openComposer(BuildContext context) async {
+    final result = await showModalBottomSheet<({int rating, String comment})>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ReviewComposerSheet(hotelName: detail.title),
+    );
+    if (result == null) return;
+    await onSubmitReview(result.rating, result.comment);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final review = detail.myReview;
+    if (review != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: TripwiseColors.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ReviewStars(rating: review.rating, size: 18),
+                const Spacer(),
+                const Text(
+                  'Submitted',
+                  style: TextStyle(
+                    color: TripwiseColors.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              review.comment,
+              style: const TextStyle(
+                color: TripwiseColors.onSurface,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!detail.canReview) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'This completed hotel booking is not eligible for another review.',
+          style: TextStyle(color: TripwiseColors.onSurfaceVariant),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: TripwiseColors.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rate this completed stay so other travelers can decide with real feedback.',
+            style: TextStyle(
+              color: TripwiseColors.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isSubmitting ? null : () => _openComposer(context),
+              style: TripwiseButtonStyles.primaryElevated(
+                radius: 8,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: isSubmitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: TripwiseColors.onPrimary,
+                      ),
+                    )
+                  : const Icon(Icons.rate_review_rounded, size: 18),
+              label: Text(isSubmitting ? 'Submitting' : 'Write a review'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewComposerSheet extends StatefulWidget {
+  const _ReviewComposerSheet({required this.hotelName});
+
+  final String hotelName;
+
+  @override
+  State<_ReviewComposerSheet> createState() => _ReviewComposerSheetState();
+}
+
+class _ReviewComposerSheetState extends State<_ReviewComposerSheet> {
+  final TextEditingController _commentController = TextEditingController();
+  int _rating = 5;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final comment = _commentController.text.trim();
+    if (comment.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please write a short review comment.')),
+      );
+      return;
+    }
+    Navigator.of(context).pop((rating: _rating, comment: comment));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        decoration: BoxDecoration(
+          color: TripwiseColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: TripwiseColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Review ${widget.hotelName}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  for (int i = 1; i <= 5; i++)
+                    IconButton(
+                      onPressed: () => setState(() => _rating = i),
+                      icon: Icon(
+                        i <= _rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: TripwiseColors.secondary,
+                        size: 30,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _commentController,
+                minLines: 3,
+                maxLines: 5,
+                maxLength: 1000,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: 'Share what went well or what could be better',
+                  filled: true,
+                  fillColor: TripwiseColors.surfaceContainerLow,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: TripwiseColors.outlineVariant,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: TripwiseColors.outlineVariant,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  style: TripwiseButtonStyles.primaryElevated(
+                    radius: 8,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Submit review'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
