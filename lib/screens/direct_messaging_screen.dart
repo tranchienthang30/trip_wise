@@ -5,7 +5,6 @@ import '../constants/colors.dart';
 import '../models/direct_message.dart';
 import '../services/chat_api.dart';
 import '../services/direct_messages_api.dart';
-import '../services/rule_based_chatbot_service.dart';
 import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -28,9 +27,19 @@ class DirectMessagingScreen extends StatefulWidget {
 class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   final DirectMessagesApi _api = DirectMessagesApi();
   final ChatApi _chatApi = ChatApi();
-  final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  static const String _assistantGreeting =
+      'Hello! I am the Tripwise Assistant. Ask me anything and I will call Lumi API.';
+  static const List<String> _assistantQuickPrompts = [
+    'I want to book a trip',
+    'Suggest destinations',
+    'Ask about tour prices',
+    'Cancellation policy',
+    'Payment methods',
+    'Check my booking',
+  ];
 
   DirectConversation? _conversation;
   List<DirectMessage> _messages = const [];
@@ -67,7 +76,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
       setState(() {
         _conversation = _assistantConversation();
         _messages = [
-          _localMessage(body: RuleBasedChatbotService.greeting, isMine: false),
+          _localMessage(body: _assistantGreeting, isMine: false),
         ];
         _isLoading = false;
       });
@@ -182,27 +191,30 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
 
   Future<String> _assistantReply(String text) async {
     try {
-      final response = await _chatApi.sendMessage(text);
+      final response = await _chatApi.sendMessage(
+        text,
+        context: _chatContext(),
+      );
       if (response.reply.trim().isNotEmpty) {
         return response.reply.trim();
       }
-    } catch (_) {
-      // Keep the assistant usable when the backend or LLM provider is offline.
+      return 'Lumi did not return a reply. Please try again.';
+    } catch (error) {
+      return 'Could not reach Lumi API: $error';
     }
-    return _chatbot.respondTo(text);
   }
 
   DirectConversation _assistantConversation() {
     final now = DateTime.now().toIso8601String();
     return DirectConversation(
-      id: 'local-rule-based-assistant',
+      id: 'local-api-assistant',
       title: 'TripWise Assistant',
-      subtitle: 'Rule-based chatbot',
+      subtitle: 'API chatbot',
       avatarUrl: null,
       providerId: null,
       bookingId: null,
       listingId: null,
-      lastMessage: RuleBasedChatbotService.greeting,
+      lastMessage: _assistantGreeting,
       lastMessageAt: now,
       unread: false,
       createdAt: now,
@@ -210,8 +222,30 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     );
   }
 
+  Map<String, dynamic> _chatContext() {
+    return {
+      'route': '/direct_messaging',
+      'screenTitle': _isLocalAssistantMode
+          ? 'TripWise Assistant'
+          : (_conversation?.title ?? 'Direct Messaging'),
+      'locale': Localizations.localeOf(context).toLanguageTag(),
+      'history': _messages
+          .reversed
+          .take(8)
+          .toList()
+          .reversed
+          .map(
+            (message) => {
+              'role': message.isMine ? 'user' : 'assistant',
+              'text': message.body,
+            },
+          )
+          .toList(),
+    };
+  }
+
   DirectMessage _localMessage({
-    String conversationId = 'local-rule-based-assistant',
+    String conversationId = 'local-api-assistant',
     required String body,
     required bool isMine,
   }) {
@@ -439,7 +473,7 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: RuleBasedChatbotService.quickPrompts.map((prompt) {
+      children: _assistantQuickPrompts.map((prompt) {
         return ActionChip(
           avatar: const Icon(
             Icons.auto_awesome_rounded,
