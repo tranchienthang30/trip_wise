@@ -40,6 +40,7 @@ class ReviewCard extends StatelessWidget {
     final initial = review.authorName.isNotEmpty
         ? review.authorName.characters.first.toUpperCase()
         : '?';
+    final providerReply = review.providerReply?.trim() ?? '';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -106,6 +107,40 @@ class ReviewCard extends StatelessWidget {
               height: 1.5,
             ),
           ),
+          if (providerReply.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: TripwiseColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: TripwiseColors.outlineVariant.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Provider reply',
+                    style: textTheme.labelMedium?.copyWith(
+                      color: TripwiseColors.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    providerReply,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: TripwiseColors.onSurface,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

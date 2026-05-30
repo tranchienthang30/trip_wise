@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../constants/icons.dart';
 import '../models/provider_listing.dart';
+import '../models/review.dart';
 import '../services/provider_listings_api.dart';
+import '../widgets/review_card.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
 
@@ -303,6 +305,21 @@ class _ProviderListingManagementScreenState
     }
   }
 
+  Future<void> _openListingDetail(ProviderListingSummary item) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _ProviderListingDetailSheet(
+          api: _api,
+          listingId: item.id,
+          fallbackImageUrl: item.imageUrl,
+        );
+      },
+    );
+  }
+
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -375,6 +392,7 @@ class _ProviderListingManagementScreenState
               child: _ListingRowCard(
                 item: item,
                 isBusy: _actionListingId == item.id,
+                onTap: () => _openListingDetail(item),
                 onActionSelected: (action) => _handleListingAction(item, action),
               ),
             ),
@@ -421,11 +439,13 @@ class _ProviderListingManagementScreenState
 class _ListingRowCard extends StatelessWidget {
   const _ListingRowCard({
     required this.item,
+    required this.onTap,
     required this.onActionSelected,
     this.isBusy = false,
   });
 
   final ProviderListingSummary item;
+  final VoidCallback onTap;
   final ValueChanged<_ListingCardAction> onActionSelected;
   final bool isBusy;
 
@@ -433,7 +453,9 @@ class _ListingRowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortTitle = _compactTitle(item.title);
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: TripwiseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -526,6 +548,7 @@ class _ListingRowCard extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -538,6 +561,393 @@ class _ListingRowCard extends StatelessWidget {
     if (words.length <= 2) return title.trim();
     return '${words[0]} ${words[1]}';
   }
+}
+
+class _ProviderListingDetailSheet extends StatefulWidget {
+  const _ProviderListingDetailSheet({
+    required this.api,
+    required this.listingId,
+    required this.fallbackImageUrl,
+  });
+
+  final ProviderListingsApi api;
+  final int listingId;
+  final String fallbackImageUrl;
+
+  @override
+  State<_ProviderListingDetailSheet> createState() =>
+      _ProviderListingDetailSheetState();
+}
+
+class _ProviderListingDetailSheetState
+    extends State<_ProviderListingDetailSheet> {
+  late Future<ProviderListingDetail> _future;
+  int? _replyingReviewId;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.api.fetchDetail(widget.listingId);
+  }
+
+  void _reload() {
+    setState(() {
+      _future = widget.api.fetchDetail(widget.listingId);
+    });
+  }
+
+  Future<void> _replyToReview(Review review) async {
+    final controller = TextEditingController(text: review.providerReply ?? '');
+    final reply = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            review.providerReply?.trim().isNotEmpty == true
+                ? 'Edit reply'
+                : 'Reply to review',
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 5,
+            maxLength: 1000,
+            decoration: const InputDecoration(
+              hintText: 'Write a clear response for this guest review.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
+              style: TripwiseButtonStyles.primaryElevated(radius: 8),
+              child: const Text('Save reply'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+
+    if (reply == null) return;
+    if (reply.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Reply cannot be empty.')),
+        );
+      return;
+    }
+
+    setState(() => _replyingReviewId = review.id);
+    try {
+      await widget.api.replyToReview(
+        listingId: widget.listingId,
+        reviewId: review.id,
+        reply: reply,
+      );
+      if (!mounted) return;
+      _reload();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Reply saved.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            backgroundColor: TripwiseColors.error,
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _replyingReviewId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.86,
+      minChildSize: 0.5,
+      maxChildSize: 0.94,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: TripwiseColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: FutureBuilder<ProviderListingDetail>(
+            future: _future,
+            builder: (context, snapshot) {
+              final detail = snapshot.data;
+              return ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: TripwiseColors.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _ListingImagePreview(
+                      imageUrl: detail?.imageUrl ?? widget.fallbackImageUrl,
+                      width: double.infinity,
+                      height: 190,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (snapshot.connectionState != ConnectionState.done)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (snapshot.hasError)
+                    _DetailLoadError(error: snapshot.error)
+                  else if (detail != null) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            detail.title,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _StatusBadge(
+                          status: _statusLabel(detail.status),
+                          raw: detail.status,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      detail.location,
+                      style: const TextStyle(
+                        color: TripwiseColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _ListingDetailMetrics(detail: detail),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: _SheetSectionTitle('Guest reviews'),
+                        ),
+                        if (detail.reviewCount > 0)
+                          Text(
+                            '${detail.rating.toStringAsFixed(1)} / 5',
+                            style: const TextStyle(
+                              color: TripwiseColors.primary,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (detail.reviews.isEmpty)
+                      const _NoReviewsCard()
+                    else
+                      for (final review in detail.reviews) ...[
+                        _ProviderReviewItem(
+                          review: review,
+                          isSaving: _replyingReviewId == review.id,
+                          onReply: () => _replyToReview(review),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                  ] else
+                    _DetailLoadError(error: 'Listing not found'),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ListingDetailMetrics extends StatelessWidget {
+  const _ListingDetailMetrics({required this.detail});
+
+  final ProviderListingDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _MetricPill(icon: Icons.meeting_room_rounded, label: detail.roomType),
+        _MetricPill(
+          icon: Icons.group_rounded,
+          label: '${detail.maxGuests} guests',
+        ),
+        _MetricPill(
+          icon: Icons.payments_rounded,
+          label: '\$${detail.pricePerNight.round()}/night',
+        ),
+      ],
+    );
+  }
+}
+
+class _ProviderReviewItem extends StatelessWidget {
+  const _ProviderReviewItem({
+    required this.review,
+    required this.isSaving,
+    required this.onReply,
+  });
+
+  final Review review;
+  final bool isSaving;
+  final VoidCallback onReply;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasReply = review.providerReply?.trim().isNotEmpty == true;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ReviewCard(review: review),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            onPressed: isSaving ? null : onReply,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.reply_rounded, size: 18),
+            label: Text(hasReply ? 'Edit reply' : 'Reply'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: TripwiseColors.primary),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetSectionTitle extends StatelessWidget {
+  const _SheetSectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(fontWeight: FontWeight.w900),
+    );
+  }
+}
+
+class _NoReviewsCard extends StatelessWidget {
+  const _NoReviewsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text(
+        'No guest reviews yet.',
+        style: TextStyle(color: TripwiseColors.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+class _DetailLoadError extends StatelessWidget {
+  const _DetailLoadError({required this.error});
+
+  final Object? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            color: TripwiseColors.onSurfaceVariant,
+            size: 40,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            error?.toString() ?? 'Could not load listing details.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: TripwiseColors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _statusLabel(String status) {
+  if (status == 'inactive') return 'Inactive';
+  if (status == 'pending') return 'Pending Review';
+  return 'Active';
 }
 
 class _ListingImagePreview extends StatelessWidget {

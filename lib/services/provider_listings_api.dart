@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/provider_listing.dart';
+import '../models/review.dart';
 import 'api_client.dart';
 
 class ProviderListingsApiException implements Exception {
@@ -114,6 +115,30 @@ class ProviderListingsApi {
         throw ProviderListingsApiException(response['message'] as String);
       }
       throw ProviderListingsApiException('Could not delete listing.');
+    }
+  }
+
+  Future<Review> replyToReview({
+    required int listingId,
+    required int reviewId,
+    required String reply,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/provider/listings/$listingId/reviews/$reviewId/reply',
+        data: {'reply': reply},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from review reply endpoint');
+      }
+      return Review.fromJson(data);
+    } on DioException catch (e) {
+      final response = e.response?.data;
+      if (response is Map && response['message'] is String) {
+        throw ProviderListingsApiException(response['message'] as String);
+      }
+      throw ProviderListingsApiException('Could not save reply.');
     }
   }
 

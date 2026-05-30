@@ -1,3 +1,5 @@
+import 'review.dart';
+
 class ProviderListingsResponse {
   ProviderListingsResponse({
     required this.query,
@@ -140,6 +142,9 @@ class ProviderListingDetail {
     required this.bathrooms,
     required this.maxGuests,
     required this.amenities,
+    required this.rating,
+    required this.reviewCount,
+    required this.reviews,
   });
 
   final int id;
@@ -158,6 +163,9 @@ class ProviderListingDetail {
   final int bathrooms;
   final int maxGuests;
   final List<String> amenities;
+  final double rating;
+  final int reviewCount;
+  final List<Review> reviews;
 
   factory ProviderListingDetail.fromJson(Map<String, dynamic> json) {
     return ProviderListingDetail(
@@ -180,6 +188,12 @@ class ProviderListingDetail {
       maxGuests: (json['maxGuests'] as num?)?.toInt() ?? 2,
       amenities: (json['amenities'] as List? ?? const [])
           .map((e) => e.toString())
+          .toList(),
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      reviews: (json['reviews'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(Review.fromJson)
           .toList(),
     );
   }

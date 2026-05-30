@@ -5,6 +5,8 @@ class Review {
     required this.authorImage,
     required this.rating,
     required this.comment,
+    required this.providerReply,
+    required this.providerRepliedAt,
     required this.tripType,
     required this.createdAt,
   });
@@ -14,17 +16,24 @@ class Review {
   final String? authorImage;
   final int rating;
   final String comment;
+  final String? providerReply;
+  final DateTime? providerRepliedAt;
   final String? tripType;
   final DateTime? createdAt;
 
   factory Review.fromJson(Map<String, dynamic> json) {
     final raw = json['createdAt'] as String?;
+    final providerReplyRaw = json['providerRepliedAt'] as String?;
     return Review(
       id: json['id'] as int,
       authorName: json['authorName'] as String? ?? 'Guest',
       authorImage: json['authorImage'] as String?,
       rating: (json['rating'] as num?)?.round() ?? 0,
       comment: json['comment'] as String? ?? '',
+      providerReply: json['providerReply'] as String?,
+      providerRepliedAt: providerReplyRaw == null
+          ? null
+          : DateTime.tryParse(providerReplyRaw),
       tripType: json['tripType'] as String?,
       createdAt: raw == null ? null : DateTime.tryParse(raw),
     );
