@@ -406,36 +406,66 @@ class _SummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: TripwiseColors.primary,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _SummaryItem(
-              label: 'Dates',
-              value: detail.dateLabel,
-              icon: Icons.calendar_month_rounded,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 360;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: TripwiseColors.primary,
+            borderRadius: BorderRadius.circular(8),
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: TripwiseColors.onPrimary.withValues(alpha: 0.24),
-          ),
-          Expanded(
-            child: _SummaryItem(
-              label: 'Total',
-              value: detail.totalAmountLabel,
-              icon: Icons.payments_rounded,
-            ),
-          ),
-        ],
-      ),
+          child: stacked
+              ? Column(
+                  children: [
+                    _SummaryItem(
+                      label: 'Dates',
+                      value: detail.dateLabel,
+                      icon: Icons.calendar_month_rounded,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Container(
+                        width: double.infinity,
+                        height: 1,
+                        color: TripwiseColors.onPrimary.withValues(alpha: 0.24),
+                      ),
+                    ),
+                    _SummaryItem(
+                      label: 'Total',
+                      value: detail.totalAmountLabel,
+                      icon: Icons.payments_rounded,
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: _SummaryItem(
+                        label: 'Dates',
+                        value: detail.dateLabel,
+                        icon: Icons.calendar_month_rounded,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: TripwiseColors.onPrimary.withValues(alpha: 0.24),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: _SummaryItem(
+                        label: 'Total',
+                        value: detail.totalAmountLabel,
+                        icon: Icons.payments_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 }
@@ -454,7 +484,7 @@ class _SummaryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(
         children: [
           Icon(icon, color: TripwiseColors.onPrimary, size: 20),
@@ -472,13 +502,20 @@ class _SummaryItem extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TripwiseColors.onPrimary,
-                    fontWeight: FontWeight.w900,
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        color: TripwiseColors.onPrimary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
                 ),
               ],
