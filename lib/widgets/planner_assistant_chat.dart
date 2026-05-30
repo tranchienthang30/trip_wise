@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../services/chat_api.dart';
-import '../services/rule_based_chatbot_service.dart';
 
 void showPlannerAssistantSheet(BuildContext context) {
+  final route = _currentRouteOf(context);
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
-      return const _PlannerAssistantSheet();
+      return _PlannerAssistantSheet(currentRoute: route);
     },
   );
+}
+
+String _currentRouteOf(BuildContext context) {
+  try {
+    return GoRouterState.of(context).uri.toString();
+  } catch (_) {
+    return '';
+  }
 }
 
 class PlannerAssistantHeaderButton extends StatelessWidget {
@@ -151,7 +160,9 @@ class _MascotEye extends StatelessWidget {
 }
 
 class _PlannerAssistantSheet extends StatefulWidget {
-  const _PlannerAssistantSheet();
+  const _PlannerAssistantSheet({required this.currentRoute});
+
+  final String currentRoute;
 
   @override
   State<_PlannerAssistantSheet> createState() => _PlannerAssistantSheetState();
@@ -159,17 +170,26 @@ class _PlannerAssistantSheet extends StatefulWidget {
 
 class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
   final ChatApi _chatApi = ChatApi();
-  final RuleBasedChatbotService _chatbot = RuleBasedChatbotService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSending = false;
 
-  late final List<_PlannerAssistantMessage> _messages = [
-    const _PlannerAssistantMessage(
-      text: RuleBasedChatbotService.greeting,
-      isUser: false,
-    ),
+  static const String _greeting =
+      'Hello! I am Lumi Planner. Ask me anything about your next Tripwise plan.';
+
+  static const List<String> _quickPrompts = [
+    'I want to book a trip',
+    'Suggest destinations',
+    'Ask about tour prices',
+    'Cancellation policy',
+    'Payment methods',
+    'Check my booking',
   ];
+
+  static final List<_PlannerAssistantMessage> _persistedMessages = [
+    const _PlannerAssistantMessage(text: _greeting, isUser: false),
+  ];
+  late final List<_PlannerAssistantMessage> _messages = _persistedMessages;
 
   @override
   void initState() {
@@ -220,14 +240,39 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
 
   Future<String> _assistantReply(String text) async {
     try {
-      final response = await _chatApi.sendMessage(text);
+      final response = await _chatApi.sendMessage(
+        text,
+        context: _chatContext(),
+      );
       if (response.reply.trim().isNotEmpty) {
         return response.reply.trim();
       }
-    } catch (_) {
-      // Local rules keep the sheet responsive if the backend is unavailable.
+      return 'Lumi did not return a reply. Please try again.';
+    } catch (error) {
+      return 'Could not reach Lumi API: $error';
     }
-    return _chatbot.respondTo(text);
+  }
+
+  Map<String, dynamic> _chatContext() {
+    return {
+      'route': widget.currentRoute,
+      'screenTitle': 'Lumi Planner',
+      'locale': Localizations.localeOf(context).toLanguageTag(),
+      'history': _messages
+          .take(_messages.length - 1)
+          .toList()
+          .reversed
+          .take(8)
+          .toList()
+          .reversed
+          .map(
+            (message) => {
+              'role': message.isUser ? 'user' : 'assistant',
+              'text': message.text,
+            },
+          )
+          .toList(),
+    };
   }
 
   @override
@@ -317,7 +362,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Rule-based travel support and booking guidance',
+                  'API-powered travel planning assistant',
                   style: TextStyle(
                     color: Color(0xFFD9EDFF),
                     fontSize: 13,
@@ -385,7 +430,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Tap a suggestion below to chat with the hybrid assistant.',
+            'Tap a suggestion below to chat with Lumi.',
             style: TextStyle(
               color: TripwiseColors.onSurfaceVariant,
               fontSize: 14,
@@ -396,7 +441,7 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: RuleBasedChatbotService.quickPrompts
+            children: _quickPrompts
                 .map(
                   (prompt) => ActionChip(
                     label: Text(prompt),
@@ -421,9 +466,9 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
 
   Widget _buildComposer() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+        color: Colors.white,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
@@ -437,25 +482,32 @@ class _PlannerAssistantSheetState extends State<_PlannerAssistantSheet> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: TripwiseColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: TripwiseColors.outlineVariant),
-              ),
-              child: TextField(
-                controller: _controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _sendMessage(),
-                decoration: const InputDecoration(
-                  hintText: 'Ask Lumi to plan your next step...',
-                  hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 14,
+            child: TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _sendMessage(),
+              decoration: InputDecoration(
+                hintText: 'Ask Lumi to plan your next step...',
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 15,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(
+                    color: TripwiseColors.outlineVariant,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(
+                    color: TripwiseColors.primary,
+                    width: 1.4,
                   ),
                 ),
               ),

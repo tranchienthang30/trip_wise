@@ -22,17 +22,23 @@ class ChatReply {
     return ChatReply(
       reply: json['reply'] as String? ?? '',
       intent: json['intent'] as String? ?? 'unknown',
-      source: json['source'] as String? ?? 'rule',
+      source: json['source'] as String? ?? 'api',
     );
   }
 }
 
 class ChatApi {
-  Future<ChatReply> sendMessage(String message) async {
+  Future<ChatReply> sendMessage(
+    String message, {
+    Map<String, dynamic>? context,
+  }) async {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
         '/chat',
-        data: {'message': message},
+        data: {
+          'message': message,
+          if (context != null) 'context': context,
+        },
       );
       final data = response.data;
       if (data == null) {
