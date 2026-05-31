@@ -233,25 +233,6 @@ class _TripPlannerTimelineScreenState extends State<TripPlannerTimelineScreen> {
                 selectedIndex: dayIndex,
                 onSelect: (i) => setState(() => _selectedDayIndex = i),
               ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _openAddActivity,
-                icon: const Icon(Icons.confirmation_number_rounded),
-                label: const Text('Import Events From My Booked Tickets'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: TripwiseColors.primary,
-                  side: BorderSide(
-                    color: TripwiseColors.primary.withOpacity(0.35),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 28),
             _Timeline(
               items: items,

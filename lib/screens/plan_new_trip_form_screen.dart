@@ -27,7 +27,6 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
   final _startDateController = TextEditingController();
   final _endDateController = TextEditingController();
 
-  bool _inviteFriends = false;
   bool _isSubmitting = false;
   List<MyTripCard>? _bookedItems;
   Object? _bookedItemsError;
@@ -400,8 +399,6 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
                     ),
                     const SizedBox(height: 32),
                     _buildBookedTicketsSection(),
-                    const SizedBox(height: 24),
-                    _buildInviteFriendsToggle(),
                   ],
                 ),
               ),
@@ -438,23 +435,6 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
           fontWeight: FontWeight.w900,
         ),
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 24),
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(0xFFE5E8F0),
-            image: DecorationImage(
-              image: NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuBpZ1nmipSL8DAqMkExIj56K-RKYJFzmPYXVkJP_dXtAnrbFfy_-qD1kibK5hBEDawc95DuqXOFP5jGXm561076rNIvhnvtFGQ4ozqPBRuZB1jhSvgYpl5AZLkzeaCUAmeTO91O0_VcgsGUa7QH80QJT2iDwWD9oCOI07Q-IttToCER48Hxqw9_F78Tl2sWopN7n5sJiPt2C9Yblti5TMI-ZEhizdTMR9Ce61Nw8gkP9WtAivvPjwfprLy27mRStWIp68XlIWJSgbvl',
-              ),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -520,75 +500,6 @@ class _PlanNewTripFormScreenState extends State<PlanNewTripFormScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInviteFriendsToggle() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FC),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFD1E4FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.group_add_rounded,
-                    color: Color(0xFF005F9F),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Invite Friends',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF181C22),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Collaborate on this itinerary',
-                        style: TextStyle(fontSize: 14, color: Color(0xFF3F4752)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Switch(
-            value: _inviteFriends,
-            onChanged: (value) {
-              setState(() {
-                _inviteFriends = value;
-              });
-            },
-            activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF005F9F),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFDFE2EB),
-          ),
-        ],
-      ),
     );
   }
 
