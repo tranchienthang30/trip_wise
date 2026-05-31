@@ -818,7 +818,10 @@ class _OfferCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _NetworkFillImage(imageUrl: offer.imageUrl),
+              _NetworkFillImage(
+                imageUrl: offer.imageUrl,
+                fallbackSeed: offer.title,
+              ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -1023,7 +1026,10 @@ class _RecommendedCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _NetworkFillImage(imageUrl: item.imageUrl),
+              _NetworkFillImage(
+                imageUrl: item.imageUrl,
+                fallbackSeed: item.title,
+              ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -1114,7 +1120,10 @@ class _HotelTile extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: _ThumbnailImage(imageUrl: hotel.imageUrl),
+          child: _ThumbnailImage(
+            imageUrl: hotel.imageUrl,
+            fallbackSeed: hotel.name,
+          ),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -1214,37 +1223,22 @@ class _HotelTile extends StatelessWidget {
 }
 
 class _NetworkFillImage extends StatelessWidget {
-  const _NetworkFillImage({required this.imageUrl});
+  const _NetworkFillImage({required this.imageUrl, required this.fallbackSeed});
 
   final String? imageUrl;
+  final String fallbackSeed;
 
   @override
   Widget build(BuildContext context) {
     final imageProvider = tripwiseImageProvider(imageUrl);
     if (imageProvider == null) {
-      return Container(
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          size: 36,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      );
+      return _FallbackNetworkImage(seed: fallbackSeed);
     }
 
     return Image(
       image: imageProvider,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          size: 36,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      ),
+      errorBuilder: (_, __, ___) => _FallbackNetworkImage(seed: fallbackSeed),
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           return child;
@@ -1264,23 +1258,19 @@ class _NetworkFillImage extends StatelessWidget {
 }
 
 class _ThumbnailImage extends StatelessWidget {
-  const _ThumbnailImage({required this.imageUrl});
+  const _ThumbnailImage({required this.imageUrl, required this.fallbackSeed});
 
   final String? imageUrl;
+  final String fallbackSeed;
 
   @override
   Widget build(BuildContext context) {
     final imageProvider = tripwiseImageProvider(imageUrl);
     if (imageProvider == null) {
-      return Container(
+      return _FallbackNetworkImage(
         width: 82,
         height: 82,
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
+        seed: fallbackSeed,
       );
     }
 
@@ -1289,18 +1279,76 @@ class _ThumbnailImage extends StatelessWidget {
       width: 82,
       height: 82,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (_, __, ___) => _FallbackNetworkImage(
         width: 82,
         height: 82,
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
+        seed: fallbackSeed,
+      ),
+    );
+  }
+}
+
+class _FallbackNetworkImage extends StatelessWidget {
+  const _FallbackNetworkImage({
+    required this.seed,
+    this.width,
+    this.height,
+  });
+
+  final String seed;
+  final double? width;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      _fallbackImageFor(seed),
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _SoftImageFallback(
+        width: width,
+        height: height,
+      ),
+    );
+  }
+}
+
+class _SoftImageFallback extends StatelessWidget {
+  const _SoftImageFallback({this.width, this.height});
+
+  final double? width;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE4EEF8),
+            Color(0xFFAEB8C4),
+          ],
         ),
       ),
     );
   }
+}
+
+String _fallbackImageFor(String seed) {
+  const images = [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
+  ];
+
+  final hash = seed.codeUnits.fold<int>(0, (value, unit) => value + unit);
+  return images[hash.abs() % images.length];
 }
 
 Color _toneColor(String tone) {
