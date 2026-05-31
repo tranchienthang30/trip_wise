@@ -612,8 +612,8 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                message.text,
+              child: _FormattedAssistantText(
+                text: message.text,
                 style: TextStyle(
                   color: isUser ? Colors.white : TripwiseColors.onSurface,
                   fontSize: 14.5,
@@ -625,6 +625,64 @@ class _MessageBubble extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _FormattedAssistantText extends StatelessWidget {
+  const _FormattedAssistantText({
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = _cleanDisplayText(text);
+    final spans = <TextSpan>[];
+    const boldPattern = r'\*\*(.+?)\*\*';
+    var cursor = 0;
+
+    for (final match
+        in RegExp(boldPattern, dotAll: true).allMatches(displayText)) {
+      if (match.start > cursor) {
+        spans.add(TextSpan(text: displayText.substring(cursor, match.start)));
+      }
+
+      spans.add(
+        TextSpan(
+          text: match.group(1) ?? '',
+          style: style.copyWith(fontWeight: FontWeight.w800),
+        ),
+      );
+      cursor = match.end;
+    }
+
+    if (cursor < displayText.length) {
+      spans.add(TextSpan(text: displayText.substring(cursor)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: style,
+        children: spans.isEmpty ? [TextSpan(text: displayText)] : spans,
+      ),
+    );
+  }
+
+  String _cleanDisplayText(String value) {
+    return value
+        .replaceAll('`', '')
+        .replaceAll(
+          RegExp(r'\s*\([^)]*\/[A-Za-z0-9_/?=&.-]+[^)]*\)'),
+          '',
+        )
+        .replaceAll(RegExp(r'(^|\s)\/[A-Za-z0-9_/?=&.-]+'), ' ')
+        .replaceAll(RegExp(r'^\s*\*\s+', multiLine: true), '- ')
+        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
   }
 }
 

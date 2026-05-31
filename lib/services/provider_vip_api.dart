@@ -67,4 +67,24 @@ class ProviderVipApi {
       );
     }
   }
+
+  Future<ProviderVipData> updateAutoRenew(bool autoRenew) async {
+    try {
+      final response = await ApiClient.instance.dio.patch<Map<String, dynamic>>(
+        '/provider/vip/auto-renew',
+        data: {'autoRenew': autoRenew},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /provider/vip/auto-renew');
+      }
+      return ProviderVipData.fromJson(data);
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      final serverMessage = data is Map ? data['message']?.toString() : null;
+      throw ProviderVipApiException(
+        serverMessage ?? 'Unable to update auto-renew. Please try again.',
+      );
+    }
+  }
 }
