@@ -53,6 +53,20 @@ class TripsApi {
     }
   }
 
+  Future<void> deleteTrip(String tripId) async {
+    try {
+      await ApiClient.instance.dio.delete<Map<String, dynamic>>(
+        '/trips/$tripId',
+      );
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      if (resp is Map && resp['message'] is String) {
+        throw TripsApiException(resp['message'] as String);
+      }
+      throw TripsApiException('Could not delete trip. Please try again.');
+    }
+  }
+
   /// Append a real activity onto a given day of a trip. Returns the updated
   /// trip; callers may also just re-fetch the list.
   Future<Trip> addItem({

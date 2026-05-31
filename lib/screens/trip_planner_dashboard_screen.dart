@@ -95,6 +95,7 @@ class _TripPlannerDashboardScreenState
   TripsResponse? _data;
   Object? _error;
   String _selectedTripTab = 'pending';
+  String? _deletingTripId;
 
   @override
   void initState() {
@@ -123,6 +124,65 @@ class _TripPlannerDashboardScreenState
     );
     if (!mounted) return;
     await _load();
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? TripwiseColors.error : null,
+      ),
+    );
+  }
+
+  Future<void> _deleteTrip(Trip trip) async {
+    if (_deletingTripId != null) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete planner card'),
+          content: Text('Delete "${trip.title}"? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: TripwiseColors.error),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldDelete != true) return;
+
+    setState(() => _deletingTripId = trip.id);
+    try {
+      await _api.deleteTrip(trip.id);
+      if (!mounted) return;
+      setState(() {
+        final current = _data;
+        if (current != null) {
+          _data = TripsResponse(
+            trips: [
+              for (final item in current.trips)
+                if (item.id != trip.id) item,
+            ],
+          );
+        }
+      });
+      _showSnack('Planner card deleted.');
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _deletingTripId = null);
+    }
   }
 
   @override
@@ -289,9 +349,10 @@ class _TripPlannerDashboardScreenState
   Widget _buildTripCard(BuildContext context, Trip trip) {
     final chrome = _statusChrome(trip.resolvedStatus);
     final comp = _tripCompanions(trip);
+    final isDeleting = _deletingTripId == trip.id;
 
     return InkWell(
-      onTap: () => _openTimeline(trip.id),
+      onTap: isDeleting ? null : () => _openTimeline(trip.id),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
@@ -332,6 +393,26 @@ class _TripPlannerDashboardScreenState
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
                       ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Material(
+                    color: Colors.white.withOpacity(0.92),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: 'Delete planner card',
+                      icon: isDeleting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_rounded),
+                      color: TripwiseColors.error,
+                      onPressed: isDeleting ? null : () => _deleteTrip(trip),
                     ),
                   ),
                 ),
