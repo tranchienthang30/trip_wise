@@ -1,11 +1,65 @@
 # Notifications
 
-The notification subsystem has **two halves** that you should keep separate in your head:
+The notification subsystem has **three surfaces** that you should keep separate in your head:
 
 1. **In-app inbox + preferences** (HTTP, all platforms) — list, read state, settings.
-2. **Push delivery** (FCM + local notifications, Android only) — OS tray banners + deep links.
+2. **In-app banner** (all platforms) — a styled overlay shown *inside* the app when a notification arrives while the app is foregrounded.
+3. **OS tray push** (FCM, Android only) — system notifications shown when the app is **backgrounded or killed**.
 
-They share one concept: an `action_route` string that is a GoRouter path the user is sent to when they tap a notification (either an inbox row or a tray banner).
+They share one concept: an `action_route` string that is a GoRouter path the user is sent to when they tap a notification (inbox row, in-app banner, or tray notification).
+
+---
+
+## ⭐ CURRENT ARCHITECTURE (updated 2026-05-31) — read this first
+
+The detailed sections below were written against an earlier version and have **drifted**. Where they conflict, this section wins. What actually happens today:
+
+### Foreground vs background — the key change
+- **Foreground (app open): we do NOT render an OS tray notification.** Instead `FirebaseMessaging.onMessage` just emits an `IncomingPushPayload` on `PushMessagingService.onForegroundPush` (`push_messaging_service.dart:203`). `main.dart` listens and shows a **styled in-app banner** (`in_app_push_banner.dart`) so the user isn't hit by a system heads-up while actively using the app.
+- **Background / killed:** unchanged — `firebaseMessagingBackgroundHandler` (separate isolate) still renders the **OS tray** notification.
+
+### In-app banner works on every platform (polling fallback)
+- FCM foreground push only fires on Android. To make the banner work on **iOS/web/Android-without-a-live-push**, `NotificationAlertService` (`notification_alert_service.dart`) **polls `/notifications` every 20 s** while authenticated and emits any row it hasn't seen before on `onNewNotification`.
+- `main.dart` listens to **both** sources (`onForegroundPush` + `onNewNotification`) and **dedupes by notification id** (`_banneredIds`) so the same notification never banners twice.
+- First poll only records a **baseline** (existing inbox) — it does NOT banner the backlog. Only notifications arriving after start pop.
+- Poller is started/stopped by auth state (`_syncPollerToAuth`) and `pollNow()` is called on app resume for snappy feedback.
+
+### Tapping anything = mark read
+- Tapping the **in-app banner**, an **inbox row**, or an **OS tray notification** all mark the notification read (tap = engagement) and then deep-link. Tray taps carry both the route *and* the id (payload is JSON `{route, id}`, see `_showLocal` / `_decodeTapPayload`) precisely so the tap can mark-read, not just navigate.
+- Merely *showing* a banner does NOT mark read.
+
+### The bell badge is now live (old bug #4 fixed)
+- `NotificationBellButton` (`shared_top_bars.dart`) subscribes to `PushMessagingService.onForegroundPush` (new push) and `NotificationAlertService.onChanged` (a read happened elsewhere) and refreshes on app resume. The badge updates without navigating.
+
+### Pagination is now cursor-based (old bug #5 fixed)
+- `NotificationApi.fetchFeed({limit, before})` uses a **`before` cursor**, not `offset`. `NotificationPage` carries `nextCursor`/`hasMore`. This avoids the duplicate/skip races offset pagination had.
+
+### Blocked-permission surface now exists (old bug #6 partially fixed)
+- `PushMessagingService.isPushBlocked()` reads `getNotificationSettings()`; the Preferences screen uses it to show a "blocked at the system level" banner. (Earlier text saying "no UI surface exists" is outdated.)
+
+### Per-category channels + collapse keys (added 2026-05-31)
+- **Multiple Android channels**, one per mutable preference category, replace the old single `tripwise_default` channel. Defined in `push_messaging_service.dart`: `tripwise_transactions` (Bookings & payments), `tripwise_chats` (Messages), `tripwise_trips` (Trip reminders), `tripwise_promos` (Promotions, `defaultImportance` so no heads-up). `_channelForType(type)` maps the server `type` → channel (MESSAGE→chats, TRIP→trips, PROMO→promos, BOOKING/SYSTEM/unknown→transactions), mirroring `notifications.service.ts` `TYPE_TO_PREF` so OS-level mute matches the in-app toggles. `_registerChannels()` creates all four **and deletes** the legacy `tripwise_default` so it stops appearing in system settings. Channel ids are permanent on-device — migrate, never rename.
+- **Collapse keys / grouping**: the server payload now carries an optional `collapse_key`. `createNotification({collapseKey})` → `PushPayload.collapseKey` → both `android.collapseKey` (FCM offline-collapse) and a `collapse_key` field in `data`. The client (`_showLocal`) uses it as a stable tray id **and** Android `tag` so a newer notification with the same key replaces the previous one instead of stacking; without a key each notification keeps a unique id (original behaviour). `groupKey` is set to the channel id so same-channel rows stack under one summary. **`directMessages.sendMessage` passes `collapseKey: 'msg:<conversationId>'`** — a burst of chat messages in one thread collapses to a single latest row. (Replaces the old "No grouping/threading" gap for the tray; the inbox list still shows every row.)
+
+### Top-up / withdraw UX (changed 2026-05-31)
+- `wallet_loyalty_screen.dart` no longer shows the bottom "Top-up successful." / "Withdrawal successful." snackbar. The balance updates inline via `setState`, and on success it calls `NotificationAlertService.pollNow()` so the server-created notification surfaces as the **in-app banner immediately** rather than on the next 20 s poll tick. (The `_showWalletFlowNotice` helper is still used for the "Add a payment card first." validation notice.)
+
+### Quick source map (current)
+| Concern | File |
+|---|---|
+| FCM init, foreground stream, tray render, permission, token | `lib/services/push_messaging_service.dart` |
+| Cross-platform polling fallback + `onChanged` signal | `lib/services/notification_alert_service.dart` |
+| In-app banner overlay | `lib/widgets/in_app_push_banner.dart` |
+| HTTP API (feed/summary/read/prefs) | `lib/services/notifications_api.dart` |
+| App-level wiring (banner dedupe, deep link, tap→read) | `lib/main.dart` |
+| Inbox list / preferences screens | `lib/screens/notification_inbox_screen.dart` / `notifications_screen.dart` |
+| Bell + badge | `lib/widgets/shared_top_bars.dart` (`NotificationBellButton`) |
+| Device token registration | `lib/services/devices_api.dart` |
+
+> Everything below is the original deep dive. Still useful for the inbox/prefs,
+> the backend trigger map, preference enforcement, and the **still-open backend
+> bugs** (#1 demo-user recipient, #2 preference categories not enforced, etc.).
+> Just mentally apply the corrections above to the client-side push details.
 
 ---
 

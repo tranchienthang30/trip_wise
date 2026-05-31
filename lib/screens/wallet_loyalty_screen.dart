@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../models/wallet_overview.dart';
+import '../services/notification_alert_service.dart';
 import '../services/wallet_api.dart';
 import '../utils/currency.dart';
 import '../widgets/shared_taskbars.dart';
@@ -104,10 +105,12 @@ class _WalletLoyaltyScreenState extends State<WalletLoyaltyScreen> {
     );
 
     if (ok == true && mounted) {
-      _showWalletFlowNotice(
-        context,
-        isTopUp ? 'Top-up successful.' : 'Withdrawal successful.',
-      );
+      // Success is already reflected inline (the setState above updates the
+      // balance), so don't show a bottom snackbar — the server-created
+      // notification surfaces as the in-app banner instead. Poll right away so
+      // that banner appears now rather than on the next 20s
+      // NotificationAlertService tick.
+      NotificationAlertService.pollNow();
     }
   }
 

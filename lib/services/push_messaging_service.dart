@@ -45,12 +45,72 @@ class IncomingPushPayload {
   }
 }
 
-const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-  'tripwise_default',
-  'Tripwise notifications',
-  description: 'Bookings, trips and account alerts',
+/// Per-category channels so a user can mute e.g. promos or chats without
+/// losing booking/payment alerts at the OS level — the OS toggles mirror the
+/// in-app NotificationPreference categories. Channel ids are PERMANENT
+/// on-device: renaming one orphans the user's settings, so migrate, never
+/// rename.
+const AndroidNotificationChannel _txChannel = AndroidNotificationChannel(
+  'tripwise_transactions',
+  'Bookings & payments',
+  description: 'Booking updates, wallet and account alerts',
   importance: Importance.high,
 );
+const AndroidNotificationChannel _chatChannel = AndroidNotificationChannel(
+  'tripwise_chats',
+  'Messages',
+  description: 'Direct messages from hosts and travellers',
+  importance: Importance.high,
+);
+const AndroidNotificationChannel _tripChannel = AndroidNotificationChannel(
+  'tripwise_trips',
+  'Trip reminders',
+  description: 'Upcoming trips and itinerary reminders',
+  importance: Importance.high,
+);
+const AndroidNotificationChannel _promoChannel = AndroidNotificationChannel(
+  'tripwise_promos',
+  'Promotions',
+  description: 'Deals, offers and product news',
+  importance: Importance.defaultImportance,
+);
+
+const List<AndroidNotificationChannel> _channels = <AndroidNotificationChannel>[
+  _txChannel,
+  _chatChannel,
+  _tripChannel,
+  _promoChannel,
+];
+
+/// Maps a server notification `type` to its channel. Mirrors
+/// notifications.service.ts TYPE_TO_PREF; SYSTEM/unknown fall back to the
+/// transactions channel (account + wallet alerts).
+AndroidNotificationChannel _channelForType(String? type) {
+  switch (type) {
+    case 'MESSAGE':
+      return _chatChannel;
+    case 'TRIP':
+      return _tripChannel;
+    case 'PROMO':
+      return _promoChannel;
+    case 'BOOKING':
+    case 'SYSTEM':
+    default:
+      return _txChannel;
+  }
+}
+
+/// (Re)create every channel and drop the legacy single channel so it no longer
+/// lingers in the user's notification settings. Idempotent.
+Future<void> _registerChannels(FlutterLocalNotificationsPlugin plugin) async {
+  final android = plugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+  if (android == null) return;
+  await android.deleteNotificationChannel('tripwise_default');
+  for (final channel in _channels) {
+    await android.createNotificationChannel(channel);
+  }
+}
 
 const AndroidInitializationSettings _androidInit =
     AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -68,18 +128,31 @@ Future<void> _showLocal(
       ? data['title'] as String
       : (m.notification?.title ?? 'Tripwise');
   final body = (data['body'] as String?) ?? m.notification?.body ?? '';
+  final channel = _channelForType(data['type'] as String?);
+
+  // collapse_key (set by the server, e.g. one per chat conversation) gives a
+  // stable tray id + tag so a newer message REPLACES the previous one for that
+  // conversation instead of stacking another row. Without it each notification
+  // gets a unique id (the original behaviour). groupKey stacks same-channel
+  // rows under one summary.
+  final collapseKey = (data['collapse_key'] as String?)?.trim();
+  final hasCollapseKey = collapseKey != null && collapseKey.isNotEmpty;
+  final notificationId = hasCollapseKey ? collapseKey.hashCode : _idFor(m);
+
   await plugin.show(
-    _idFor(m),
+    notificationId,
     title,
     body,
     NotificationDetails(
       android: AndroidNotificationDetails(
-        _channel.id,
-        _channel.name,
-        channelDescription: _channel.description,
-        importance: Importance.high,
+        channel.id,
+        channel.name,
+        channelDescription: channel.description,
+        importance: channel.importance,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
+        groupKey: channel.id,
+        tag: hasCollapseKey ? collapseKey : null,
       ),
     ),
     // Carry BOTH the route and the notification id so a tray tap can mark the
@@ -121,10 +194,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await plugin.initialize(
     const InitializationSettings(android: _androidInit),
   );
-  await plugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(_channel);
+  await _registerChannels(plugin);
   await _showLocal(plugin, message);
 }
 
@@ -184,10 +254,7 @@ class PushMessagingService {
         onNotificationTap(route: p.route, notificationId: p.id);
       },
     );
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
+    await _registerChannels(_plugin);
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
