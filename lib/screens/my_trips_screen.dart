@@ -347,7 +347,10 @@ class _TripListCard extends StatelessWidget {
                     ),
                     if (!isCancellationPending) ...[
                       const SizedBox(width: 8),
-                      _StatusChip(label: item.statusLabel, status: item.status),
+                      _StatusChip(
+                        label: item.statusLabel,
+                        status: item.displayStatus,
+                      ),
                     ],
                   ],
                 ),
@@ -470,9 +473,12 @@ class _StatusChip extends StatelessWidget {
         bg = TripwiseColors.error.withValues(alpha: 0.1);
         fg = TripwiseColors.error;
         break;
+      case 'ongoing':
+        bg = const Color(0xFFD8F3DC);
+        fg = const Color(0xFF123D22);
+        break;
       case 'completed':
       case 'upcoming':
-      case 'confirmed':
       case 'pending':
         bg = TripwiseColors.primaryFixed;
         fg = TripwiseColors.onPrimaryFixedVariant;

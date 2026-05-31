@@ -69,6 +69,7 @@ class MyTripCard {
     required this.subtitle,
     required this.serviceType,
     required this.status,
+    required this.displayStatus,
     required this.rawStatus,
     required this.statusLabel,
     required this.dateLabel,
@@ -90,6 +91,7 @@ class MyTripCard {
   final String subtitle;
   final String serviceType;
   final String status;
+  final String displayStatus;
   final String rawStatus;
   final String statusLabel;
   final String dateLabel;
@@ -112,6 +114,7 @@ class MyTripCard {
       subtitle: json['subtitle'] as String? ?? '',
       serviceType: json['serviceType'] as String? ?? 'hotel',
       status: json['status'] as String? ?? 'upcoming',
+      displayStatus: json['displayStatus'] as String? ?? json['status'] as String? ?? 'upcoming',
       rawStatus: json['rawStatus'] as String? ?? '',
       statusLabel: json['statusLabel'] as String? ?? 'Upcoming',
       dateLabel: json['dateLabel'] as String? ?? 'Date not set',
