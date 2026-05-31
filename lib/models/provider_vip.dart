@@ -4,12 +4,14 @@ class ProviderVipData {
     required this.plans,
     required this.promotions,
     required this.impact,
+    required this.subscription,
   });
 
   final ProviderVipHero hero;
   final List<ProviderVipPlan> plans;
   final List<ProviderVipPromotion> promotions;
   final ProviderVipImpact impact;
+  final ProviderVipSubscription subscription;
 
   factory ProviderVipData.fromJson(Map<String, dynamic> json) {
     return ProviderVipData(
@@ -26,6 +28,9 @@ class ProviderVipData {
           .toList(),
       impact: ProviderVipImpact.fromJson(
         (json['impact'] as Map<String, dynamic>?) ?? const {},
+      ),
+      subscription: ProviderVipSubscription.fromJson(
+        (json['subscription'] as Map<String, dynamic>?) ?? const {},
       ),
     );
   }
@@ -162,6 +167,33 @@ class ProviderVipImpact {
     return ProviderVipImpact(
       reachIncreasePct: (json['reachIncreasePct'] as num?)?.toInt() ?? 0,
       bookingVelocityLabel: json['bookingVelocityLabel'] as String? ?? '0x',
+    );
+  }
+}
+
+class ProviderVipSubscription {
+  ProviderVipSubscription({
+    required this.isElite,
+    required this.expiresAt,
+    required this.autoRenew,
+    required this.daysRemaining,
+    required this.expiresSoon,
+  });
+
+  final bool isElite;
+  final DateTime? expiresAt;
+  final bool autoRenew;
+  final int? daysRemaining;
+  final bool expiresSoon;
+
+  factory ProviderVipSubscription.fromJson(Map<String, dynamic> json) {
+    final rawExpiresAt = json['expiresAt'] as String?;
+    return ProviderVipSubscription(
+      isElite: json['isElite'] as bool? ?? false,
+      expiresAt: rawExpiresAt == null ? null : DateTime.tryParse(rawExpiresAt),
+      autoRenew: json['autoRenew'] as bool? ?? true,
+      daysRemaining: (json['daysRemaining'] as num?)?.toInt(),
+      expiresSoon: json['expiresSoon'] as bool? ?? false,
     );
   }
 }
