@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/colors.dart';
 import '../models/checkout_data.dart';
 import '../services/checkout_api.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class BookingCheckoutScreen extends StatefulWidget {
   const BookingCheckoutScreen({
@@ -30,6 +31,21 @@ class BookingCheckoutScreen extends StatefulWidget {
 
   @override
   State<BookingCheckoutScreen> createState() => _BookingCheckoutScreenState();
+}
+
+String _checkoutListingSeed(CheckoutListing listing) {
+  if (listing.serviceType == 'hotel' && listing.hotelId > 0) {
+    return 'hotel-${listing.hotelId}';
+  }
+  if (listing.serviceType == 'flight' && listing.flightId != null) {
+    return 'flight-${listing.flightId}';
+  }
+  if (listing.serviceType == 'activity' && listing.activityId != null) {
+    return 'tour-${listing.activityId}';
+  }
+  final image = listing.imageUrl?.trim();
+  if (image != null && image.isNotEmpty) return '${listing.serviceType}-image-$image';
+  return '${listing.serviceType}-${listing.title}';
 }
 
 class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
@@ -473,15 +489,14 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                 ],
               ),
             ),
-          if (summary.listing.imageUrl != null &&
-              summary.listing.imageUrl!.isNotEmpty)
-            Image.network(
-              summary.listing.imageUrl!,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+          TripwiseNetworkImage(
+            imageUrl: summary.listing.imageUrl,
+            fallbackSeed: _checkoutListingSeed(summary.listing),
+            height: 180,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholderColor: TripwiseColors.surfaceContainerLow,
+          ),
           Padding(
             padding: TripwiseInsets.section,
             child: Column(

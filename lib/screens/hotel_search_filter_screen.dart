@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../widgets/shared_taskbars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 String? _cleanParam(String? value) {
   final trimmed = value?.trim() ?? '';
@@ -880,8 +881,9 @@ class _HotelImageCard extends StatelessWidget {
                 children: [
                   AspectRatio(
                     aspectRatio: 1.08,
-                    child: Image.network(
-                      data.imageUrl,
+                    child: TripwiseNetworkImage(
+                      imageUrl: data.imageUrl,
+                      fallbackSeed: 'hotel-filter-${data.name}',
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -1022,8 +1024,9 @@ class _HotelDetailCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 child: AspectRatio(
                   aspectRatio: 1.55,
-                  child: Image.network(
-                    data.imageUrl,
+                  child: TripwiseNetworkImage(
+                    imageUrl: data.imageUrl,
+                    fallbackSeed: 'hotel-filter-${data.name}',
                     fit: BoxFit.cover,
                   ),
                 ),

@@ -5,9 +5,22 @@ import '../constants/colors.dart';
 import '../models/my_trips.dart';
 import '../services/my_trips_api.dart';
 import '../services/trips_api.dart';
+import '../widgets/tripwise_network_image.dart';
 
 const List<String> _chipLabels = ['All', 'Activity', 'Flight', 'Hotel'];
 const List<String?> _chipServiceType = [null, 'activity', 'flight', 'hotel'];
+
+String _tripActivityImageSeed(MyTripCard item) {
+  if (item.serviceType == 'hotel' && item.hotelId != null && item.hotelId! > 0) {
+    return 'hotel-${item.hotelId}';
+  }
+  if (item.serviceType == 'activity' && item.activityId != null && item.activityId! > 0) {
+    return 'tour-${item.activityId}';
+  }
+  final image = item.imageUrl.trim();
+  if (image.isNotEmpty) return '${item.serviceType}-image-$image';
+  return '${item.serviceType}-${item.id}';
+}
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key, this.tripId, this.dayIndex});
@@ -309,43 +322,18 @@ class _ErrorView extends StatelessWidget {
 }
 
 class _NetImage extends StatelessWidget {
-  const _NetImage({required this.url});
+  const _NetImage({required this.url, required this.fallbackSeed});
 
   final String? url;
+  final String fallbackSeed;
 
   @override
   Widget build(BuildContext context) {
-    final src = url;
-    if (src == null || src.isEmpty) {
-      return const ColoredBox(
-        color: TripwiseColors.surfaceContainerLow,
-        child: Center(
-          child: Icon(
-            Icons.image_not_supported_rounded,
-            color: TripwiseColors.onSurfaceVariant,
-          ),
-        ),
-      );
-    }
-    return Image.network(
-      src,
+    return TripwiseNetworkImage(
+      imageUrl: url,
+      fallbackSeed: fallbackSeed,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const ColoredBox(
-        color: TripwiseColors.surfaceContainerLow,
-        child: Center(
-          child: Icon(
-            Icons.broken_image_rounded,
-            color: TripwiseColors.onSurfaceVariant,
-          ),
-        ),
-      ),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return const ColoredBox(
-          color: TripwiseColors.surfaceContainerLow,
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        );
-      },
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }
@@ -517,7 +505,10 @@ class _HeroBookingCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _NetImage(url: item.imageUrl),
+          _NetImage(
+            url: item.imageUrl,
+            fallbackSeed: _tripActivityImageSeed(item),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -679,7 +670,12 @@ class _SmallBookingCard extends StatelessWidget {
             height: 140,
             child: Stack(
               children: [
-                Positioned.fill(child: _NetImage(url: data.imageUrl)),
+                Positioned.fill(
+                  child: _NetImage(
+                    url: data.imageUrl,
+                    fallbackSeed: _tripActivityImageSeed(data),
+                  ),
+                ),
                 Positioned(
                   top: 12,
                   right: 12,
@@ -749,7 +745,12 @@ class _WideBookingCard extends StatelessWidget {
         children: [
           Expanded(
             flex: 1,
-            child: SizedBox.expand(child: _NetImage(url: data.imageUrl)),
+            child: SizedBox.expand(
+              child: _NetImage(
+                url: data.imageUrl,
+                fallbackSeed: _tripActivityImageSeed(data),
+              ),
+            ),
           ),
           Expanded(
             flex: 2,

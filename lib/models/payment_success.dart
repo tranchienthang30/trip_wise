@@ -114,6 +114,8 @@ class PaymentSuccessItem {
   PaymentSuccessItem({
     required this.id,
     required this.serviceType,
+    required this.serviceId,
+    required this.hotelId,
     required this.title,
     required this.subtitle,
     required this.startDate,
@@ -128,6 +130,8 @@ class PaymentSuccessItem {
 
   final String id;
   final String serviceType;
+  final int? serviceId;
+  final int? hotelId;
   final String title;
   final String? subtitle;
   final String? startDate;
@@ -143,6 +147,8 @@ class PaymentSuccessItem {
     return PaymentSuccessItem(
       id: json['id'] as String? ?? '',
       serviceType: json['serviceType'] as String? ?? 'hotel',
+      serviceId: (json['serviceId'] as num?)?.toInt(),
+      hotelId: (json['hotelId'] as num?)?.toInt(),
       title: json['title'] as String? ?? 'Tripwise booking',
       subtitle: json['subtitle'] as String?,
       startDate: json['startDate'] as String?,

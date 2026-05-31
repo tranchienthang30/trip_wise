@@ -64,6 +64,7 @@ class MyTripCard {
   MyTripCard({
     required this.id,
     required this.bookingId,
+    required this.hotelId,
     required this.activityId,
     required this.title,
     required this.subtitle,
@@ -86,6 +87,7 @@ class MyTripCard {
 
   final String id;
   final String bookingId;
+  final int? hotelId;
   final int? activityId;
   final String title;
   final String subtitle;
@@ -109,6 +111,7 @@ class MyTripCard {
     return MyTripCard(
       id: json['id'] as String? ?? '',
       bookingId: json['bookingId'] as String? ?? '',
+      hotelId: (json['hotelId'] as num?)?.toInt(),
       activityId: (json['activityId'] as num?)?.toInt(),
       title: json['title'] as String? ?? 'Trip',
       subtitle: json['subtitle'] as String? ?? '',

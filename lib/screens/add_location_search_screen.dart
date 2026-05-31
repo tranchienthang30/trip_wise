@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/search_data.dart';
 import '../services/search_api.dart';
-import '../utils/tripwise_image_provider.dart';
+import '../widgets/tripwise_network_image.dart';
 
 const String _flightTileAssetPath = 'assets/images/flight_plane_v2.jpg';
 const double _searchTileImageWidth = 116;
@@ -342,6 +342,7 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
               valueLabel: item.valueLabel,
               metaLabel: item.metaLabel,
               imageUrl: item.imageUrl,
+              fallbackSeed: 'flight-${item.id}',
               usePlaneImage: true,
               onTap: () => _showTravelPreview(
                 typeLabel: 'Flight',
@@ -372,6 +373,7 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
               valueLabel: item.valueLabel,
               metaLabel: item.metaLabel,
               imageUrl: item.imageUrl,
+              fallbackSeed: 'tour-${item.id}',
               onTap: () => _showTravelPreview(
                 typeLabel: 'Tour',
                 icon: Icons.explore_rounded,
@@ -1042,7 +1044,10 @@ class _HotelResultTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Row(
           children: [
-            _SearchTileImage(imageUrl: item.imageUrl),
+            _SearchTileImage(
+              imageUrl: item.imageUrl,
+              fallbackSeed: 'hotel-${item.id}',
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -1111,6 +1116,7 @@ class _TravelResultTile extends StatelessWidget {
     required this.valueLabel,
     required this.metaLabel,
     required this.imageUrl,
+    required this.fallbackSeed,
     required this.onTap,
     this.usePlaneImage = false,
   });
@@ -1121,6 +1127,7 @@ class _TravelResultTile extends StatelessWidget {
   final String valueLabel;
   final String metaLabel;
   final String? imageUrl;
+  final String fallbackSeed;
   final VoidCallback onTap;
   final bool usePlaneImage;
 
@@ -1157,6 +1164,7 @@ class _TravelResultTile extends StatelessWidget {
           children: [
             _SearchTileImage(
               imageUrl: imageUrl,
+              fallbackSeed: fallbackSeed,
               forcePlaneImage: usePlaneImage,
               height: imageHeight,
             ),
@@ -1264,11 +1272,13 @@ class _TravelResultTile extends StatelessWidget {
 class _SearchTileImage extends StatelessWidget {
   const _SearchTileImage({
     required this.imageUrl,
+    required this.fallbackSeed,
     this.forcePlaneImage = false,
     this.height = _searchTileImageHeight,
   });
 
   final String? imageUrl;
+  final String fallbackSeed;
   final bool forcePlaneImage;
   final double height;
 
@@ -1314,35 +1324,13 @@ class _SearchTileImage extends StatelessWidget {
       );
     }
 
-    final imageProvider = tripwiseImageProvider(imageUrl);
-    if (imageProvider == null) {
-      return Container(
-        width: _searchTileImageWidth,
-        height: height,
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      );
-    }
-
-    return Image(
-      image: imageProvider,
+    return TripwiseNetworkImage(
+      imageUrl: imageUrl,
+      fallbackSeed: fallbackSeed,
       width: _searchTileImageWidth,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        width: _searchTileImageWidth,
-        height: height,
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      ),
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }

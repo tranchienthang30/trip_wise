@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../models/my_trips.dart';
 import '../services/my_trips_api.dart';
-import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key, this.initialStatus, this.focusBookingId});
@@ -16,6 +16,18 @@ class MyTripsScreen extends StatefulWidget {
 
   @override
   State<MyTripsScreen> createState() => _MyTripsScreenState();
+}
+
+String _myTripImageSeed(MyTripCard item) {
+  if (item.serviceType == 'hotel' && item.hotelId != null && item.hotelId! > 0) {
+    return 'hotel-${item.hotelId}';
+  }
+  if (item.serviceType == 'activity' && item.activityId != null && item.activityId! > 0) {
+    return 'tour-${item.activityId}';
+  }
+  final image = item.imageUrl.trim();
+  if (image.isNotEmpty) return '${item.serviceType}-image-$image';
+  return '${item.serviceType}-${item.id}';
 }
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
@@ -324,7 +336,11 @@ class _TripListCard extends StatelessWidget {
             child: SizedBox(
               width: 92,
               height: 92,
-              child: _TripImage(url: item.imageUrl, height: 92),
+              child: _TripImage(
+                url: item.imageUrl,
+                fallbackSeed: _myTripImageSeed(item),
+                height: 92,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -507,37 +523,25 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _TripImage extends StatelessWidget {
-  const _TripImage({required this.url, required this.height});
+  const _TripImage({
+    required this.url,
+    required this.fallbackSeed,
+    required this.height,
+  });
 
   final String url;
+  final String fallbackSeed;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = tripwiseImageProvider(url);
-    if (imageProvider == null) {
-      return Container(
-        color: TripwiseColors.surfaceContainer,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      );
-    }
-
-    return Image(
-      image: imageProvider,
+    return TripwiseNetworkImage(
+      imageUrl: url,
+      fallbackSeed: fallbackSeed,
       height: height,
+      width: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        color: TripwiseColors.surfaceContainer,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      ),
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }

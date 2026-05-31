@@ -8,12 +8,19 @@ import '../services/orders_api.dart';
 import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class OrderManagerScreen extends StatefulWidget {
   const OrderManagerScreen({super.key});
 
   @override
   State<OrderManagerScreen> createState() => _OrderManagerScreenState();
+}
+
+String _providerOrderImageSeed(ProviderOrder order) {
+  final image = order.imageUrl.trim();
+  if (image.isNotEmpty) return '${order.serviceType}-image-$image';
+  return '${order.serviceType}-${order.id}';
 }
 
 class _OrderManagerScreenState extends State<OrderManagerScreen> {
@@ -547,26 +554,31 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
             height: isWide ? null : 200,
             width: isWide ? 300 : double.infinity,
             constraints: isWide ? const BoxConstraints(minHeight: 280) : null,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage(order.imageUrl),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    const Color(0xFF181C22).withValues(alpha: 0.6),
-                    Colors.transparent,
-                  ],
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                TripwiseNetworkImage(
+                  imageUrl: order.imageUrl,
+                  fallbackSeed: _providerOrderImageSeed(order),
+                  fit: BoxFit.cover,
+                  placeholderColor: TripwiseColors.surfaceContainerLow,
                 ),
-              ),
-              alignment: Alignment.bottomLeft,
-              padding: const EdgeInsets.all(24),
-              child: _buildStatusPill('PREMIUM BOOKING', isPremium: true),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        const Color(0xFF181C22).withValues(alpha: 0.6),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  alignment: Alignment.bottomLeft,
+                  padding: const EdgeInsets.all(24),
+                  child: _buildStatusPill('PREMIUM BOOKING', isPremium: true),
+                ),
+              ],
             ),
           ),
           if (isWide)

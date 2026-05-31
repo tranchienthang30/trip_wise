@@ -12,6 +12,7 @@ import '../services/provider_listings_api.dart';
 import '../widgets/review_card.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class ProviderListingManagementScreen extends StatefulWidget {
   const ProviderListingManagementScreen({super.key});
@@ -471,6 +472,7 @@ class _ListingRowCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: _ListingImagePreview(
               imageUrl: item.imageUrl,
+              fallbackSeed: 'hotel-${item.id}',
               width: 92,
               height: 92,
             ),
@@ -707,6 +709,7 @@ class _ProviderListingDetailSheetState
                     borderRadius: BorderRadius.circular(16),
                     child: _ListingImagePreview(
                       imageUrl: detail?.imageUrl ?? widget.fallbackImageUrl,
+                      fallbackSeed: 'hotel-${widget.listingId}',
                       width: double.infinity,
                       height: 190,
                     ),
@@ -953,11 +956,13 @@ String _statusLabel(String status) {
 class _ListingImagePreview extends StatelessWidget {
   const _ListingImagePreview({
     required this.imageUrl,
+    required this.fallbackSeed,
     required this.width,
     required this.height,
   });
 
   final String imageUrl;
+  final String fallbackSeed;
   final double width;
   final double height;
 
@@ -982,22 +987,24 @@ class _ListingImagePreview extends StatelessWidget {
         return _fallback();
       }
     }
-    return Image.network(
-      url,
+    return TripwiseNetworkImage(
+      imageUrl: url,
+      fallbackSeed: fallbackSeed,
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _fallback(),
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 
   Widget _fallback() {
-    return Container(
+    return TripwiseNetworkImage(
+      imageUrl: null,
+      fallbackSeed: fallbackSeed,
       width: width,
       height: height,
-      color: TripwiseColors.surfaceContainer,
-      alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported_rounded),
+      fit: BoxFit.cover,
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }

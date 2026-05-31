@@ -6,6 +6,7 @@ import '../constants/colors.dart';
 import '../models/payment_success.dart';
 import '../services/payments_api.dart';
 import '../utils/eticket_pdf.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
   const PaymentSuccessScreen({
@@ -19,6 +20,21 @@ class PaymentSuccessScreen extends StatefulWidget {
 
   @override
   State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
+}
+
+String _paymentImageSeed(PaymentSuccess data) {
+  final first = data.items.isNotEmpty ? data.items.first : null;
+  if (first == null) return 'booking-${data.bookingId}';
+  if (first.hotelId != null && first.hotelId! > 0) {
+    return 'hotel-${first.hotelId}';
+  }
+  if (first.serviceId != null && first.serviceId! > 0) {
+    final prefix = first.serviceType == 'activity' ? 'tour' : first.serviceType;
+    return '$prefix-${first.serviceId}';
+  }
+  final image = first.imageUrl.trim();
+  if (image.isNotEmpty) return '${first.serviceType}-image-$image';
+  return '${first.serviceType}-${first.id}';
 }
 
 class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
@@ -204,6 +220,7 @@ class _PaymentSuccessContent extends StatelessWidget {
               const SizedBox(height: 16),
               _ArrivalImage(
                 imageUrl: data.imageUrl,
+                fallbackSeed: _paymentImageSeed(data),
                 arrivalDateLabel: data.arrivalDateLabel,
               ),
               if (data.ticket.code.isNotEmpty) ...[
@@ -325,10 +342,12 @@ class _InfoTile extends StatelessWidget {
 class _ArrivalImage extends StatelessWidget {
   const _ArrivalImage({
     required this.imageUrl,
+    required this.fallbackSeed,
     required this.arrivalDateLabel,
   });
 
   final String imageUrl;
+  final String fallbackSeed;
   final String arrivalDateLabel;
 
   @override
@@ -341,20 +360,12 @@ class _ArrivalImage extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl.isEmpty)
-              _ImageFallback()
-            else
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _ImageFallback(),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  );
-                },
-              ),
+            TripwiseNetworkImage(
+              imageUrl: imageUrl,
+              fallbackSeed: fallbackSeed,
+              fit: BoxFit.cover,
+              placeholderColor: TripwiseColors.surfaceContainerLow,
+            ),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

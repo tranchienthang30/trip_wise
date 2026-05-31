@@ -6,10 +6,10 @@ import '../constants/colors.dart';
 import '../models/my_trip_detail.dart';
 import '../services/my_trips_api.dart';
 import '../utils/eticket_pdf.dart';
-import '../utils/tripwise_image_provider.dart';
 import '../widgets/review_card.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class MyTripBookingDetailScreen extends StatefulWidget {
   const MyTripBookingDetailScreen({
@@ -22,6 +22,15 @@ class MyTripBookingDetailScreen extends StatefulWidget {
   @override
   State<MyTripBookingDetailScreen> createState() =>
       _MyTripBookingDetailScreenState();
+}
+
+String _myTripDetailImageSeed(MyTripDetail detail) {
+  if (detail.serviceType == 'hotel' && detail.hotelId != null && detail.hotelId! > 0) {
+    return 'hotel-${detail.hotelId}';
+  }
+  final image = detail.imageUrl.trim();
+  if (image.isNotEmpty) return '${detail.serviceType}-image-$image';
+  return '${detail.serviceType}-${detail.id}';
 }
 
 class _MyTripBookingDetailScreenState
@@ -314,7 +323,10 @@ class _BookingDetailBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _HeroImage(url: detail.imageUrl),
+            _HeroImage(
+              url: detail.imageUrl,
+              fallbackSeed: _myTripDetailImageSeed(detail),
+            ),
             const SizedBox(height: 18),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1091,32 +1103,23 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _HeroImage extends StatelessWidget {
-  const _HeroImage({required this.url});
+  const _HeroImage({required this.url, required this.fallbackSeed});
 
   final String url;
+  final String fallbackSeed;
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = tripwiseImageProvider(url);
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: imageProvider == null
-            ? const _ImageFallback(icon: Icons.image_rounded)
-            : Image(
-                image: imageProvider,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const _ImageFallback(icon: Icons.broken_image_rounded),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const _ImageFallback(
-                    icon: Icons.image_rounded,
-                    showSpinner: true,
-                  );
-                },
-              ),
+        child: TripwiseNetworkImage(
+          imageUrl: url,
+          fallbackSeed: fallbackSeed,
+          fit: BoxFit.cover,
+          placeholderColor: TripwiseColors.surfaceContainerLow,
+        ),
       ),
     );
   }
