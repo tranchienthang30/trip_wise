@@ -61,6 +61,28 @@ class DirectMessagesApi {
     }
   }
 
+  Future<DirectConversationDetail> openProviderListingConversation({
+    required String providerId,
+    required int listingId,
+  }) async {
+    try {
+      final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
+        '/messages/conversations',
+        data: {
+          'providerId': providerId,
+          'listingId': listingId,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw StateError('Empty response from /messages/conversations');
+      }
+      return DirectConversationDetail.fromJson(data);
+    } on DioException catch (error) {
+      throw _toException(error);
+    }
+  }
+
   Future<DirectMessage> sendMessage(String conversationId, String body) async {
     try {
       final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(

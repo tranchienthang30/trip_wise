@@ -13,11 +13,15 @@ class DirectMessagingScreen extends StatefulWidget {
     super.key,
     this.conversationId,
     this.orderId,
+    this.providerId,
+    this.listingId,
     this.mode,
   });
 
   final String? conversationId;
   final String? orderId;
+  final String? providerId;
+  final int? listingId;
   final String? mode;
 
   @override
@@ -50,7 +54,8 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
   bool get _isProviderMode => widget.mode?.trim().toLowerCase() != 'user';
   bool get _hasRemoteTarget =>
       (widget.conversationId?.trim().isNotEmpty ?? false) ||
-      (widget.orderId?.trim().isNotEmpty ?? false);
+      (widget.orderId?.trim().isNotEmpty ?? false) ||
+      (widget.providerId?.trim().isNotEmpty ?? false);
   bool get _isLocalAssistantMode => !_isProviderMode && !_hasRemoteTarget;
 
   @override
@@ -116,6 +121,15 @@ class _DirectMessagingScreenState extends State<DirectMessagingScreen> {
     final orderId = widget.orderId?.trim();
     if (orderId != null && orderId.isNotEmpty) {
       return _api.openOrderConversation(orderId);
+    }
+
+    final providerId = widget.providerId?.trim();
+    final listingId = widget.listingId;
+    if (providerId != null && providerId.isNotEmpty && listingId != null) {
+      return _api.openProviderListingConversation(
+        providerId: providerId,
+        listingId: listingId,
+      );
     }
 
     final conversationId = widget.conversationId?.trim();

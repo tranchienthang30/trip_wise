@@ -25,6 +25,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   bool _isLoading = true;
   String? _error;
   String? _acceptingOrderId;
+  String? _rejectingOrderId;
 
   static const List<_OrderTab> _tabs = [
     _OrderTab(
@@ -116,6 +117,28 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     } finally {
       if (mounted) {
         setState(() => _acceptingOrderId = null);
+      }
+    }
+  }
+
+  Future<void> _rejectOrder(ProviderOrder order) async {
+    setState(() => _rejectingOrderId = order.id);
+
+    try {
+      await _ordersApi.rejectOrder(order.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Rejected ${order.bookingId}')));
+      await _loadOrders();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not reject order: $error')));
+    } finally {
+      if (mounted) {
+        setState(() => _rejectingOrderId = null);
       }
     }
   }
@@ -800,7 +823,10 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
 
   Widget _buildActions(ProviderOrder order, {required bool isPremium}) {
     final isAccepting = _acceptingOrderId == order.id;
-    final canAccept = order.isPending && !isAccepting;
+    final isRejecting = _rejectingOrderId == order.id;
+    final isUpdating = isAccepting || isRejecting;
+    final canAccept = order.isPending && !isUpdating;
+    final canReject = order.isPending && !isUpdating;
 
     return Row(
       children: [
@@ -829,6 +855,35 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                   ),
           ),
         ),
+        if (order.isPending) ...[
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: canReject ? () => _rejectOrder(order) : null,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: TripwiseColors.error,
+                side: const BorderSide(color: TripwiseColors.error),
+                padding: EdgeInsets.symmetric(vertical: isPremium ? 20 : 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isRejecting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Reject',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
+        ],
         const SizedBox(width: 12),
         ElevatedButton(
           onPressed: () => context.push(

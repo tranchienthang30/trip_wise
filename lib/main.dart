@@ -527,6 +527,8 @@ final GoRouter _router = GoRouter(
         DirectMessagingScreen(
           conversationId: state.uri.queryParameters['conversationId'],
           orderId: state.uri.queryParameters['orderId'],
+          providerId: state.uri.queryParameters['providerId'],
+          listingId: int.tryParse(state.uri.queryParameters['listingId'] ?? ''),
           mode: state.uri.queryParameters['mode'],
         ),
       ),

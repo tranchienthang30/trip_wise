@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/colors.dart';
 import '../models/hotel_detail.dart';
+import '../services/direct_messages_api.dart';
 import '../services/hotels_api.dart';
 import '../services/my_trips_api.dart';
 import '../utils/currency.dart';
@@ -34,6 +35,7 @@ class ServiceDetailsScreen extends StatefulWidget {
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final HotelsApi _api = HotelsApi();
   final MyTripsApi _myTripsApi = MyTripsApi();
+  final DirectMessagesApi _directMessagesApi = DirectMessagesApi();
   late Future<HotelDetail> _future;
   HotelDetail? _data;
   bool _isCancelling = false;
@@ -71,12 +73,49 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
-  void _onContactSupport() {
-    final orderId = _data?.existingBooking?.bookingItemId.trim();
-    final query = orderId == null || orderId.isEmpty
-        ? 'mode=user'
-        : 'mode=user&orderId=${Uri.encodeQueryComponent(orderId)}';
-    context.push('/direct_messaging?$query');
+  Future<void> _onContactSupport() async {
+    final data = _data;
+    if (data == null) return;
+
+    final orderId = data.existingBooking?.bookingItemId.trim();
+    if (orderId != null && orderId.isNotEmpty) {
+      final query = Uri(
+        queryParameters: {
+          'mode': 'user',
+          'orderId': orderId,
+        },
+      ).query;
+      context.push('/direct_messaging?$query');
+      return;
+    }
+
+    final providerId = data.host?.id.trim();
+    if (providerId == null || providerId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Provider contact is not available.')),
+      );
+      return;
+    }
+
+    try {
+      final detail = await _directMessagesApi.openProviderListingConversation(
+        providerId: providerId,
+        listingId: data.id,
+      );
+      if (!mounted) return;
+      final query = Uri(
+        queryParameters: {
+          'mode': 'user',
+          'conversationId': detail.conversation.id,
+        },
+      ).query;
+      context.push('/direct_messaging?$query');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not open chat: $error')));
+    }
   }
 
   String _bookingRoute(HotelDetail data) {

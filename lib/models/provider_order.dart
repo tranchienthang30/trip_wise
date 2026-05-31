@@ -62,6 +62,7 @@ class ProviderOrderCounts {
 class ProviderOrder {
   ProviderOrder({
     required this.id,
+    required this.itemIds,
     required this.bookingId,
     required this.status,
     required this.statusLabel,
@@ -86,6 +87,7 @@ class ProviderOrder {
   });
 
   final String id;
+  final List<String> itemIds;
   final String bookingId;
   final String status;
   final String statusLabel;
@@ -114,6 +116,9 @@ class ProviderOrder {
   factory ProviderOrder.fromJson(Map<String, dynamic> json) {
     return ProviderOrder(
       id: json['id'] as String,
+      itemIds: (json['itemIds'] as List? ?? const [])
+          .whereType<String>()
+          .toList(),
       bookingId: json['bookingId'] as String? ?? '',
       status: json['status'] as String? ?? 'pending',
       statusLabel: json['statusLabel'] as String? ?? 'PENDING',
