@@ -230,17 +230,24 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
   }
 
   Widget _buildToolbar() {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [_buildFilterTabs(), _buildSortMenu(), _buildTicketLookup()],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [_buildFilterTabs(), _buildSortMenu()],
+        ),
+        const SizedBox(height: 16),
+        _buildTicketLookup(),
+      ],
     );
   }
 
   Widget _buildTicketLookup() {
     return SizedBox(
-      width: 320,
+      width: double.infinity,
       child: TextField(
         controller: _ticketCodeController,
         textInputAction: TextInputAction.search,
