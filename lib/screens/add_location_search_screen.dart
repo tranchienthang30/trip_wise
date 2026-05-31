@@ -155,6 +155,131 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
     return uri.replace(queryParameters: query).toString();
   }
 
+  void _showTravelPreview({
+    required String typeLabel,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String valueLabel,
+    required String metaLabel,
+    required String checkoutRoute,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+            decoration: BoxDecoration(
+              color: TripwiseColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.14),
+                  blurRadius: 26,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: TripwiseColors.outlineVariant,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: TripwiseColors.primaryFixed,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(icon, color: TripwiseColors.primary),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            typeLabel.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: TripwiseColors.primary,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.1,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.08,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: TripwiseColors.onSurfaceVariant,
+                                  height: 1.35,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _PreviewPill(
+                      icon: Icons.payments_rounded,
+                      label: valueLabel,
+                    ),
+                    _PreviewPill(
+                      icon: Icons.schedule_rounded,
+                      label: metaLabel,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      context.push(checkoutRoute);
+                    },
+                    style: TripwiseButtonStyles.primaryElevated(radius: 14),
+                    child: const Text('Continue to booking'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   List<SearchCategoryChip> get _fallbackCategories {
     return [
       SearchCategoryChip(key: 'all', label: 'All', enabled: true),
@@ -218,8 +343,14 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
               metaLabel: item.metaLabel,
               imageUrl: item.imageUrl,
               usePlaneImage: true,
-              onTap: () => context.push(
-                _checkoutRoute(type: 'flight', id: item.id),
+              onTap: () => _showTravelPreview(
+                typeLabel: 'Flight',
+                icon: Icons.flight_takeoff_rounded,
+                title: item.title,
+                subtitle: item.subtitle,
+                valueLabel: item.valueLabel,
+                metaLabel: item.metaLabel,
+                checkoutRoute: _checkoutRoute(type: 'flight', id: item.id),
               ),
             ),
           ),
@@ -241,8 +372,14 @@ class _AddLocationSearchScreenState extends State<AddLocationSearchScreen> {
               valueLabel: item.valueLabel,
               metaLabel: item.metaLabel,
               imageUrl: item.imageUrl,
-              onTap: () => context.push(
-                _checkoutRoute(type: 'activity', id: item.id),
+              onTap: () => _showTravelPreview(
+                typeLabel: 'Tour',
+                icon: Icons.explore_rounded,
+                title: item.title,
+                subtitle: item.subtitle,
+                valueLabel: item.valueLabel,
+                metaLabel: item.metaLabel,
+                checkoutRoute: _checkoutRoute(type: 'activity', id: item.id),
               ),
             ),
           ),
@@ -325,6 +462,37 @@ bool _hasNoResults(SearchData data) {
       data.hotels.isEmpty &&
       data.flights.isEmpty &&
       data.tours.isEmpty;
+}
+
+class _PreviewPill extends StatelessWidget {
+  const _PreviewPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: TripwiseColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: TripwiseColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 String _screenTitle(String category) {
