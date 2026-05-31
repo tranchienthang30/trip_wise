@@ -3,10 +3,11 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/colors.dart';
 import '../models/home_content.dart';
+import '../services/hotels_api.dart';
 import '../services/home_api.dart';
-import '../utils/tripwise_image_provider.dart';
 import '../widgets/shared_taskbars.dart';
 import '../widgets/shared_top_bars.dart';
+import '../widgets/tripwise_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,6 +74,7 @@ class _HomeBody extends StatefulWidget {
 }
 
 class _HomeBodyState extends State<_HomeBody> {
+  final HotelsApi _hotelsApi = HotelsApi();
   DateTimeRange _selectedDates = _defaultDateRange();
   _GuestSelection _guests = const _GuestSelection(adults: 2);
 
@@ -82,7 +84,19 @@ class _HomeBodyState extends State<_HomeBody> {
     if (route == null || route.isEmpty) {
       return;
     }
-    context.push(_routeWithTripParams(route));
+    final targetRoute = _routeWithTripParams(route);
+    final hotelId = _hotelIdFromRoute(targetRoute);
+    if (hotelId != null) {
+      _hotelsApi.prefetchHotelDetail(hotelId);
+    }
+    context.push(targetRoute);
+  }
+
+  int? _hotelIdFromRoute(String route) {
+    final uri = Uri.tryParse(route);
+    if (uri == null || uri.pathSegments.length < 2) return null;
+    if (uri.pathSegments.first != 'service_details') return null;
+    return int.tryParse(uri.pathSegments[1]);
   }
 
   String _routeWithTripParams(String route) {
@@ -820,7 +834,7 @@ class _OfferCard extends StatelessWidget {
             children: [
               _NetworkFillImage(
                 imageUrl: offer.imageUrl,
-                fallbackSeed: offer.title,
+                fallbackSeed: 'hotel-${offer.hotelId}',
               ),
               Container(
                 decoration: BoxDecoration(
@@ -1028,7 +1042,7 @@ class _RecommendedCard extends StatelessWidget {
             children: [
               _NetworkFillImage(
                 imageUrl: item.imageUrl,
-                fallbackSeed: item.title,
+                fallbackSeed: 'hotel-${item.hotelId}',
               ),
               Container(
                 decoration: BoxDecoration(
@@ -1122,7 +1136,7 @@ class _HotelTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: _ThumbnailImage(
             imageUrl: hotel.imageUrl,
-            fallbackSeed: hotel.name,
+            fallbackSeed: 'hotel-${hotel.hotelId}',
           ),
         ),
         const SizedBox(width: 14),
@@ -1230,29 +1244,10 @@ class _NetworkFillImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = tripwiseImageProvider(imageUrl);
-    if (imageProvider == null) {
-      return _FallbackNetworkImage(seed: fallbackSeed);
-    }
-
-    return Image(
-      image: imageProvider,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _FallbackNetworkImage(seed: fallbackSeed),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) {
-          return child;
-        }
-        return Container(
-          color: TripwiseColors.surfaceContainerLow,
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      },
+    return TripwiseNetworkImage(
+      imageUrl: imageUrl,
+      fallbackSeed: fallbackSeed,
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }
@@ -1265,90 +1260,15 @@ class _ThumbnailImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = tripwiseImageProvider(imageUrl);
-    if (imageProvider == null) {
-      return _FallbackNetworkImage(
-        width: 82,
-        height: 82,
-        seed: fallbackSeed,
-      );
-    }
-
-    return Image(
-      image: imageProvider,
+    return TripwiseNetworkImage(
+      imageUrl: imageUrl,
+      fallbackSeed: fallbackSeed,
       width: 82,
       height: 82,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _FallbackNetworkImage(
-        width: 82,
-        height: 82,
-        seed: fallbackSeed,
-      ),
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
-}
-
-class _FallbackNetworkImage extends StatelessWidget {
-  const _FallbackNetworkImage({
-    required this.seed,
-    this.width,
-    this.height,
-  });
-
-  final String seed;
-  final double? width;
-  final double? height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.network(
-      _fallbackImageFor(seed),
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _SoftImageFallback(
-        width: width,
-        height: height,
-      ),
-    );
-  }
-}
-
-class _SoftImageFallback extends StatelessWidget {
-  const _SoftImageFallback({this.width, this.height});
-
-  final double? width;
-  final double? height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFE4EEF8),
-            Color(0xFFAEB8C4),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _fallbackImageFor(String seed) {
-  const images = [
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
-  ];
-
-  final hash = seed.codeUnits.fold<int>(0, (value, unit) => value + unit);
-  return images[hash.abs() % images.length];
 }
 
 Color _toneColor(String tone) {

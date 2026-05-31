@@ -7,8 +7,8 @@ import '../models/hotel_detail.dart';
 import '../services/hotels_api.dart';
 import '../services/my_trips_api.dart';
 import '../utils/currency.dart';
-import '../utils/tripwise_image_provider.dart';
 import '../widgets/review_card.dart';
+import '../widgets/tripwise_network_image.dart';
 import 'image_gallery_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
@@ -18,12 +18,14 @@ class ServiceDetailsScreen extends StatefulWidget {
     this.startDate,
     this.endDate,
     this.guests,
+    this.manageBooking = false,
   });
 
   final int hotelId;
   final String? startDate;
   final String? endDate;
   final String? guests;
+  final bool manageBooking;
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -42,8 +44,12 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     _load();
   }
 
-  void _load() {
-    _future = _api.fetchHotelDetail(widget.hotelId);
+  void _load({bool forceRefresh = false}) {
+    _future = _api.fetchHotelDetail(
+      widget.hotelId,
+      includeExistingBooking: widget.manageBooking,
+      forceRefresh: forceRefresh,
+    );
     _future
         .then((data) {
           if (!mounted) return;
@@ -55,7 +61,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   void _retry() {
     setState(() {
       _data = null;
-      _load();
+      _load(forceRefresh: true);
     });
   }
 
@@ -156,7 +162,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         future: _future,
         builder: (context, snapshot) {
           final data = snapshot.data;
-          final existingBooking = data?.existingBooking;
+          final existingBooking =
+              widget.manageBooking ? data?.existingBooking : null;
           final isCancellationPending =
               existingBooking?.isCancellationPending ?? false;
           final canCancel =
@@ -276,7 +283,11 @@ class _DetailBody extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => ImageGalleryScreen(images: images, initialIndex: index),
+        builder: (_) => ImageGalleryScreen(
+          images: images,
+          initialIndex: index,
+          fallbackSeed: 'hotel-${data.id}',
+        ),
       ),
     );
   }
@@ -290,6 +301,7 @@ class _DetailBody extends StatelessWidget {
         children: [
           _HeroGrid(
             images: data.images,
+            fallbackSeed: 'hotel-${data.id}',
             onTapImage: (i) => _openGallery(context, data.images, i),
           ),
           const SizedBox(height: 28),
@@ -341,49 +353,18 @@ class _DetailBody extends StatelessWidget {
 // ---------- Network image with graceful fallback ----------
 
 class _NetImage extends StatelessWidget {
-  const _NetImage(this.url);
+  const _NetImage(this.url, {required this.fallbackSeed});
 
   final String url;
+  final String fallbackSeed;
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = tripwiseImageProvider(url);
-    if (imageProvider == null) {
-      return Container(
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          size: 36,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      );
-    }
-
-    return Image(
-      image: imageProvider,
+    return TripwiseNetworkImage(
+      imageUrl: url,
+      fallbackSeed: fallbackSeed,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        color: TripwiseColors.surfaceContainerLow,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          size: 36,
-          color: TripwiseColors.onSurfaceVariant,
-        ),
-      ),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          color: TripwiseColors.surfaceContainerLow,
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      },
+      placeholderColor: TripwiseColors.surfaceContainerLow,
     );
   }
 }
@@ -391,9 +372,14 @@ class _NetImage extends StatelessWidget {
 // ---------- Hero grid (adapts to 1 / 2 / 3+ images) ----------
 
 class _HeroGrid extends StatelessWidget {
-  const _HeroGrid({required this.images, required this.onTapImage});
+  const _HeroGrid({
+    required this.images,
+    required this.fallbackSeed,
+    required this.onTapImage,
+  });
 
   final List<String> images;
+  final String fallbackSeed;
   final ValueChanged<int> onTapImage;
 
   Widget _tile({required int index, required double radius, Widget? overlay}) {
@@ -405,7 +391,10 @@ class _HeroGrid extends StatelessWidget {
           onTap: () => onTapImage(index),
           child: Stack(
             fit: StackFit.expand,
-            children: [_NetImage(images[index]), if (overlay != null) overlay],
+            children: [
+              _NetImage(images[index], fallbackSeed: fallbackSeed),
+              if (overlay != null) overlay,
+            ],
           ),
         ),
       ),
@@ -415,17 +404,16 @@ class _HeroGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) {
-      return Container(
-        height: 220,
-        decoration: BoxDecoration(
-          color: TripwiseColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_rounded,
-          size: 48,
-          color: TripwiseColors.onSurfaceVariant,
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          height: 220,
+          width: double.infinity,
+          child: TripwiseNetworkImage(
+            imageUrl: null,
+            fallbackSeed: fallbackSeed,
+            placeholderColor: TripwiseColors.surfaceContainerLow,
+          ),
         ),
       );
     }

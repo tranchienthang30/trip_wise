@@ -433,6 +433,9 @@ final GoRouter _router = GoRouter(
             startDate: q['startDate'],
             endDate: q['endDate'],
             guests: q['guests'],
+            manageBooking:
+                q['manageBooking'] == 'true' ||
+                q['includeExistingBooking'] == 'true',
           ),
         );
       },

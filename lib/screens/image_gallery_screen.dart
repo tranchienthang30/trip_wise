@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/tripwise_network_image.dart';
+
 class ImageGalleryScreen extends StatefulWidget {
   const ImageGalleryScreen({
     super.key,
     required this.images,
     this.initialIndex = 0,
+    this.fallbackSeed = 'tripwise-gallery',
   });
 
   final List<String> images;
   final int initialIndex;
+  final String fallbackSeed;
 
   @override
   State<ImageGalleryScreen> createState() => _ImageGalleryScreenState();
@@ -63,22 +67,11 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
           minScale: 1,
           maxScale: 4,
           child: Center(
-            child: Image.network(
-              widget.images[i],
+            child: TripwiseNetworkImage(
+              imageUrl: widget.images[i],
+              fallbackSeed: widget.fallbackSeed,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.broken_image_rounded,
-                color: Colors.white54,
-                size: 64,
-              ),
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
-                );
-              },
+              placeholderColor: Colors.black,
             ),
           ),
         ),
