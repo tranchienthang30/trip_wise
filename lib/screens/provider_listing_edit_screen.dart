@@ -106,7 +106,7 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
         _titleController.text = detail.title;
         _descriptionController.text = detail.description;
         _locationController.text = detail.location;
-        _priceController.text = detail.pricePerNight.toStringAsFixed(0);
+        _priceController.text = _formatNumber(detail.pricePerNight);
         _roomTypeController.text = detail.roomType;
         _bedroomsController.text = '${detail.bedrooms}';
         _bathroomsController.text = '${detail.bathrooms}';
@@ -137,7 +137,7 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
       _titleController.text = draft.title;
       _descriptionController.text = draft.description;
       _locationController.text = draft.location;
-      _priceController.text = draft.pricePerNight.toStringAsFixed(0);
+      _priceController.text = _formatNumber(draft.pricePerNight);
       _roomTypeController.text = '${draft.category} Suite';
       _bedroomsController.text = '${draft.bedrooms}';
       _bathroomsController.text = '${draft.bathrooms}';
@@ -155,6 +155,17 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
   Future<void> _save() async {
     final id = _listingId;
     if (_isSaving) return;
+
+    final maxGuests = _readPositiveInt(_maxGuestsController, 'Max guests');
+    final bedrooms = _readPositiveInt(_bedroomsController, 'Bedrooms');
+    final bathrooms = _readPositiveInt(_bathroomsController, 'Bathrooms');
+    final pricePerNight = _readPositiveMoney(_priceController, 'Price per night');
+    if (maxGuests == null ||
+        bedrooms == null ||
+        bathrooms == null ||
+        pricePerNight == null) {
+      return;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -183,10 +194,10 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               category: _selectedCategory,
               location: _locationController.text.trim(),
               description: _descriptionController.text.trim(),
-              maxGuests: _toInt(_maxGuestsController.text) ?? 2,
-              bedrooms: _toInt(_bedroomsController.text) ?? 1,
-              bathrooms: _toInt(_bathroomsController.text) ?? 1,
-              pricePerNight: _toDouble(_priceController.text) ?? 200,
+              maxGuests: maxGuests,
+              bedrooms: bedrooms,
+              bathrooms: bathrooms,
+              pricePerNight: pricePerNight,
               amenities: amenities,
               imageUpload: imageUpload,
             )
@@ -197,10 +208,10 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
               location: _locationController.text.trim(),
               category: _selectedCategory,
               roomType: _roomTypeController.text.trim(),
-              pricePerNight: _toDouble(_priceController.text),
-              bedrooms: _toInt(_bedroomsController.text),
-              bathrooms: _toInt(_bathroomsController.text),
-              maxGuests: _toInt(_maxGuestsController.text),
+              pricePerNight: pricePerNight,
+              bedrooms: bedrooms,
+              bathrooms: bathrooms,
+              maxGuests: maxGuests,
               amenities: amenities,
               imageUpload: imageUpload,
             );
@@ -415,7 +426,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                     controller: _priceController,
                     label: 'Price per night',
                     icon: Icons.attach_money_rounded,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildTextField(
@@ -430,6 +443,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                           controller: _bedroomsController,
                           label: 'Bedrooms',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -438,6 +454,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                           controller: _bathroomsController,
                           label: 'Bathrooms',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -446,6 +465,9 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
                           controller: _maxGuestsController,
                           label: 'Max guests',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                     ],
@@ -605,11 +627,13 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
     required String label,
     IconData? icon,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     int maxLines = 1,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
@@ -706,14 +730,38 @@ class _ProviderListingEditScreenState extends State<ProviderListingEditScreen> {
     );
   }
 
-  int? _toInt(String value) {
-    if (value.trim().isEmpty) return null;
-    return int.tryParse(value.trim());
+  int? _readPositiveInt(TextEditingController controller, String label) {
+    final text = controller.text.trim();
+    final value = int.tryParse(text);
+    if (value == null || value <= 0) {
+      _showValidationError('$label must be a whole number greater than 0.');
+      return null;
+    }
+    return value;
   }
 
-  double? _toDouble(String value) {
-    if (value.trim().isEmpty) return null;
-    return double.tryParse(value.trim());
+  double? _readPositiveMoney(TextEditingController controller, String label) {
+    final text = controller.text.trim();
+    final value = double.tryParse(text);
+    if (value == null || value <= 0) {
+      _showValidationError('$label must be a number greater than 0.');
+      return null;
+    }
+    return value;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: TripwiseColors.error,
+      ),
+    );
+  }
+
+  String _formatNumber(num value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
   }
 
   String _inferMimeType(String fileName) {

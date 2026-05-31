@@ -72,10 +72,29 @@ class _ProviderRegistrationFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TripwiseColors.surface,
-      appBar: const PlannerAppBar(backRoute: '/profile_registration'),
-      body: SingleChildScrollView(
+    return PopScope(
+      canPop: _currentStep == 1,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || _currentStep == 1) return;
+        setState(() => _currentStep = 1);
+      },
+      child: Scaffold(
+        backgroundColor: TripwiseColors.surface,
+        appBar: PlannerAppBar(
+          backRoute: '/profile_registration',
+          onBack: () {
+            if (_currentStep > 1) {
+              setState(() => _currentStep = 1);
+              return;
+            }
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/profile_registration');
+          },
+        ),
+        body: SingleChildScrollView(
         child: Padding(
           padding: TripwiseInsets.screen,
           child: Form(
@@ -374,6 +393,7 @@ class _ProviderRegistrationFormScreenState
               ],
             ),
           ),
+        ),
         ),
       ),
     );

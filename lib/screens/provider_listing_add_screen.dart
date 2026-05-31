@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/colors.dart';
 import '../widgets/shared_taskbars.dart';
@@ -171,7 +172,9 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -188,6 +191,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                           contentPadding: const EdgeInsets.all(16),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -203,6 +207,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                           contentPadding: const EdgeInsets.all(16),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -218,6 +223,7 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
                           contentPadding: const EdgeInsets.all(16),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       ),
                     ),
                   ],
@@ -342,9 +348,41 @@ class _ProviderListingAddScreenState extends State<ProviderListingAddScreen> {
   }
 
   void _submitListing() {
+    if (!_validateNumbers()) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Listing created successfully!')),
     );
     Navigator.of(context).pop();
+  }
+
+  bool _validateNumbers() {
+    if (_positiveMoney(_priceController.text) == null) {
+      _showValidationError('Price per night must be a number greater than 0.');
+      return false;
+    }
+    for (final entry in [
+      (label: 'Bedrooms', value: _bedroomsController.text),
+      (label: 'Bathrooms', value: _bathroomsController.text),
+      (label: 'Max Guests', value: _guestsController.text),
+    ]) {
+      final value = int.tryParse(entry.value.trim());
+      if (value == null || value <= 0) {
+        _showValidationError('${entry.label} must be a whole number greater than 0.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  double? _positiveMoney(String raw) {
+    final value = double.tryParse(raw.trim());
+    if (value == null || value <= 0) return null;
+    return value;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: TripwiseColors.error),
+    );
   }
 }

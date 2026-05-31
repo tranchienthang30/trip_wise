@@ -811,11 +811,16 @@ class _ListingDetailMetrics extends StatelessWidget {
         ),
         _MetricPill(
           icon: Icons.payments_rounded,
-          label: '\$${detail.pricePerNight.round()}/night',
+          label: '\$${_formatListingPrice(detail.pricePerNight)}/night',
         ),
       ],
     );
   }
+}
+
+String _formatListingPrice(num value) {
+  if (value % 1 == 0) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
 }
 
 class _ProviderReviewItem extends StatelessWidget {

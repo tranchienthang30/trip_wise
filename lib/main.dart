@@ -96,6 +96,7 @@ String? _logicalBackRouteFor(String path) {
   if (path == '/trip_planner_timeline') return '/trip_planner_dashboard';
   if (path.startsWith('/my_trip_booking_detail/')) return '/my_trips';
   if (path == '/profile_verification') return '/profile_registration';
+  if (path == '/provider_registration') return '/profile_registration';
   if (path == '/provider_registration_form') return '/profile_registration';
   if (path == '/elite_upgrade_confirmation') return '/vip_services';
   return null;

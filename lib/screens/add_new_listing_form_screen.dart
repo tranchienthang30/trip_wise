@@ -81,6 +81,17 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
       return;
     }
 
+    final maxGuests = _readPositiveInt(_maxGuestsController, 'Max guests');
+    final bedrooms = _readPositiveInt(_bedroomsController, 'Bedrooms');
+    final bathrooms = _readPositiveInt(_bathroomsController, 'Bathrooms');
+    final pricePerNight = _readPositiveMoney(_priceController, 'Price per night');
+    if (maxGuests == null ||
+        bedrooms == null ||
+        bathrooms == null ||
+        pricePerNight == null) {
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       ProviderListingDraftStore.save(
@@ -90,10 +101,10 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
           location: location,
           description: _descriptionController.text.trim(),
           roomsCount: _roomsCount,
-          maxGuests: _safeInt(_maxGuestsController.text, 2),
-          bedrooms: _safeInt(_bedroomsController.text, 1),
-          bathrooms: _safeInt(_bathroomsController.text, 1),
-          pricePerNight: _safeDouble(_priceController.text, 200),
+          maxGuests: maxGuests,
+          bedrooms: bedrooms,
+          bathrooms: bathrooms,
+          pricePerNight: pricePerNight,
           amenities: _amenities.toList(),
           imageFileName: _listingImage!.name,
           imageMimeType: _inferMimeType(_listingImage!.name),
@@ -256,7 +267,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                           controller: _priceController,
                           label: 'Price per night (USD)',
                           hint: '200',
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                         ),
                       ),
                     ],
@@ -270,6 +283,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                           label: 'Bedrooms',
                           hint: '1',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -279,6 +295,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                           label: 'Bathrooms',
                           hint: '1',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -288,6 +307,9 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
                           label: 'Max guests',
                           hint: '2',
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ),
                     ],
@@ -381,6 +403,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     required String hint,
     IconData? icon,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     int maxLines = 1,
   }) {
     return Column(
@@ -391,6 +414,7 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
@@ -644,16 +668,31 @@ class _AddNewListingFormScreenState extends State<AddNewListingFormScreen> {
     );
   }
 
-  int _safeInt(String raw, int fallback) {
-    final v = int.tryParse(raw.trim());
-    if (v == null || v <= 0) return fallback;
-    return v;
+  int? _readPositiveInt(TextEditingController controller, String label) {
+    final value = int.tryParse(controller.text.trim());
+    if (value == null || value <= 0) {
+      _showValidationError('$label must be a whole number greater than 0.');
+      return null;
+    }
+    return value;
   }
 
-  double _safeDouble(String raw, double fallback) {
-    final v = double.tryParse(raw.trim());
-    if (v == null || v <= 0) return fallback;
-    return v;
+  double? _readPositiveMoney(TextEditingController controller, String label) {
+    final value = double.tryParse(controller.text.trim());
+    if (value == null || value <= 0) {
+      _showValidationError('$label must be a number greater than 0.');
+      return null;
+    }
+    return value;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: TripwiseColors.error,
+      ),
+    );
   }
 
   String _inferMimeType(String fileName) {
