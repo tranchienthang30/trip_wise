@@ -171,21 +171,33 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               !isCancellationPending &&
               existingBooking.canCancel &&
               existingBooking.bookingItemId.isNotEmpty;
+          final hasBookablePrice =
+              data?.priceFrom != null && data!.priceFrom! > 0;
           return _BookingBar(
-            price: data == null ? '—' : formatUsd(data.priceFrom),
+            price: data == null
+                ? '...'
+                : hasBookablePrice
+                    ? formatUsd(data.priceFrom)
+                    : 'Price unavailable',
+            hasBookablePrice: hasBookablePrice,
             freeCancellation: data?.policies.freeCancellation ?? false,
             ctaLabel: isCancellationPending
                 ? 'Cancel pending'
                 : canCancel
-                ? 'Request cancel'
-                : 'Book Now',
+                    ? 'Request cancel'
+                    : !hasBookablePrice
+                        ? 'Unavailable'
+                        : 'Book Now',
             isCancelAction: canCancel,
             isBusy: _isCancelling,
-            onTap: data == null || _isCancelling || isCancellationPending
+            onTap: data == null ||
+                    _isCancelling ||
+                    isCancellationPending ||
+                    (!canCancel && !hasBookablePrice)
                 ? null
                 : canCancel
-                ? _cancelExistingBooking
-                : () => context.push(_bookingRoute(data)),
+                    ? _cancelExistingBooking
+                    : () => context.push(_bookingRoute(data)),
           );
         },
       ),
@@ -955,6 +967,7 @@ class _ReviewsSection extends StatelessWidget {
 class _BookingBar extends StatelessWidget {
   const _BookingBar({
     required this.price,
+    required this.hasBookablePrice,
     required this.freeCancellation,
     required this.ctaLabel,
     required this.onTap,
@@ -963,6 +976,7 @@ class _BookingBar extends StatelessWidget {
   });
 
   final String price;
+  final bool hasBookablePrice;
   final bool freeCancellation;
   final String ctaLabel;
   final VoidCallback? onTap;
@@ -1010,16 +1024,17 @@ class _BookingBar extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        '/ night',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: TripwiseColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
+                      if (hasBookablePrice)
+                        Text(
+                          '/ night',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: TripwiseColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                  if (freeCancellation) ...[
+                  if (freeCancellation && hasBookablePrice) ...[
                     const SizedBox(height: 4),
                     const Text(
                       'FREE CANCELLATION',
@@ -1088,3 +1103,4 @@ class _BookingBar extends StatelessWidget {
     );
   }
 }
+
