@@ -293,7 +293,7 @@ class _ProviderListingManagementScreenState
       if (!mounted) return;
       _showSnack(
         targetStatus == 'inactive'
-            ? 'Listing moved to inactive.'
+            ? 'Listing closed for new orders.'
             : 'Listing submitted for review.',
       );
       await _loadListings();
@@ -1046,7 +1046,7 @@ class _ListingCardMenu extends StatelessWidget {
             value: _ListingCardAction.activate,
             child: _MenuLabel(
               icon: Icons.publish_rounded,
-              label: 'Set active (review)',
+              label: 'Reopen receiving orders',
             ),
           )
         else
@@ -1054,7 +1054,7 @@ class _ListingCardMenu extends StatelessWidget {
             value: _ListingCardAction.deactivate,
             child: _MenuLabel(
               icon: Icons.visibility_off_rounded,
-              label: 'Set inactive',
+              label: 'Close receiving orders',
             ),
           ),
         const PopupMenuDivider(height: 8),

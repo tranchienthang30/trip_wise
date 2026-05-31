@@ -731,6 +731,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       case 'COMPLETED':
         return const Color(0xFFD8F3DC);
       case 'CANCELLED':
+      case 'REJECTED':
         return const Color(0xFFFFDAD6);
       case 'PENDING':
       default:
@@ -745,6 +746,7 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
       case 'COMPLETED':
         return const Color(0xFF123D22);
       case 'CANCELLED':
+      case 'REJECTED':
         return const Color(0xFF410002);
       case 'PENDING':
       default:
@@ -827,6 +829,29 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
     final isUpdating = isAccepting || isRejecting;
     final canAccept = order.isPending && !isUpdating;
     final canReject = order.isPending && !isUpdating;
+    final contactButton = ElevatedButton.icon(
+      onPressed: () => context.push(
+        '/direct_messaging?mode=provider&orderId=${Uri.encodeQueryComponent(order.id)}',
+      ),
+      style: TripwiseButtonStyles.surfaceElevated(
+        radius: 12,
+        backgroundColor: TripwiseColors.surfaceContainerLow,
+        foregroundColor: TripwiseColors.primary,
+        padding: EdgeInsets.symmetric(
+          vertical: isPremium ? 20 : 16,
+          horizontal: isPremium ? 28 : 20,
+        ),
+      ),
+      icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+      label: const Text(
+        'Contact',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+
+    if (!order.isPending) {
+      return SizedBox(width: double.infinity, child: contactButton);
+    }
 
     return Row(
       children: [
@@ -846,71 +871,41 @@ class _OrderManagerScreenState extends State<OrderManagerScreen> {
                       color: Colors.white,
                     ),
                   )
-                : Text(
-                    order.isPending ? 'Accept' : order.statusLabel,
-                    style: const TextStyle(
+                : const Text(
+                    'Accept',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: canReject ? () => _rejectOrder(order) : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: TripwiseColors.error,
+              side: const BorderSide(color: TripwiseColors.error),
+              padding: EdgeInsets.symmetric(vertical: isPremium ? 20 : 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: isRejecting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Reject',
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
           ),
         ),
-        if (order.isPending) ...[
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton(
-              onPressed: canReject ? () => _rejectOrder(order) : null,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: TripwiseColors.error,
-                side: const BorderSide(color: TripwiseColors.error),
-                padding: EdgeInsets.symmetric(vertical: isPremium ? 20 : 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: isRejecting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Reject',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
-          ),
-        ],
         const SizedBox(width: 12),
-        ElevatedButton(
-          onPressed: () => context.push(
-            '/direct_messaging?mode=provider&orderId=${Uri.encodeQueryComponent(order.id)}',
-          ),
-          style: TripwiseButtonStyles.surfaceElevated(
-            radius: 12,
-            backgroundColor: TripwiseColors.surfaceContainerLow,
-            foregroundColor: TripwiseColors.primary,
-            padding: EdgeInsets.symmetric(
-              vertical: isPremium ? 20 : 16,
-              horizontal: isPremium ? 32 : 24,
-            ),
-          ),
-          child: isPremium
-              ? const Row(
-                  children: [
-                    Icon(Icons.contact_support_rounded),
-                    SizedBox(width: 8),
-                    Text(
-                      'Contact',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                )
-              : const Icon(Icons.chat_bubble_rounded),
-        ),
+        contactButton,
       ],
     );
   }

@@ -212,6 +212,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               existingBooking.bookingItemId.isNotEmpty;
           final hasBookablePrice =
               data?.priceFrom != null && data!.priceFrom! > 0;
+          final isAcceptingOrders = data?.isAcceptingOrders ?? true;
+          final canCreateBooking = hasBookablePrice && isAcceptingOrders;
           return _BookingBar(
             price: data == null
                 ? '...'
@@ -219,20 +221,23 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                     ? formatUsd(data.priceFrom)
                     : 'Price unavailable',
             hasBookablePrice: hasBookablePrice,
-            freeCancellation: data?.policies.freeCancellation ?? false,
+            freeCancellation:
+                (data?.policies.freeCancellation ?? false) && canCreateBooking,
             ctaLabel: isCancellationPending
                 ? 'Cancel pending'
                 : canCancel
                     ? 'Request cancel'
                     : !hasBookablePrice
                         ? 'Unavailable'
-                        : 'Book Now',
+                        : !isAcceptingOrders
+                            ? 'Closed'
+                            : 'Book Now',
             isCancelAction: canCancel,
             isBusy: _isCancelling,
             onTap: data == null ||
                     _isCancelling ||
                     isCancellationPending ||
-                    (!canCancel && !hasBookablePrice)
+                    (!canCancel && !canCreateBooking)
                 ? null
                 : canCancel
                     ? _cancelExistingBooking

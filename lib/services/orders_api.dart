@@ -38,9 +38,12 @@ class OrdersApi {
     return ProviderOrder.fromJson(data);
   }
 
-  Future<ProviderOrder> rejectOrder(String id) async {
+  Future<ProviderOrder> rejectOrder(String id, {String? reason}) async {
     final response = await ApiClient.instance.dio.post<Map<String, dynamic>>(
       '/orders/$id/reject',
+      data: {
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
     );
 
     final data = response.data;

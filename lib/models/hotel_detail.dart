@@ -19,6 +19,7 @@ class HotelDetail {
     required this.currency,
     required this.host,
     required this.policies,
+    required this.isAcceptingOrders,
     required this.isFavoritedByMe,
     required this.googleMapUrl,
     required this.reviewsPreview,
@@ -42,6 +43,7 @@ class HotelDetail {
   final String currency;
   final HotelHost? host;
   final HotelPolicies policies;
+  final bool isAcceptingOrders;
   final bool isFavoritedByMe;
   final String? googleMapUrl;
   final List<Review> reviewsPreview;
@@ -72,6 +74,7 @@ class HotelDetail {
       policies: HotelPolicies.fromJson(
         (json['policies'] as Map<String, dynamic>?) ?? const {},
       ),
+      isAcceptingOrders: json['isAcceptingOrders'] as bool? ?? true,
       isFavoritedByMe: json['isFavoritedByMe'] as bool? ?? false,
       googleMapUrl: json['googleMapUrl'] as String?,
       reviewsPreview: (json['reviewsPreview'] as List? ?? const [])
